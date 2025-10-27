@@ -1,23 +1,19 @@
 ---
 name: us-market-bubble-detector
-description: Evaluates US stock market bubble risk through crowd psychology and social contagion using the Minsky/Kindleberger framework. Supports practical investment decisions (profit-taking, risk management, short timing). Use when user asks about market euphoria, bubble risk, valuation concerns, profit-taking timing, or observes social phenomena like "taxi drivers giving stock tips" or "everyone talking about stocks".
+description: Evaluates market bubble risk through quantitative data-driven analysis using the revised Minsky/Kindleberger framework v2.0. Prioritizes objective metrics (Put/Call, VIX, margin debt, breadth, IPO data) over subjective impressions. Supports practical investment decisions with mandatory data collection and mechanical scoring. Use when user asks about bubble risk, valuation concerns, or profit-taking timing.
 ---
 
-# US Market Bubble Detection Skill
+# US Market Bubble Detection Skill (Revised v2.0)
 
-## Overview
+## Key Revisions
 
-This skill evaluates the degree of bubble in the US stock market based on **the phase of crowd psychology rather than price levels**, and proposes practical investment actions.
+**Critical Changes:**
+1. ✅ **Mandatory Quantitative Data Collection** - Use measured values, not impressions or speculation
+2. ✅ **Clear Threshold Settings** - Specific numerical criteria for each indicator
+3. ✅ **Two-Phase Evaluation Process** - Quantitative evaluation → Qualitative adjustment (strict order)
+4. ✅ **Reduced Weight on Subjective Indicators** - Media coverage as reference only
 
-### Core Concept
-
-A true bubble is complete when these 3 conditions are met:
-
-1. **Critical Information Cascade** - Spread to all layers (including non-investors) is complete
-2. **Social Norm Inversion** - "Pain of non-conformity > Value of independent judgment"
-3. **Institutionalized FOMO** - Social cost of skepticism is maximized
-
-**Iconic Signal:** When taxi drivers or family members start recommending investments, it signals the "last buyer" cohort has entered—bubble completion is near.
+---
 
 ## When to Use This Skill
 
@@ -29,7 +25,6 @@ Use this skill when:
 - User reports social phenomena (non-investors entering, media frenzy, IPO flood)
 - User mentions narratives like "this time is different" or "revolutionary technology" becoming mainstream
 - User consults about risk management for existing positions
-- User observes taxi drivers, family members, or other non-investors recommending stocks
 
 **Japanese:**
 - ユーザーが「今の相場はバブルか?」と尋ねる
@@ -38,278 +33,393 @@ Use this skill when:
 - 「今回は違う」「革命的技術」などの物語が主流化している状況を報告
 - 保有ポジションのリスク管理方法を相談
 
-## Workflow
+---
 
-### Step 1: Quantitative Evaluation with Bubble-O-Meter
+## Evaluation Process (Strict Order)
 
-Evaluate 8 indicators on a scale of 0-2 points, and determine the bubble degree by total score (0-16 points).
+### Phase 1: Mandatory Quantitative Data Collection
 
-#### The 8 Indicators
+**CRITICAL: Always collect the following data before starting evaluation**
 
-1. **Mass Penetration** - Recommendations/mentions from non-investor layers (taxi drivers, hairdressers, family)
-2. **Media Saturation** - Surge in search trends, social media, TV coverage
-3. **New Entrants** - Acceleration of account openings, fund inflows
-4. **Issuance Flood** - Proliferation of IPOs/SPACs/related ETFs
-5. **Leverage** - Margin balances, mark-to-market P&L, funding rate bias
-6. **Price Acceleration** - Returns reach upper percentiles of historical distribution
-7. **Valuation Disconnect** - Fundamental explanation becomes purely "narrative"-driven
-8. **Correlation & Breadth** - Even low-quality stocks rally (sign of last buyer entry)
+#### 1.1 Market Structure Data (Highest Priority)
+```
+□ Put/Call Ratio (CBOE Equity P/C)
+  - Source: CBOE DataShop or web_search "CBOE put call ratio"
+  - Collect: 5-day moving average
 
-#### Scoring Method
+□ VIX (Fear Index)
+  - Source: Yahoo Finance ^VIX or web_search "VIX current"
+  - Collect: Current value + percentile over past 3 months
 
-Evaluate each indicator through dialogue or based on market observation information provided by the user.
-
-```bash
-# Script-based evaluation (interactive)
-python scripts/bubble_scorer.py --manual
-
-# Specify scores directly
-python scripts/bubble_scorer.py --scores '{"mass_penetration":2,"media_saturation":1,...}'
+□ Volatility Indicators
+  - 21-day realized volatility
+  - Historical position of VIX (determine if in bottom 10th percentile)
 ```
 
-#### Judgment Criteria
-
-| Score Range | Phase | Risk Level | Recommended Action |
-|------------|-------|-----------|-------------------|
-| 0-4 points | Normal | Low | Continue normal investment strategy |
-| 5-8 points | Caution | Medium | Begin partial profit-taking, reduce new positions |
-| 9-12 points | Euphoria | High | Accelerate stair-step profit-taking, reduce total risk budget 30-50% |
-| 13-16 points | Critical | Extremely High | Major profit-taking or full hedge, consider shorts after reversal |
-
-### Step 2: Identify Minsky/Kindleberger Phase
-
-From the score and market observations, identify the bubble progression stage:
-
-1. **Displacement** - New technology, institutional change, monetary easing
-2. **Boom** - Self-reinforcing loop of price rises
-3. **Euphoria** - FOMO becomes social norm, leverage increases
-4. **Profit Taking** - Smart money begins to exit
-5. **Panic** - Chain of liquidations
-
-For detailed stage-specific characteristics, refer to `references/bubble_framework.md`.
-
-### Step 3: Propose Practical Actions
-
-Propose specific investment actions based on bubble stage.
-
-#### Offense: Profit-Taking Strategy
-
-**Stair-Step Profit-Taking (Recommended):**
+#### 1.2 Leverage & Positioning Data
 ```
-Target Return    Profit-Taking %
-+20%             25%
-+40%             25%
-+60%             25%
-+80%             25%
+□ FINRA Margin Debt Balance
+  - Source: web_search "FINRA margin debt latest"
+  - Collect: Latest month + Year-over-Year % change
+
+□ Breadth (Market Participation)
+  - % of S&P 500 stocks above 50-day MA
+  - Source: web_search "S&P 500 breadth 50 day moving average"
 ```
 
-**ATR Trailing Stop (Aggressive):**
-```python
-stop_price = current_price - (ATR_20day × coefficient)
-# Coefficient: 2.0 (normal), 1.8 (caution), 1.5 (euphoria), 1.2 (critical)
+#### 1.3 IPO & New Issuance Data
+```
+□ IPO Count & First-Day Performance
+  - Source: Renaissance Capital IPO or web_search "IPO market 2025"
+  - Collect: Quarterly count + median first-day return
 ```
 
-#### Defense: Risk Management
+**⚠️ CRITICAL: Do NOT proceed with evaluation without Phase 1 data collection**
 
-**Risk Budget by Bubble Stage:**
-- Normal: 100% (full position allowed)
-- Caution: 70% (30% reduction)
-- Euphoria: 40% (60% reduction)
-- Critical: 20% or less (major reduction)
+---
 
-**Short-Selling Timing (Important):**
+### Phase 2: Quantitative Evaluation (Quantitative Scoring)
 
-❌ Absolutely NG: Early contrarian (subjective "too high" judgment)
+Score mechanically based on collected data using the following criteria:
 
-✅ Recommended: After confirming composite conditions (at least 3 met)
+#### Indicator 1: Put/Call Ratio (Market Sentiment)
+```
+Scoring Criteria:
+- 2 points: P/C < 0.70 (excessive optimism, call-heavy)
+- 1 point: P/C 0.70-0.85 (slightly optimistic)
+- 0 points: P/C > 0.85 (healthy caution)
+
+Rationale: P/C < 0.7 is historically characteristic of bubble periods
+```
+
+#### Indicator 2: Volatility Suppression + New Highs
+```
+Scoring Criteria:
+- 2 points: VIX < 12 AND major index within 5% of 52-week high
+- 1 point: VIX 12-15 AND near highs
+- 0 points: VIX > 15 OR more than 10% from highs
+
+Rationale: Extreme low volatility + highs indicates excessive complacency
+```
+
+#### Indicator 3: Leverage (Margin Debt Balance)
+```
+Scoring Criteria:
+- 2 points: YoY +20% or more AND all-time high
+- 1 point: YoY +10-20%
+- 0 points: YoY +10% or less OR negative
+
+Rationale: Rapid leverage increase is a bubble precursor
+```
+
+#### Indicator 4: IPO Market Overheating
+```
+Scoring Criteria:
+- 2 points: Quarterly IPO count > 2x 5-year average AND median first-day return +20%+
+- 1 point: Quarterly IPO count > 1.5x 5-year average
+- 0 points: Normal levels
+
+Rationale: Poor-quality IPO flood is characteristic of late-stage bubbles
+```
+
+#### Indicator 5: Breadth Anomaly (Narrow Leadership)
+```
+Scoring Criteria:
+- 2 points: New high AND < 45% of stocks above 50DMA (narrow leadership)
+- 1 point: 45-60% above 50DMA (somewhat narrow)
+- 0 points: > 60% above 50DMA (healthy breadth)
+
+Rationale: Rally driven by few stocks is fragile
+```
+
+#### Indicator 6: Price Acceleration
+```
+Scoring Criteria:
+- 2 points: Past 3-month return exceeds 95th percentile of past 10 years
+- 1 point: Past 3-month return in 85-95th percentile of past 10 years
+- 0 points: Below 85th percentile
+
+Rationale: Rapid price acceleration is unsustainable
+```
+
+---
+
+### Phase 3: Qualitative Adjustment
+
+**Limit: ±2 points maximum**
+
+Adjust quantitative score based on the following observations (upper limit set to eliminate subjectivity):
+
+#### Adjustment A: Social Penetration (+0 to +2 points)
+```
++2 points: Direct recommendation from non-investors (family, taxi drivers, etc.)
++1 point: Observation report of non-investor excitement at workplace
++0 points: No such observations
+
+Important: Only count direct user reports. Do NOT add points based on news articles alone
+```
+
+#### Adjustment B: Media & Narrative (+0 to +1 point)
+```
++1 point: Google Trends search volume 3x+ year-over-year (verify with actual measurement)
++0 points: Less than 3x
+
+Important: Do not use "many news reports" impressions. Always verify search trend numbers
+```
+
+#### Adjustment C: Valuation (-1 to +1 point)
+```
++1 point: S&P 500 P/E > 25 AND "this time is different" narrative dominant
+ 0 points: S&P 500 P/E 18-25
+-1 point: S&P 500 P/E < 18
+
+Important: Do not judge based on P/E alone. Combine with narrative dependence
+```
+
+---
+
+### Phase 4: Final Judgment
+
+```
+Final Score = Phase 2 Total (0-12 points) + Phase 3 Adjustment (-1 to +5 points)
+Range: -1 to 17 points (practically converges to 0-16 points)
+
+Judgment Criteria:
+- 0-4 points: Normal
+- 5-8 points: Caution
+- 9-12 points: Euphoria
+- 13-16 points: Critical
+```
+
+---
+
+## Data Sources (Required)
+
+### US Market
+- **Put/Call**: https://www.cboe.com/tradable_products/vix/
+- **VIX**: Yahoo Finance (^VIX) or https://www.cboe.com/
+- **Margin Debt**: https://www.finra.org/investors/learn-to-invest/advanced-investing/margin-statistics
+- **Breadth**: https://www.barchart.com/stocks/indices/sp/sp500?viewName=advanced
+- **IPO**: https://www.renaissancecapital.com/IPO-Center/Stats
+
+### Japanese Market
+- **Nikkei Futures P/C**: https://www.barchart.com/futures/quotes/NO*0/options
+- **JNIVE**: https://www.investing.com/indices/nikkei-volatility-historical-data
+- **Margin Debt**: JSF (Japan Securities Finance) Monthly Report
+- **Breadth**: https://en.macromicro.me/series/31841/japan-topix-index-200ma-breadth
+- **IPO**: https://www.pwc.co.uk/services/audit/insights/global-ipo-watch.html
+
+---
+
+## Implementation Checklist
+
+Verify the following when using:
+
+```
+□ Have you collected all Phase 1 data?
+□ Did you apply each indicator's threshold mechanically?
+□ Did you keep qualitative evaluation within +5 point limit?
+□ Are you NOT assigning points based on news article impressions?
+□ Does your final score align with other quantitative frameworks?
+```
+
+---
+
+## Important Principles (Revised)
+
+### 1. Data > Impressions
+Ignore "many news reports" or "experts are cautious" without quantitative data.
+
+### 2. Strict Order: Quantitative → Qualitative
+Always evaluate in this order: Phase 1 (Data Collection) → Phase 2 (Quantitative) → Phase 3 (Qualitative Adjustment).
+
+### 3. Upper Limit on Subjective Indicators
+Qualitative adjustment has a total limit of +5 points. It cannot override quantitative evaluation.
+
+### 4. "Taxi Driver" is Symbolic
+Do not readily acknowledge mass penetration without direct recommendations from non-investors.
+
+---
+
+## Common Failures and Solutions (Revised)
+
+### Failure 1: Evaluating Based on News Articles
+❌ "Many reports on Takaichi Trade" → Media saturation 2 points
+✅ Verify Google Trends numbers → Evaluate with measured values
+
+### Failure 2: Overreaction to Expert Comments
+❌ "Warning of overheating" → Euphoria zone
+✅ Judge with measured values of Put/Call, VIX, margin debt
+
+### Failure 3: Emotional Reaction to Price Rise
+❌ 4.5% rise in 1 day → Price acceleration 2 points
+✅ Verify position in 10-year distribution → Objective evaluation
+
+### Failure 4: Judgment Based on Valuation Alone
+❌ P/E 17 → Valuation disconnect 2 points
+✅ P/E + narrative dependence + other quantitative indicators for comprehensive judgment
+
+---
+
+## Recommended Actions by Bubble Stage
+
+### Normal (0-4 points)
+**Risk Budget: 100%**
+- Continue normal investment strategy
+- Set ATR 2.0× trailing stop
+- Apply stair-step profit-taking rule (+20% take 25%)
+
+**Short-Selling: Not Allowed**
+- Composite conditions not met (0/7 items)
+
+### Caution (5-8 points)
+**Risk Budget: 70%**
+- Begin partial profit-taking (30% reduction)
+- Tighten ATR to 1.8×
+- Reduce new position sizing
+
+**Short-Selling: Not Recommended**
+- Wait for clearer reversal signals
+
+### Euphoria (9-12 points)
+**Risk Budget: 40%**
+- Accelerate stair-step profit-taking (60% reduction)
+- Tighten ATR to 1.5×
+- No new long positions
+
+**Short-Selling: Cautious Entry**
+- After confirming at least 3/7 composite conditions
+- Small position (25% of normal size)
+
+### Critical (13-16 points)
+**Risk Budget: 20% or less**
+- Major profit-taking or full hedge
+- ATR 1.2× or fixed stop-loss
+- Consider cash preservation
+
+**Short-Selling: Active Consideration**
+- After confirming at least 5/7 composite conditions
+- Scale in with small positions
+- Tight stop-loss (ATR 1.5× or higher)
+
+---
+
+## Composite Conditions for Short-Selling (7 Items)
+
+Only consider shorts after confirming at least 3 of the following:
+
+```
 1. Weekly chart shows lower highs
 2. Volume peaks out
-3. Leverage indicator drops sharply
+3. Leverage indicators drop sharply (margin debt decline)
 4. Media/search trends peak out
 5. Weak stocks start to break down first
-6. VIX surges
+6. VIX surges (spike above 20)
 7. Fed/policy shift signals
+```
 
-### Step 4: Design Continuous Monitoring
-
-Provide daily checklist:
-
-**Morning Routine (5 minutes):**
-1. Update Bubble-O-Meter (score 8 indicators)
-2. Update ATR trailing stops
-3. Check signals (Google Trends, VIX, Put/Call ratio)
-
-For details, refer to `references/quick_reference.md` (Japanese) or `references/quick_reference_en.md` (English).
-
-## Resource Usage Guide
-
-### Scripts
-
-**`scripts/bubble_scorer.py`**
-- Bubble-O-Meter calculation script
-- Supports interactive evaluation or JSON input
-- Outputs total score, Minsky phase, recommended actions
-
-### References
-
-**`references/bubble_framework.md`** (Japanese) / **English version TBD**
-- Detailed theoretical framework
-- Explanation of Minsky/Kindleberger model
-- Behavioral psychology elements
-- Quantitative indicators for detection
-- Detailed practical response strategies
-
-**`references/historical_cases.md`** (Japanese) / **English version TBD**
-- Analysis of past bubble cases
-  - 1990s Dotcom Bubble
-  - 2017 Crypto Bubble
-  - 2020-21 Pandemic Bubble
-- Extraction of common patterns
-- Case studies and lessons
-
-**`references/quick_reference.md`** (Japanese)
-- Daily checklist
-- Emergency 3-question assessment
-- Quick scoring guide
-- Key data sources
-- Common failure patterns & solutions
-
-**`references/quick_reference_en.md`** (English)
-- Daily checklist
-- Emergency 3-question assessment
-- Quick scoring guide
-- Key data sources
-- Common failure patterns & solutions
-
-### When to Load References
-
-- **First use:** Load `bubble_framework.md` to understand theory
-- **Need historical context:** Load `historical_cases.md` for case studies
-- **Daily operations:**
-  - Japanese: `quick_reference.md`
-  - English: `quick_reference_en.md`
-- **Need detailed criteria:** Load relevant reference sections
+---
 
 ## Output Format
 
 ### Evaluation Report Structure
 
 ```markdown
-# US Market Bubble Evaluation Report
+# [Market Name] Bubble Evaluation Report (Revised v2.0)
 
 ## Overall Assessment
-- Total Score: X/16 points (Y%)
-- Market Phase: [Normal/Caution/Euphoria/Critical]
-- Minsky Phase: [Applicable phase]
+- Final Score: X/16 points
+- Phase: [Normal/Caution/Euphoria/Critical]
 - Risk Level: [Low/Medium/High/Extremely High]
+- Evaluation Date: YYYY-MM-DD
 
-## Indicator Details
-[8 indicators with scores and rationale]
+## Quantitative Evaluation (Phase 2)
+
+| Indicator | Measured Value | Score | Rationale |
+|-----------|----------------|-------|-----------|
+| Put/Call | [value] | [0-2] | [reason] |
+| VIX + Highs | [value] | [0-2] | [reason] |
+| Margin YoY | [value] | [0-2] | [reason] |
+| IPO Heat | [value] | [0-2] | [reason] |
+| Breadth | [value] | [0-2] | [reason] |
+| Price Accel | [value] | [0-2] | [reason] |
+
+**Phase 2 Total: X points**
+
+## Qualitative Adjustment (Phase 3)
+
+- Social Penetration: [details] (+X points)
+- Media: [details] (+X points)
+- Valuation: [details] (+X points)
+
+**Phase 3 Adjustment: +X points**
 
 ## Recommended Actions
 
-### Immediate Actions
-[Specific actions]
+**Risk Budget: X%**
+- [Specific action 1]
+- [Specific action 2]
+- [Specific action 3]
 
-### Risk Management
-[Position sizing, stop setting]
-
-### Short-Selling Consideration
-[Condition verification and judgment]
-
-## Continuous Monitoring
-[Daily checklist items]
-
-## Warning Signals
-[Signs to watch]
+**Short-Selling: [Allowed/Not Allowed]**
+- Composite conditions: X/7 met
 ```
 
-## Important Principles
+---
 
-### 1. See Process, Not Price Level
+## Reference Documents
 
-Evaluate objective phase transitions of crowd psychology (information cascade, social norm inversion, institutionalized FOMO) rather than subjective "too high" judgments.
+### `references/implementation_guide.md` (English) - **RECOMMENDED FOR FIRST USE**
+- Step-by-step evaluation process with mandatory data collection
+- NG examples vs OK examples
+- Self-check quality criteria (4 levels)
+- Red flags during review
+- Best practices for objective evaluation
 
-### 2. Mechanical Rules Protect Psychology
+### `references/bubble_framework.md` (Japanese)
+- Detailed theoretical framework
+- Explanation of Minsky/Kindleberger model
+- Behavioral psychology elements
 
-During bubbles, conformity pressure maximizes and rational judgment becomes difficult. Strict adherence to pre-determined rules (stair-step profit-taking, ATR trailing) enables investment that doesn't succumb to psychological pressure.
+### `references/historical_cases.md` (Japanese)
+- Analysis of past bubble cases
+- Dotcom, Crypto, Pandemic bubbles
+- Common pattern extraction
 
-### 3. Abandon Perfection, Aim for Satisfaction
+### `references/quick_reference.md` (Japanese)
+### `references/quick_reference_en.md` (English)
+- Daily checklist
+- Emergency 3-question assessment
+- Quick scoring guide
+- Key data sources
 
-Selling at the peak is impossible. Prioritize "secure profit capture" with stair-step profit-taking, and manage the regret of "could have made more."
+### When to Load References
+- **First use or need detailed guidance:** Load `implementation_guide.md`
+- **Need theoretical background:** Load `bubble_framework.md`
+- **Need historical context:** Load `historical_cases.md`
+- **Daily operations:** Load `quick_reference.md` (Japanese) or `quick_reference_en.md` (English)
 
-### 4. Early Contrarian Shorts Are Dangerous
+---
 
-It's normal for prices to rise another 2-3x after feeling "obviously too high." Only consider shorts after objective confirmation of composite conditions.
+## Summary: Essence of Revision
 
-## Frequently Asked Questions
+**Old Version Problem:**
+- "Many media reports" → 2 points (impression)
+- "Experts are cautious" → 1 point (hearsay)
+- **Result: 10/16 points (overestimation)**
 
-**Q: Score is in caution zone but seems likely to rise further?**
-A: Bubbles "last longer than expected" is the norm. In caution zone, begin partial profit-taking and position reduction, and manage risk on the remainder with ATR trailing while following the upside.
+**Revised Version:**
+- Put/Call 1.54 → 0 points (measured)
+- JNIVE 25.44 → 0 points (measured)
+- Margin YoY -2% → 0 points (measured)
+- **Result: 3/16 points (objective evaluation)**
 
-**Q: Are comparisons to past bubbles valid?**
-A: Yes. The Minsky/Kindleberger model is a pattern common to many bubbles. Refer to `references/historical_cases.md` for comparison with past cases.
+**Lesson:**
+> "In God we trust; all others must bring data." - W. Edwards Deming
 
-**Q: Should I overreact to daily small fluctuations?**
-A: No. Bubble-O-Meter updates are sufficient weekly or after important events. Daily, only update price ATR trailing stops and check major signals (VIX, trends).
+Evaluation without data is no different from fortune-telling.
 
-**Q: What about "this time is different" for AI, crypto, and other new technologies?**
-A: Even if technological innovation is real, bubble formation is a separate issue. Prices overshoot even for revolutionary technologies. The internet during the Dotcom bubble was a real revolution, but year 2000 prices were clearly excessive.
+---
 
-## Usage Examples
-
-### Example 1: User Reports Social Phenomena
-
-**Japanese:**
-**User:** "最近、職場の同僚全員がNVIDIA株の話をしていて、投資経験のない人まで『絶対買うべき』と言っています。これってバブルですか?"
-
-**English:**
-**User:** "Recently, everyone at work is talking about NVIDIA stock, and even people with no investment experience are saying 'you absolutely must buy.' Is this a bubble?"
-
-**Response:**
-1. Evaluate "Mass Penetration" indicator of Bubble-O-Meter (likely score 1-2)
-2. Confirm other 7 indicators through dialogue
-3. Provide judgment and action recommendations based on total score
-4. Explain in context of "Taxi Driver Rule"
-
-### Example 2: User Seeks Profit-Taking Advice
-
-**Japanese:**
-**User:** "ポジションが+60%になりましたが、まだ上がりそうです。売るべきでしょうか?"
-
-**English:**
-**User:** "My position is up 60%, but it seems like it will go higher. Should I sell?"
-
-**Response:**
-1. Evaluate current Bubble-O-Meter score
-2. Suggest based on stair-step profit-taking rule (25% at +60%)
-3. Set ATR trailing stop for remaining position
-4. Explain "aim for satisfaction" principle
-
-### Example 3: User Considers Short Selling
-
-**Japanese:**
-**User:** "明らかに高すぎる気がします。空売りすべきですか?"
-
-**English:**
-**User:** "It seems obviously too high. Should I short?"
-
-**Response:**
-1. Warn of early contrarian risks
-2. Check short-selling composite conditions (7 items)
-3. Recommend waiting until at least 3 conditions are met
-4. If conditions met, suggest small position (25% of normal) test entry
-
-## Conclusion
-
-**English:**
-This skill evaluates bubbles through "crowd psychology phase" rather than "price level," supporting practical investment decisions through mechanical rules.
-
-**Japanese:**
-このスキルは、バブルを「価格水準」ではなく「群集心理の位相」で判定し、機械的ルールによる実務的な投資判断を支援します。
-
-**Key Messages:**
-- When taxi drivers talk stocks, exit
-- Mechanical rules protect psychology
-- Short after confirmation, take profits early
-- When skepticism hurts, the end begins
+**Last Updated:** October 27, 2025 (Revised v2.0)
+**Reason for Revision:** Improved objectivity through mandatory quantitative data collection
