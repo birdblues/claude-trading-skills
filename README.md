@@ -97,6 +97,16 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - Actionable risk budgets and profit-taking strategies for each phase with specific short-selling criteria.
   - Supplemented by historical case files, quick-reference checklists (JP/EN), and implementation guide with strict scoring criteria.
 
+### Stock Screening & Selection
+
+- **Value Dividend Screener** (`value-dividend-screener`)
+  - Screens US stocks for high-quality dividend opportunities using Financial Modeling Prep (FMP) API.
+  - Multi-phase filtering: Value characteristics (P/E ≤20, P/B ≤2) + Income (Yield ≥3.5%) + Growth (3-year dividend/revenue/EPS uptrends).
+  - Advanced analysis: Dividend sustainability (payout ratios, FCF coverage), financial health (D/E, liquidity), quality scores (ROE, margins).
+  - Composite scoring system ranks stocks by overall attractiveness balancing value, growth, and quality factors.
+  - Generates top 20 ranked stocks with detailed fundamental analysis and portfolio construction guidance.
+  - Includes comprehensive screening methodology documentation and FMP API usage guide.
+
 ## Workflow Examples
 
 ### Daily Market Monitoring
@@ -122,6 +132,13 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
 2. Use **Economic Calendar Fetcher** to time entries around major data releases
 3. Use **Breadth Chart Analyst** and **Technical Analyst** for confirmation signals
 4. Use **US Market Bubble Detector** for risk management and profit-taking guidance
+
+### Income Portfolio Construction
+1. Use **Value Dividend Screener** to identify high-quality dividend stocks with sustainable yields
+2. Use **US Stock Analysis** for deep-dive fundamental analysis on top candidates
+3. Use **Earnings Calendar** to track upcoming earnings for portfolio holdings
+4. Use **Market Environment Analysis** to assess macro conditions for dividend strategies
+5. Use **Backtest Expert** to validate dividend capture or growth strategies
 
 ## Customization & Contribution
 - Update `SKILL.md` files to tweak trigger descriptions or capability notes; ensure the frontmatter name matches the folder name when zipping.
