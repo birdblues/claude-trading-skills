@@ -25,3 +25,11 @@ ENV/
 # Temporary files
 *.tmp
 *.log
+
+# Generated content - ignore files but keep folder structure
+charts/**
+blogs/**
+reports/**
+
+# Keep folder structure with .gitkeep files
+!**/.gitkeep
