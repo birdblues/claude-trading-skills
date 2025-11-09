@@ -61,6 +61,16 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - Includes indicator cheat sheets (`references/indicators.md`) and analysis patterns.
   - Helper script `scripts/market_utils.py` assists with report formatting and data visualization.
 
+- **Institutional Flow Tracker** (`institutional-flow-tracker`)
+  - Tracks institutional investor ownership changes using 13F SEC filings data to identify "smart money" accumulation and distribution patterns.
+  - Screens stocks with significant institutional ownership changes (>10-15% QoQ) and analyzes multi-quarter trends.
+  - Tier-based quality framework weights superinvestors (Berkshire, Baupost) 3.0-3.5x vs index funds 0.0-0.5x.
+  - Deep dive analysis on individual stocks: quarterly ownership trends, top holders, new/increased/decreased/closed positions.
+  - Concentration risk analysis and position change categorization (new buyers, increasers, decreasers, exits).
+  - FMP API integration with free tier sufficient for quarterly portfolio reviews (250 calls/day).
+  - Follow specific institutions like Warren Buffett (Berkshire), Cathie Wood (ARK), Bill Ackman (Pershing Square).
+  - Comprehensive reference guides: 13F filings, institutional investor types, interpretation framework with signal strength matrix.
+
 ### Economic & Earnings Calendars
 
 - **Economic Calendar Fetcher** (`economic-calendar-fetcher`)
@@ -209,6 +219,7 @@ Several skills require API keys for data access:
 |-------|---------|--------------|--------|-------|
 | **Economic Calendar Fetcher** | ✅ Required | ❌ Not used | ❌ Not used | Fetches economic events |
 | **Earnings Calendar** | ✅ Required | ❌ Not used | ❌ Not used | Fetches earnings dates |
+| **Institutional Flow Tracker** | ✅ Required | ❌ Not used | ❌ Not used | 13F filings analysis, free tier sufficient |
 | **Value Dividend Screener** | ✅ Required | 🟡 Optional | ❌ Not used | FINVIZ reduces execution time 70-80% |
 | **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional | ❌ Not used | FINVIZ for RSI pre-screening |
 | **Pair Trade Screener** | ✅ Required | ❌ Not used | ❌ Not used | Statistical arbitrage analysis |
