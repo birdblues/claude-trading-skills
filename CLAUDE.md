@@ -104,6 +104,7 @@ Skills are tested by invoking them in Claude Code conversations:
 |-------|---------|--------------|--------|-------|
 | **Economic Calendar Fetcher** | ✅ Required | ❌ Not used | ❌ Not used | Fetches economic events from FMP |
 | **Earnings Calendar** | ✅ Required | ❌ Not used | ❌ Not used | Fetches earnings dates from FMP |
+| **Institutional Flow Tracker** | ✅ Required | ❌ Not used | ❌ Not used | 13F filings analysis; free tier sufficient |
 | **Value Dividend Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | FMP for analysis; FINVIZ reduces execution time by 70-80% |
 | **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | FMP for analysis; FINVIZ for RSI pre-screening |
 | **Pair Trade Screener** | ✅ Required | ❌ Not used | ❌ Not used | Statistical arbitrage analysis |
