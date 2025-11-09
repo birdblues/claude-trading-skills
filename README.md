@@ -97,6 +97,22 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - Actionable risk budgets and profit-taking strategies for each phase with specific short-selling criteria.
   - Supplemented by historical case files, quick-reference checklists (JP/EN), and implementation guide with strict scoring criteria.
 
+- **Options Strategy Advisor** (`options-strategy-advisor`)
+  - Educational options trading tool providing theoretical pricing, strategy analysis, and risk management guidance using Black-Scholes model.
+  - Calculates all Greeks (Delta, Gamma, Theta, Vega, Rho) and supports 17+ options strategies (covered calls, spreads, iron condors, straddles, etc.).
+  - Uses FMP API for free stock data + Black-Scholes pricing to simulate strategies without expensive real-time options data ($99-500/month).
+  - P/L simulation and visualization for comparing strategies side-by-side with earnings strategy integration.
+  - Theoretical prices approximate market mid-prices; users can input actual IV from broker for better accuracy.
+  - Ideal for learning options mechanics, understanding Greeks, and strategy planning before live trading.
+
+- **Portfolio Manager** (`portfolio-manager`)
+  - Comprehensive portfolio analysis and management with Alpaca MCP Server integration for real-time holdings data.
+  - Multi-dimensional analysis: Asset allocation, sector diversification, risk metrics (beta, volatility, drawdown), and performance review.
+  - Position-level evaluation with HOLD/ADD/TRIM/SELL recommendations based on thesis validation and valuation.
+  - Generates detailed rebalancing plans with specific actions to optimize portfolio allocation toward target models.
+  - Supports model portfolios (Conservative/Moderate/Growth/Aggressive) for benchmark comparison.
+  - Requires Alpaca brokerage account (paper or live) and configured Alpaca MCP Server; manual data entry also supported.
+
 ### Stock Screening & Selection
 
 - **Value Dividend Screener** (`value-dividend-screener`)
@@ -106,6 +122,22 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - Composite scoring system ranks stocks by overall attractiveness balancing value, growth, and quality factors.
   - Generates top 20 ranked stocks with detailed fundamental analysis and portfolio construction guidance.
   - Includes comprehensive screening methodology documentation and FMP API usage guide.
+
+- **Dividend Growth Pullback Screener** (`dividend-growth-pullback-screener`)
+  - Finds high-quality dividend growth stocks (12%+ annual dividend growth, 1.5%+ yield) experiencing temporary pullbacks.
+  - Combines fundamental dividend analysis with technical timing indicators (RSI ≤40 oversold conditions).
+  - Targets stocks with exceptional dividend growth rates that compound wealth through dividend increases rather than high current yield.
+  - Two-stage screening approach: FINVIZ Elite for fast RSI pre-screening + FMP API for detailed fundamental analysis.
+  - Optimized for long-term dividend growth investors seeking entry opportunities during short-term market weakness.
+  - Generates ranked lists of quality dividend growers at attractive technical entry points.
+
+- **Pair Trade Screener** (`pair-trade-screener`)
+  - Statistical arbitrage tool for identifying and analyzing pair trading opportunities using cointegration testing.
+  - Tests for long-term equilibrium relationships between stock pairs within same sector or industry.
+  - Calculates hedge ratios, mean-reversion speed (half-life), and generates z-score-based entry/exit signals.
+  - Market-neutral strategy profiting from relative price movements regardless of overall market direction.
+  - Supports sector-wide screening and custom pair analysis with statistical rigor (ADF tests, correlation analysis).
+  - FMP API integration with JSON output for structured results and further analysis.
 
 ## Workflow Examples
 
@@ -135,10 +167,32 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
 
 ### Income Portfolio Construction
 1. Use **Value Dividend Screener** to identify high-quality dividend stocks with sustainable yields
-2. Use **US Stock Analysis** for deep-dive fundamental analysis on top candidates
-3. Use **Earnings Calendar** to track upcoming earnings for portfolio holdings
-4. Use **Market Environment Analysis** to assess macro conditions for dividend strategies
-5. Use **Backtest Expert** to validate dividend capture or growth strategies
+2. Use **Dividend Growth Pullback Screener** to find growth-focused dividend stocks at attractive technical entry points
+3. Use **US Stock Analysis** for deep-dive fundamental analysis on top candidates
+4. Use **Earnings Calendar** to track upcoming earnings for portfolio holdings
+5. Use **Market Environment Analysis** to assess macro conditions for dividend strategies
+6. Use **Backtest Expert** to validate dividend capture or growth strategies
+
+### Options Strategy Development
+1. Use **Options Strategy Advisor** to simulate and compare options strategies using Black-Scholes pricing
+2. Use **Technical Analyst** to identify optimal entry timing and support/resistance levels
+3. Use **Earnings Calendar** to plan earnings-based options strategies
+4. Use **US Stock Analysis** to validate fundamental thesis before deploying capital
+5. Review Greeks and P/L scenarios to select optimal strategy (covered calls, spreads, straddles, etc.)
+
+### Portfolio Review & Rebalancing
+1. Use **Portfolio Manager** to fetch current holdings via Alpaca MCP and analyze portfolio health
+2. Review asset allocation, sector diversification, and risk metrics (beta, volatility, concentration)
+3. Evaluate position-level recommendations (HOLD/ADD/TRIM/SELL) based on thesis validation
+4. Use **Market Environment Analysis** and **US Market Bubble Detector** to assess macro conditions
+5. Execute rebalancing plan with specific buy/sell actions to optimize allocation
+
+### Statistical Arbitrage Opportunities
+1. Use **Pair Trade Screener** to identify cointegrated stock pairs within sectors
+2. Analyze mean-reversion metrics (half-life, z-score) and hedge ratios
+3. Use **Technical Analyst** to confirm technical setups for both legs of the pair
+4. Monitor entry/exit signals based on z-score thresholds
+5. Track spread convergence and manage market-neutral positions
 
 ## Customization & Contribution
 - Update `SKILL.md` files to tweak trigger descriptions or capability notes; ensure the frontmatter name matches the folder name when zipping.
@@ -149,10 +203,42 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
 
 Several skills require API keys for data access:
 
-- **Economic Calendar Fetcher** & **Earnings Calendar**: Require [Financial Modeling Prep (FMP) API](https://financialmodelingprep.com) key
-  - Free tier: 250 requests/day
-  - Set environment variable: `export FMP_API_KEY=your_key_here`
-  - Or provide key via command-line argument when prompted
+### Skills Requiring APIs
+
+| Skill | FMP API | FINVIZ Elite | Alpaca | Notes |
+|-------|---------|--------------|--------|-------|
+| **Economic Calendar Fetcher** | ✅ Required | ❌ Not used | ❌ Not used | Fetches economic events |
+| **Earnings Calendar** | ✅ Required | ❌ Not used | ❌ Not used | Fetches earnings dates |
+| **Value Dividend Screener** | ✅ Required | 🟡 Optional | ❌ Not used | FINVIZ reduces execution time 70-80% |
+| **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional | ❌ Not used | FINVIZ for RSI pre-screening |
+| **Pair Trade Screener** | ✅ Required | ❌ Not used | ❌ Not used | Statistical arbitrage analysis |
+| **Options Strategy Advisor** | 🟡 Optional | ❌ Not used | ❌ Not used | FMP for stock data; theoretical pricing works without |
+| **Portfolio Manager** | ❌ Not used | ❌ Not used | ✅ Required | Real-time holdings via Alpaca MCP |
+
+### API Setup
+
+**Financial Modeling Prep (FMP) API:**
+- Free tier: 250 requests/day (sufficient for most use cases)
+- Sign up: https://financialmodelingprep.com/developer/docs
+- Set environment variable: `export FMP_API_KEY=your_key_here`
+- Or provide key via command-line argument when prompted
+
+**FINVIZ Elite API:**
+- Subscription: $39.99/month or $329.99/year
+- Sign up: https://elite.finviz.com/
+- Set environment variable: `export FINVIZ_API_KEY=your_key_here`
+- Provides fast pre-screening for dividend screeners
+
+**Alpaca Trading API:**
+- Free paper trading account available
+- Sign up: https://alpaca.markets/
+- Requires Alpaca MCP Server configuration
+- Set environment variables:
+  ```bash
+  export ALPACA_API_KEY="your_api_key_id"
+  export ALPACA_SECRET_KEY="your_secret_key"
+  export ALPACA_PAPER="true"  # or "false" for live trading
+  ```
 
 ## Support & Further Reading
 - Claude Skills launch overview: https://www.anthropic.com/news/skills

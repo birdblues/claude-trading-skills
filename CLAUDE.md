@@ -100,18 +100,22 @@ Skills are tested by invoking them in Claude Code conversations:
 
 #### API Requirements by Skill
 
-| Skill | FMP API | FINVIZ Elite | Notes |
-|-------|---------|--------------|-------|
-| **Economic Calendar Fetcher** | ✅ Required | ❌ Not used | Fetches economic events from FMP |
-| **Earnings Calendar** | ✅ Required | ❌ Not used | Fetches earnings dates from FMP |
-| **Value Dividend Screener** | ✅ Required | 🟡 Optional (Recommended) | FMP for analysis; FINVIZ reduces execution time by 70-80% |
-| Sector Analyst | ❌ Not required | ❌ Not used | Image-based chart analysis |
-| Technical Analyst | ❌ Not required | ❌ Not used | Image-based chart analysis |
-| Breadth Chart Analyst | ❌ Not required | ❌ Not used | Image-based chart analysis |
-| Market News Analyst | ❌ Not required | ❌ Not used | Uses WebSearch/WebFetch |
-| US Stock Analysis | ❌ Not required | ❌ Not used | User provides data |
-| Backtest Expert | ❌ Not required | ❌ Not used | User provides strategy parameters |
-| US Market Bubble Detector | ❌ Not required | ❌ Not used | User provides indicators |
+| Skill | FMP API | FINVIZ Elite | Alpaca | Notes |
+|-------|---------|--------------|--------|-------|
+| **Economic Calendar Fetcher** | ✅ Required | ❌ Not used | ❌ Not used | Fetches economic events from FMP |
+| **Earnings Calendar** | ✅ Required | ❌ Not used | ❌ Not used | Fetches earnings dates from FMP |
+| **Value Dividend Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | FMP for analysis; FINVIZ reduces execution time by 70-80% |
+| **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | FMP for analysis; FINVIZ for RSI pre-screening |
+| **Pair Trade Screener** | ✅ Required | ❌ Not used | ❌ Not used | Statistical arbitrage analysis |
+| **Options Strategy Advisor** | 🟡 Optional | ❌ Not used | ❌ Not used | FMP for stock data; Black-Scholes works without |
+| **Portfolio Manager** | ❌ Not used | ❌ Not used | ✅ Required | Real-time holdings via Alpaca MCP Server |
+| Sector Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
+| Technical Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
+| Breadth Chart Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
+| Market News Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Uses WebSearch/WebFetch |
+| US Stock Analysis | ❌ Not required | ❌ Not used | ❌ Not used | User provides data |
+| Backtest Expert | ❌ Not required | ❌ Not used | ❌ Not used | User provides strategy parameters |
+| US Market Bubble Detector | ❌ Not required | ❌ Not used | ❌ Not used | User provides indicators |
 
 #### API Key Setup
 
@@ -135,6 +139,17 @@ python3 value-dividend-screener/scripts/screen_dividend_stocks.py \
   --finviz-api-key YOUR_KEY
 ```
 
+**Alpaca Trading API:**
+```bash
+# Set environment variables
+export ALPACA_API_KEY="your_api_key_id"
+export ALPACA_SECRET_KEY="your_secret_key"
+export ALPACA_PAPER="true"  # or "false" for live trading
+
+# Configure Alpaca MCP Server in Claude Code settings
+# See portfolio-manager/references/alpaca-mcp-setup.md for detailed setup guide
+```
+
 #### API Pricing and Access
 
 **Financial Modeling Prep (FMP):**
@@ -147,12 +162,20 @@ python3 value-dividend-screener/scripts/screen_dividend_stocks.py \
 - **Elite Subscription:** $39.99/month or $329.99/year (~$27.50/month)
 - Provides advanced screeners, real-time data, and API access
 - **Sign up:** https://elite.finviz.com/
-- **Note:** FINVIZ Elite is optional for Value Dividend Screener but reduces execution time from 10-15 minutes to 2-3 minutes
+- **Note:** FINVIZ Elite is optional for dividend screeners but reduces execution time from 10-15 minutes to 2-3 minutes
 
-**Recommendation for Value Dividend Screener:**
-- **Budget Option:** FMP free tier only (run screening every few days)
-- **Optimal Option:** FINVIZ Elite ($330/year) + FMP free tier (complete solution, fast execution)
-- **Power User:** FMP paid tier only (if you need daily screening without FINVIZ)
+**Alpaca Trading:**
+- **Paper Trading:** Free (simulated money, full API access)
+- **Live Trading:** Free brokerage account, no commissions on stocks/ETFs
+- **Sign up:** https://alpaca.markets/
+- **Required for:** Portfolio Manager skill
+- **Note:** Paper trading account recommended for testing MCP integration
+
+**Recommendations by Use Case:**
+- **Dividend Screening:** FMP free tier + FINVIZ Elite ($330/year) for optimal performance
+- **Budget Dividend Screening:** FMP free tier only (slower execution)
+- **Portfolio Management:** Alpaca paper account (free) for practice, live account for production
+- **Options Education:** FMP free tier sufficient; Options Strategy Advisor works with theoretical pricing alone
 
 #### API Script Pattern
 
@@ -201,6 +224,61 @@ python3 value-dividend-screener/scripts/screen_dividend_stocks.py \
   --use-finviz \
   --top 50 \
   --output custom_results.json
+```
+
+**Dividend Growth Pullback Screener:** ⚠️ Requires FMP API key; FINVIZ Elite optional but recommended
+```bash
+# Two-stage screening with RSI filter (RECOMMENDED)
+python3 dividend-growth-pullback-screener/scripts/screen_dividend_growth.py --use-finviz
+
+# FMP-only screening (limited to ~40 stocks due to API limits)
+python3 dividend-growth-pullback-screener/scripts/screen_dividend_growth.py --max-candidates 40
+
+# Custom RSI threshold and dividend growth requirements
+python3 dividend-growth-pullback-screener/scripts/screen_dividend_growth.py \
+  --use-finviz \
+  --rsi-threshold 35 \
+  --min-div-growth 15
+```
+
+**Pair Trade Screener:** ⚠️ Requires FMP API key
+```bash
+# Screen for pairs in specific sector
+python3 pair-trade-screener/scripts/find_pairs.py --sector Technology
+
+# Analyze specific pair
+python3 pair-trade-screener/scripts/analyze_spread.py AAPL MSFT
+
+# Custom cointegration parameters
+python3 pair-trade-screener/scripts/find_pairs.py \
+  --sector Financials \
+  --min-correlation 0.7 \
+  --lookback-days 365
+```
+
+**Options Strategy Advisor:** 🟡 FMP API optional
+```bash
+# Calculate Black-Scholes price and Greeks
+python3 options-strategy-advisor/scripts/black_scholes.py \
+  --ticker AAPL \
+  --strike 150 \
+  --days-to-expiry 30 \
+  --option-type call
+
+# Analyze covered call strategy
+python3 options-strategy-advisor/scripts/black_scholes.py \
+  --ticker AAPL \
+  --strategy covered_call \
+  --stock-price 155
+```
+
+**Portfolio Manager:** ⚠️ Requires Alpaca MCP Server
+```bash
+# Test Alpaca connection
+python3 portfolio-manager/scripts/test_alpaca_connection.py
+
+# Portfolio analysis is done via Claude with Alpaca MCP tools
+# See portfolio-manager/references/alpaca-mcp-setup.md for setup
 ```
 
 ## Skill Interaction Patterns
@@ -279,6 +357,30 @@ Skills are designed to be combined for comprehensive analysis:
 2. Earnings Calendar → Check earnings dates
 3. Market News Analyst → Recent news
 4. Backtest Expert → Validate entry/exit strategy
+
+**Options Strategy Development:**
+1. Options Strategy Advisor → Simulate and compare strategies
+2. Technical Analyst → Identify optimal entry timing
+3. Earnings Calendar → Plan earnings-based strategies
+4. US Stock Analysis → Validate fundamental thesis
+
+**Portfolio Review & Rebalancing:**
+1. Portfolio Manager → Fetch holdings via Alpaca MCP
+2. Review asset allocation and risk metrics
+3. Market Environment Analysis → Assess macro conditions
+4. Execute rebalancing plan with buy/sell actions
+
+**Statistical Arbitrage:**
+1. Pair Trade Screener → Identify cointegrated pairs
+2. Technical Analyst → Confirm setups for both legs
+3. Monitor z-score signals and spread convergence
+4. Manage market-neutral positions
+
+**Income Portfolio Construction:**
+1. Value Dividend Screener → High-yield opportunities
+2. Dividend Growth Pullback Screener → Growth stocks at pullbacks
+3. US Stock Analysis → Deep-dive analysis
+4. Portfolio Manager → Monitor and rebalance holdings
 
 ## Important Conventions
 
