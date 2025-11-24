@@ -184,9 +184,93 @@ class FMPClient:
         """Get dividend history"""
         return self._get(f'historical-price-full/stock_dividend/{symbol}') or {}
 
+    def get_company_profile(self, symbol: str) -> Optional[Dict]:
+        """Get company profile including sector information."""
+        result = self._get(f'profile/{symbol}')
+        if result and isinstance(result, list) and len(result) > 0:
+            return result[0]
+        return None
+
 
 class StockAnalyzer:
     """Analyzes stock data and calculates scores"""
+
+    @staticmethod
+    def is_reit(stock_data: Dict) -> bool:
+        """
+        Determine if a stock is a REIT based on sector/industry.
+
+        Args:
+            stock_data: Dict containing sector and/or industry fields
+
+        Returns:
+            True if the stock is likely a REIT
+        """
+        sector = stock_data.get('sector', '') or ''
+        industry = stock_data.get('industry', '') or ''
+
+        sector_lower = sector.lower()
+        industry_lower = industry.lower()
+
+        if 'real estate' in sector_lower:
+            return True
+        if 'reit' in industry_lower:
+            return True
+
+        return False
+
+    @staticmethod
+    def calculate_ffo(cash_flows: List[Dict]) -> Optional[float]:
+        """
+        Calculate Funds From Operations (FFO) for REITs.
+
+        FFO = Net Income + Depreciation & Amortization
+
+        Args:
+            cash_flows: List of cash flow statements (newest first)
+
+        Returns:
+            FFO value or None if data is missing
+        """
+        if not cash_flows:
+            return None
+
+        latest_cf = cash_flows[0]
+        net_income = latest_cf.get('netIncome', 0)
+        depreciation = latest_cf.get('depreciationAndAmortization', 0)
+
+        if net_income == 0 and depreciation == 0:
+            return None
+
+        return net_income + depreciation
+
+    @staticmethod
+    def calculate_ffo_payout_ratio(cash_flows: List[Dict]) -> Optional[float]:
+        """
+        Calculate FFO payout ratio for REITs.
+
+        FFO Payout Ratio = Dividends Paid / FFO
+
+        Args:
+            cash_flows: List of cash flow statements (newest first)
+
+        Returns:
+            FFO payout ratio as percentage, or None if calculation fails
+        """
+        if not cash_flows:
+            return None
+
+        ffo = StockAnalyzer.calculate_ffo(cash_flows)
+        if not ffo or ffo <= 0:
+            return None
+
+        latest_cf = cash_flows[0]
+        dividends_paid = abs(latest_cf.get('dividendsPaid', 0))
+
+        if dividends_paid <= 0:
+            return None
+
+        return round((dividends_paid / ffo) * 100, 1)
 
     @staticmethod
     def calculate_cagr(start_value: float, end_value: float, years: int) -> Optional[float]:
@@ -274,28 +358,47 @@ class StockAnalyzer:
         return positive_trend, cagr
 
     @staticmethod
-    def analyze_dividend_sustainability(income_statements: List[Dict], cash_flows: List[Dict]) -> Dict:
-        """Analyze dividend sustainability"""
+    def analyze_dividend_sustainability(income_statements: List[Dict], cash_flows: List[Dict], is_reit: bool = False) -> Dict:
+        """
+        Analyze dividend sustainability.
+
+        For REITs, uses FFO-based payout ratio instead of net income-based.
+
+        Args:
+            income_statements: List of income statements (newest first)
+            cash_flows: List of cash flow statements (newest first)
+            is_reit: Whether the stock is a REIT (uses FFO for payout calculation)
+
+        Returns:
+            Dict with payout_ratio, fcf_payout_ratio, and sustainable flag
+        """
         result = {
             'payout_ratio': None,
             'fcf_payout_ratio': None,
             'sustainable': False
         }
 
-        if not income_statements or not cash_flows:
+        if not cash_flows:
             return result
 
-        latest_income = income_statements[0]
         latest_cf = cash_flows[0]
-
-        # Payout ratio (Dividends / Net Income)
-        net_income = latest_income.get('netIncome', 0)
         dividends_paid = abs(latest_cf.get('dividendsPaid', 0))
 
-        if net_income > 0 and dividends_paid > 0:
-            result['payout_ratio'] = (dividends_paid / net_income) * 100
+        # For REITs, use FFO-based payout ratio
+        if is_reit:
+            ffo_payout = StockAnalyzer.calculate_ffo_payout_ratio(cash_flows)
+            if ffo_payout is not None:
+                result['payout_ratio'] = ffo_payout
+        else:
+            # For non-REITs, use traditional net income-based payout ratio
+            if income_statements:
+                latest_income = income_statements[0]
+                net_income = latest_income.get('netIncome', 0)
 
-        # FCF payout ratio
+                if net_income > 0 and dividends_paid > 0:
+                    result['payout_ratio'] = (dividends_paid / net_income) * 100
+
+        # FCF payout ratio (same for both REIT and non-REIT)
         operating_cf = latest_cf.get('operatingCashFlow', 0)
         capex = abs(latest_cf.get('capitalExpenditure', 0))
         fcf = operating_cf - capex
@@ -306,6 +409,9 @@ class StockAnalyzer:
         # Sustainable if payout ratio < 80% and FCF covers dividends
         if result['payout_ratio'] and result['fcf_payout_ratio']:
             result['sustainable'] = (result['payout_ratio'] < 80 and result['fcf_payout_ratio'] < 100)
+        elif result['payout_ratio']:
+            # If FCF payout is not available, just check payout ratio
+            result['sustainable'] = result['payout_ratio'] < 80
 
         return result
 
@@ -342,6 +448,216 @@ class StockAnalyzer:
             result['healthy'] = (result['debt_to_equity'] < 2.0 and result['current_ratio'] > 1.0)
 
         return result
+
+    @staticmethod
+    def analyze_dividend_stability(dividend_history: Dict) -> Dict:
+        """
+        Analyze dividend stability and growth consistency.
+
+        Evaluates:
+        - Year-over-year dividend growth
+        - Volatility (variation in annual dividends)
+        - Consecutive years of growth
+
+        Args:
+            dividend_history: Dict with 'historical' key containing dividend records
+
+        Returns:
+            Dict with is_stable, is_growing, volatility_pct, years_of_growth
+        """
+        result = {
+            'is_stable': False,
+            'is_growing': False,
+            'volatility_pct': None,
+            'years_of_growth': 0,
+            'annual_dividends': {}
+        }
+
+        if not dividend_history or 'historical' not in dividend_history:
+            return result
+
+        dividends = dividend_history['historical']
+        if len(dividends) < 4:
+            return result
+
+        # Calculate annual dividends
+        annual_dividends = {}
+        for div in dividends:
+            year = div.get('date', '')[:4]
+            if year:
+                annual_dividends[year] = annual_dividends.get(year, 0) + div.get('dividend', 0)
+
+        if len(annual_dividends) < 3:
+            return result
+
+        result['annual_dividends'] = annual_dividends
+
+        # Get sorted years (newest to oldest for analysis)
+        years = sorted(annual_dividends.keys(), reverse=True)
+        div_values = [annual_dividends[y] for y in years]
+
+        # Calculate volatility (coefficient of variation)
+        if len(div_values) >= 2:
+            avg_div = sum(div_values) / len(div_values)
+            if avg_div > 0:
+                max_div = max(div_values)
+                min_div = min(div_values)
+                # Volatility as percentage variation from average
+                volatility = ((max_div - min_div) / avg_div) * 100
+                result['volatility_pct'] = round(volatility, 1)
+
+                # Stable if volatility < 50% (allowing some variation)
+                result['is_stable'] = volatility < 50
+
+        # Count consecutive years of growth (from oldest to newest)
+        years_oldest_first = sorted(annual_dividends.keys())
+        div_values_oldest_first = [annual_dividends[y] for y in years_oldest_first]
+
+        years_of_growth = 0
+        for i in range(1, len(div_values_oldest_first)):
+            # Allow small decrease (5%) as "no cut"
+            if div_values_oldest_first[i] >= div_values_oldest_first[i-1] * 0.95:
+                years_of_growth += 1
+            else:
+                years_of_growth = 0  # Reset on dividend cut
+
+        result['years_of_growth'] = years_of_growth
+
+        # Growing if at least 2 consecutive years of growth and overall uptrend
+        if len(div_values_oldest_first) >= 3:
+            overall_growth = div_values_oldest_first[-1] > div_values_oldest_first[0]
+            result['is_growing'] = years_of_growth >= 2 and overall_growth
+
+        return result
+
+    @staticmethod
+    def analyze_revenue_trend(income_statements: List[Dict]) -> Dict:
+        """
+        Analyze revenue trend for year-over-year growth.
+
+        Args:
+            income_statements: List of income statements (newest first)
+
+        Returns:
+            Dict with is_uptrend, years_of_growth, cagr
+        """
+        result = {
+            'is_uptrend': False,
+            'years_of_growth': 0,
+            'cagr': None
+        }
+
+        if len(income_statements) < 3:
+            return result
+
+        # Get revenues (newest first in input, reverse for analysis)
+        revenues = [stmt.get('revenue', 0) for stmt in income_statements[:4]]
+        revenues_oldest_first = list(reversed(revenues))
+
+        # Count years of growth
+        years_of_growth = 0
+        for i in range(1, len(revenues_oldest_first)):
+            if revenues_oldest_first[i] > revenues_oldest_first[i-1]:
+                years_of_growth += 1
+            else:
+                # Allow one dip but don't reset completely
+                pass
+
+        result['years_of_growth'] = years_of_growth
+
+        # Calculate CAGR
+        if revenues_oldest_first[0] > 0 and revenues_oldest_first[-1] > 0:
+            years = len(revenues_oldest_first) - 1
+            if years > 0:
+                cagr = (pow(revenues_oldest_first[-1] / revenues_oldest_first[0], 1 / years) - 1) * 100
+                result['cagr'] = round(cagr, 2)
+
+        # Uptrend if overall growth and at least 2 years of growth
+        overall_growth = revenues_oldest_first[-1] > revenues_oldest_first[0]
+        result['is_uptrend'] = overall_growth and years_of_growth >= 2
+
+        return result
+
+    @staticmethod
+    def analyze_earnings_trend(income_statements: List[Dict]) -> Dict:
+        """
+        Analyze earnings/profit trend for year-over-year growth.
+
+        Args:
+            income_statements: List of income statements (newest first)
+
+        Returns:
+            Dict with is_uptrend, years_of_growth, cagr
+        """
+        result = {
+            'is_uptrend': False,
+            'years_of_growth': 0,
+            'cagr': None
+        }
+
+        if len(income_statements) < 3:
+            return result
+
+        # Get net income (newest first in input, reverse for analysis)
+        earnings = [stmt.get('netIncome', 0) for stmt in income_statements[:4]]
+        earnings_oldest_first = list(reversed(earnings))
+
+        # Check for negative earnings (not a good sign)
+        if any(e <= 0 for e in earnings_oldest_first):
+            return result
+
+        # Count years of growth
+        years_of_growth = 0
+        for i in range(1, len(earnings_oldest_first)):
+            if earnings_oldest_first[i] > earnings_oldest_first[i-1]:
+                years_of_growth += 1
+
+        result['years_of_growth'] = years_of_growth
+
+        # Calculate CAGR
+        if earnings_oldest_first[0] > 0 and earnings_oldest_first[-1] > 0:
+            years = len(earnings_oldest_first) - 1
+            if years > 0:
+                cagr = (pow(earnings_oldest_first[-1] / earnings_oldest_first[0], 1 / years) - 1) * 100
+                result['cagr'] = round(cagr, 2)
+
+        # Uptrend if overall growth and at least 2 years of growth
+        overall_growth = earnings_oldest_first[-1] > earnings_oldest_first[0]
+        result['is_uptrend'] = overall_growth and years_of_growth >= 2
+
+        return result
+
+    @staticmethod
+    def calculate_stability_score(stability: Dict) -> float:
+        """
+        Calculate a stability score based on dividend stability metrics.
+
+        Args:
+            stability: Dict from analyze_dividend_stability
+
+        Returns:
+            Score from 0-100
+        """
+        score = 0
+
+        # Stability bonus (max 40 points)
+        if stability.get('is_stable'):
+            score += 40
+        elif stability.get('volatility_pct') is not None:
+            # Partial credit for lower volatility
+            volatility = stability['volatility_pct']
+            if volatility < 100:
+                score += max(0, 40 - (volatility * 0.4))
+
+        # Growth bonus (max 30 points)
+        if stability.get('is_growing'):
+            score += 30
+
+        # Years of growth bonus (max 30 points, 10 per year)
+        years = stability.get('years_of_growth', 0)
+        score += min(years * 10, 30)
+
+        return round(score, 1)
 
     @staticmethod
     def calculate_quality_score(key_metrics: List[Dict], income_statements: List[Dict]) -> Dict:
@@ -401,20 +717,26 @@ def screen_value_dividend_stocks(fmp_api_key: str, top_n: int = 20,
     if finviz_symbols:
         print(f"Step 1: Using FINVIZ pre-screened symbols ({len(finviz_symbols)} stocks)...", file=sys.stderr)
         # Convert FINVIZ symbols to candidate format for FMP analysis
-        # We'll fetch basic quote data for each symbol from FMP
+        # Fetch quote + profile to get sector information
         candidates = []
-        print("Fetching basic quote data from FMP for FINVIZ symbols...", file=sys.stderr)
+        print("Fetching quote and profile data from FMP for FINVIZ symbols...", file=sys.stderr)
         for symbol in finviz_symbols:
             quote = client._get(f'quote/{symbol}')
             if quote and isinstance(quote, list) and len(quote) > 0:
-                candidates.append(quote[0])
-            time.sleep(0.3)  # Rate limiting
+                stock_data = quote[0].copy()
+                # Fetch profile for sector information
+                profile = client.get_company_profile(symbol)
+                if profile:
+                    stock_data['sector'] = profile.get('sector', 'N/A')
+                    stock_data['industry'] = profile.get('industry', '')
+                    stock_data['companyName'] = profile.get('companyName', stock_data.get('name', ''))
+                candidates.append(stock_data)
 
             if client.rate_limit_reached:
                 print(f"⚠️  FMP rate limit reached while fetching quotes. Using {len(candidates)} symbols.", file=sys.stderr)
                 break
 
-        print(f"Retrieved quote data for {len(candidates)} symbols from FMP", file=sys.stderr)
+        print(f"Retrieved quote and profile data for {len(candidates)} symbols from FMP", file=sys.stderr)
     else:
         print("Step 1: Initial screening using FMP Stock Screener (Dividend Yield >= 3.0%, P/E <= 20, P/B <= 2)...", file=sys.stderr)
         print("Criteria: Div Yield >= 3.0%, Div Growth >= 4.0% CAGR", file=sys.stderr)
@@ -463,6 +785,15 @@ def screen_value_dividend_stocks(fmp_api_key: str, top_n: int = 20,
         if client.rate_limit_reached:
             break
 
+        # Fetch profile for sector information if not already present
+        if not stock.get('sector') or stock.get('sector') == 'N/A':
+            profile = client.get_company_profile(symbol)
+            if profile:
+                stock['sector'] = profile.get('sector', 'N/A')
+                stock['industry'] = profile.get('industry', '')
+            if client.rate_limit_reached:
+                break
+
         # Skip if insufficient data
         if len(income_stmts) < 4:
             print(f"  ⚠️  Insufficient income statement data", file=sys.stderr)
@@ -499,19 +830,38 @@ def screen_value_dividend_stocks(fmp_api_key: str, top_n: int = 20,
             print(f"  ⚠️  EPS trend not positive", file=sys.stderr)
             continue
 
+        # NEW: Check dividend stability - filter out highly volatile dividends
+        dividend_stability = analyzer.analyze_dividend_stability(dividend_history)
+        if dividend_stability['volatility_pct'] and dividend_stability['volatility_pct'] > 100:
+            # Allow if consistently growing despite volatility
+            if not dividend_stability['is_growing'] or dividend_stability['years_of_growth'] < 3:
+                print(f"  ⚠️  Dividend too volatile ({dividend_stability['volatility_pct']:.1f}%) and not consistently growing", file=sys.stderr)
+                continue
+
+        # Check if this is a REIT (uses different payout ratio calculation)
+        is_reit = analyzer.is_reit(stock)
+
         # Additional analysis
-        sustainability = analyzer.analyze_dividend_sustainability(income_stmts, cash_flows)
+        sustainability = analyzer.analyze_dividend_sustainability(income_stmts, cash_flows, is_reit=is_reit)
         financial_health = analyzer.analyze_financial_health(balance_sheets)
         quality = analyzer.calculate_quality_score(key_metrics, income_stmts)
 
-        # Calculate composite score
+        # Calculate stability score (dividend_stability already analyzed above)
+        stability_score = analyzer.calculate_stability_score(dividend_stability)
+
+        # NEW: Analyze revenue and earnings trends
+        revenue_trend = analyzer.analyze_revenue_trend(income_stmts)
+        earnings_trend = analyzer.analyze_earnings_trend(income_stmts)
+
+        # Calculate composite score (updated to include stability)
         composite_score = 0
-        composite_score += min(div_cagr / 10 * 20, 20)  # Max 20 points for 10%+ div growth
-        composite_score += min((revenue_cagr or 0) / 10 * 15, 15)  # Max 15 points for revenue
-        composite_score += min((eps_cagr or 0) / 15 * 15, 15)  # Max 15 points for EPS
+        composite_score += min(div_cagr / 10 * 15, 15)  # Max 15 points for 10%+ div growth
+        composite_score += stability_score * 0.2  # Max 20 points from stability (100 * 0.2)
+        composite_score += min((revenue_cagr or 0) / 10 * 10, 10)  # Max 10 points for revenue
+        composite_score += min((eps_cagr or 0) / 15 * 10, 10)  # Max 10 points for EPS
         composite_score += 10 if sustainability['sustainable'] else 0
         composite_score += 10 if financial_health['healthy'] else 0
-        composite_score += quality['quality_score'] * 0.3  # Max 30 points from quality
+        composite_score += quality['quality_score'] * 0.25  # Max 25 points from quality
 
         result = {
             'symbol': symbol,
@@ -525,8 +875,16 @@ def screen_value_dividend_stocks(fmp_api_key: str, top_n: int = 20,
             'pb_ratio': stock.get('priceToBook', 0),
             'dividend_cagr_3y': round(div_cagr, 2),
             'dividend_consistent': div_consistent,
+            'dividend_stable': dividend_stability['is_stable'],
+            'dividend_growing': dividend_stability['is_growing'],
+            'dividend_volatility_pct': dividend_stability['volatility_pct'],
+            'dividend_years_of_growth': dividend_stability['years_of_growth'],
             'revenue_cagr_3y': round(revenue_cagr, 2) if revenue_cagr else None,
+            'revenue_uptrend': revenue_trend['is_uptrend'],
+            'revenue_years_of_growth': revenue_trend['years_of_growth'],
             'eps_cagr_3y': round(eps_cagr, 2) if eps_cagr else None,
+            'earnings_uptrend': earnings_trend['is_uptrend'],
+            'earnings_years_of_growth': earnings_trend['years_of_growth'],
             'payout_ratio': round(sustainability['payout_ratio'], 1) if sustainability['payout_ratio'] else None,
             'fcf_payout_ratio': round(sustainability['fcf_payout_ratio'], 1) if sustainability['fcf_payout_ratio'] else None,
             'dividend_sustainable': sustainability['sustainable'],
@@ -536,6 +894,7 @@ def screen_value_dividend_stocks(fmp_api_key: str, top_n: int = 20,
             'roe': round(key_metrics[0].get('roe', 0) * 100, 1) if key_metrics else None,
             'profit_margin': round(quality['profit_margin'], 1) if quality['profit_margin'] else None,
             'quality_score': quality['quality_score'],
+            'stability_score': stability_score,
             'composite_score': round(composite_score, 1)
         }
 
@@ -655,8 +1014,18 @@ Environment Variables:
                 'pe_ratio_max': 20,
                 'pb_ratio_max': 2,
                 'dividend_cagr_min': 4.0,
+                'dividend_stability': 'low volatility, year-over-year growth',
                 'revenue_trend': 'positive over 3 years',
                 'eps_trend': 'positive over 3 years'
+            },
+            'scoring': {
+                'dividend_growth': 'max 15 points (10%+ CAGR)',
+                'dividend_stability': 'max 20 points (stable, growing)',
+                'revenue_growth': 'max 10 points (10%+ CAGR)',
+                'eps_growth': 'max 10 points (15%+ CAGR)',
+                'dividend_sustainable': '10 points',
+                'financial_health': '10 points',
+                'quality_score': 'max 25 points'
             },
             'total_results': len(results)
         },

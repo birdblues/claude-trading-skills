@@ -189,6 +189,41 @@ class FMPClient:
         result = self._get(f'key-metrics/{symbol}', {'limit': limit})
         return result if result else []
 
+    def get_company_profile(self, symbol: str) -> Optional[Dict]:
+        """Get company profile including sector information."""
+        result = self._get(f'profile/{symbol}')
+        if result and isinstance(result, list) and len(result) > 0:
+            return result[0]
+        return None
+
+    def get_quote_with_profile(self, symbol: str) -> Optional[Dict]:
+        """
+        Get quote data merged with profile data to include sector information.
+
+        Returns:
+            Dict with quote data + sector/companyName from profile, or None on error
+        """
+        # First get quote data
+        quote = self._get(f'quote/{symbol}')
+        if not quote or not isinstance(quote, list) or len(quote) == 0:
+            return None
+
+        quote_data = quote[0].copy()
+
+        # Then get profile for sector information
+        profile = self.get_company_profile(symbol)
+        if profile:
+            # Merge profile data into quote (profile has more accurate sector/companyName)
+            quote_data['sector'] = profile.get('sector', 'Unknown')
+            quote_data['companyName'] = profile.get('companyName', quote_data.get('name', ''))
+            quote_data['industry'] = profile.get('industry', '')
+        else:
+            # Fallback if profile fetch fails
+            quote_data['sector'] = quote_data.get('sector', 'Unknown')
+            quote_data['companyName'] = quote_data.get('name', quote_data.get('companyName', ''))
+
+        return quote_data
+
 
 class RSICalculator:
     """Calculate Relative Strength Index (RSI) from price data."""
@@ -283,6 +318,150 @@ class StockAnalyzer:
         latest_annual_dividend = div_values[-1]
 
         return cagr, consistent, latest_annual_dividend
+
+    @staticmethod
+    def is_reit(stock_data: Dict) -> bool:
+        """
+        Determine if a stock is a REIT based on sector/industry.
+
+        Args:
+            stock_data: Dict containing sector and/or industry fields
+
+        Returns:
+            True if the stock is likely a REIT
+        """
+        sector = stock_data.get('sector', '').lower()
+        industry = stock_data.get('industry', '').lower()
+
+        # Check for Real Estate sector or REIT in industry
+        if 'real estate' in sector:
+            return True
+        if 'reit' in industry:
+            return True
+
+        return False
+
+    @staticmethod
+    def calculate_ffo(cash_flows: List[Dict]) -> Optional[float]:
+        """
+        Calculate Funds From Operations (FFO) for REITs.
+
+        FFO = Net Income + Depreciation & Amortization
+        (Simplified formula - does not include gains/losses on property sales)
+
+        Args:
+            cash_flows: List of cash flow statements (newest first)
+
+        Returns:
+            FFO value or None if data is missing
+        """
+        if not cash_flows:
+            return None
+
+        latest_cf = cash_flows[0]
+        net_income = latest_cf.get('netIncome', 0)
+        depreciation = latest_cf.get('depreciationAndAmortization', 0)
+
+        if net_income == 0 and depreciation == 0:
+            return None
+
+        return net_income + depreciation
+
+    @staticmethod
+    def calculate_ffo_payout_ratio(cash_flows: List[Dict]) -> Optional[float]:
+        """
+        Calculate FFO payout ratio for REITs.
+
+        FFO Payout Ratio = Dividends Paid / FFO
+
+        Args:
+            cash_flows: List of cash flow statements (newest first)
+
+        Returns:
+            FFO payout ratio as percentage, or None if calculation fails
+        """
+        if not cash_flows:
+            return None
+
+        ffo = StockAnalyzer.calculate_ffo(cash_flows)
+        if not ffo or ffo <= 0:
+            return None
+
+        latest_cf = cash_flows[0]
+        dividends_paid = abs(latest_cf.get('dividendsPaid', 0))
+
+        if dividends_paid <= 0:
+            return None
+
+        return round((dividends_paid / ffo) * 100, 1)
+
+    @staticmethod
+    def calculate_payout_ratios(income_stmts: List[Dict], cash_flows: List[Dict], is_reit: bool = False) -> Dict:
+        """
+        Calculate payout ratios using dividendsPaid from cash flow statement.
+
+        For REITs, uses FFO-based payout ratio instead of net income-based.
+
+        Args:
+            income_stmts: List of income statements (newest first)
+            cash_flows: List of cash flow statements (newest first)
+            is_reit: Whether the stock is a REIT (uses FFO for payout calculation)
+
+        Returns:
+            Dict with payout_ratio and fcf_payout_ratio (as percentages)
+        """
+        result = {
+            'payout_ratio': None,
+            'fcf_payout_ratio': None
+        }
+
+        if not cash_flows:
+            return result
+
+        latest_cf = cash_flows[0]
+        dividends_paid = abs(latest_cf.get('dividendsPaid', 0))
+        fcf = latest_cf.get('freeCashFlow', 0)
+
+        # For REITs, use FFO-based payout ratio
+        if is_reit:
+            result['payout_ratio'] = StockAnalyzer.calculate_ffo_payout_ratio(cash_flows)
+        else:
+            # For non-REITs, use traditional net income-based payout ratio
+            if income_stmts:
+                latest_income = income_stmts[0]
+                net_income = latest_income.get('netIncome', 0)
+
+                if net_income > 0 and dividends_paid > 0:
+                    result['payout_ratio'] = round((dividends_paid / net_income) * 100, 1)
+
+        # Calculate FCF payout ratio (same for both REIT and non-REIT)
+        if fcf > 0 and dividends_paid > 0:
+            result['fcf_payout_ratio'] = round((dividends_paid / fcf) * 100, 1)
+
+        return result
+
+    @staticmethod
+    def get_payout_ratio_from_metrics(key_metrics: List[Dict]) -> Optional[float]:
+        """
+        Get payout ratio directly from key_metrics as fallback.
+
+        Args:
+            key_metrics: List of key metrics (newest first)
+
+        Returns:
+            Payout ratio as percentage, or None if not available
+        """
+        if not key_metrics:
+            return None
+
+        latest = key_metrics[0]
+        payout_ratio = latest.get('payoutRatio')
+
+        if payout_ratio is not None:
+            # payoutRatio from FMP is a decimal (e.g., 0.316 = 31.6%)
+            return round(payout_ratio * 100, 1)
+
+        return None
 
     @staticmethod
     def analyze_financial_health(balance_sheet: List[Dict]) -> Dict:
@@ -459,20 +638,19 @@ def screen_dividend_growth_pullbacks(
     if finviz_symbols:
         print(f"Step 1: Using FINVIZ pre-screened symbols ({len(finviz_symbols)} stocks)...", file=sys.stderr)
         # Convert FINVIZ symbols to candidate format for FMP analysis
-        # We'll fetch basic quote data for each symbol from FMP
+        # We'll fetch quote data with profile to get sector information
         candidates = []
-        print("Fetching basic quote data from FMP for FINVIZ symbols...", file=sys.stderr)
+        print("Fetching quote and profile data from FMP for FINVIZ symbols...", file=sys.stderr)
         for symbol in finviz_symbols:
-            quote = client._get(f'quote/{symbol}')
-            if quote and isinstance(quote, list) and len(quote) > 0:
-                candidates.append(quote[0])
-            time.sleep(0.3)  # Rate limiting
+            stock_data = client.get_quote_with_profile(symbol)
+            if stock_data:
+                candidates.append(stock_data)
 
             if client.rate_limit_reached:
                 print(f"⚠️  FMP rate limit reached while fetching quotes. Using {len(candidates)} symbols.", file=sys.stderr)
                 break
 
-        print(f"Retrieved quote data for {len(candidates)} symbols from FMP", file=sys.stderr)
+        print(f"Retrieved quote and profile data for {len(candidates)} symbols from FMP", file=sys.stderr)
     else:
         print("Step 1: Initial screening using FMP Stock Screener...", file=sys.stderr)
         candidates = client.screen_stocks(min_market_cap=2000000000)
@@ -603,15 +781,22 @@ def screen_dividend_growth_pullbacks(
         # Extract additional metrics
         latest_income = income_stmts[0] if income_stmts else {}
         latest_metrics = key_metrics[0] if key_metrics else {}
-        latest_cashflow = cash_flow[0] if cash_flow else {}
 
-        # Calculate payout ratios
-        net_income = latest_income.get('netIncome', 0)
-        fcf = latest_cashflow.get('freeCashFlow', 0)
-        annual_div_payout = annual_dividend * latest_metrics.get('numberOfShares', 0) if latest_metrics.get('numberOfShares') else 0
+        # Check if this is a REIT (uses different payout ratio calculation)
+        is_reit = analyzer.is_reit(stock)
 
-        payout_ratio = round((annual_div_payout / net_income) * 100, 1) if net_income > 0 and annual_div_payout > 0 else None
-        fcf_payout_ratio = round((annual_div_payout / fcf) * 100, 1) if fcf > 0 and annual_div_payout > 0 else None
+        # Calculate payout ratios using the new method
+        payout_ratios = analyzer.calculate_payout_ratios(
+            income_stmts if income_stmts else [],
+            cash_flow if cash_flow else [],
+            is_reit=is_reit
+        )
+        payout_ratio = payout_ratios['payout_ratio']
+        fcf_payout_ratio = payout_ratios['fcf_payout_ratio']
+
+        # Fallback to key_metrics if calculation failed (only for non-REITs)
+        if payout_ratio is None and not is_reit:
+            payout_ratio = analyzer.get_payout_ratio_from_metrics(key_metrics if key_metrics else [])
 
         # Build result object
         result = {
