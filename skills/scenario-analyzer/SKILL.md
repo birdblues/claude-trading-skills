@@ -1,11 +1,11 @@
 ---
-name: headline-scenario-analyzer
+name: scenario-analyzer
 description: |
   ニュースヘッドラインを入力として18ヶ月シナリオを分析するスキル。
-  headline-scenario-analystエージェントで主分析を実行し、
+  scenario-analystエージェントで主分析を実行し、
   strategy-reviewerエージェントでセカンドオピニオンを取得。
   1次・2次・3次影響、推奨銘柄、レビューを含む包括的レポートを日本語で生成。
-  使用例: /headline-scenario-analyzer "Fed raises rates by 50bp"
+  使用例: /scenario-analyzer "Fed raises rates by 50bp"
   トリガー: ニュース分析、シナリオ分析、18ヶ月展望、中長期投資戦略
 ---
 
@@ -14,7 +14,7 @@ description: |
 ## Overview
 
 このスキルは、ニュースヘッドラインを起点として中長期（18ヶ月）の投資シナリオを分析します。
-2つの専門エージェント（`headline-scenario-analyst`と`strategy-reviewer`）を順次呼び出し、
+2つの専門エージェント（`scenario-analyst`と`strategy-reviewer`）を順次呼び出し、
 多角的な分析と批判的レビューを統合した包括的なレポートを生成します。
 
 ## When to Use This Skill
@@ -46,11 +46,11 @@ description: |
 │  └─ リファレンス読み込み                                              │
 │                                                                      │
 │  Phase 2: エージェント呼び出し                                        │
-│  ├─ headline-scenario-analyst（主分析）                              │
+│  ├─ scenario-analyst（主分析）                                       │
 │  └─ strategy-reviewer（セカンドオピニオン）                           │
 │                                                                      │
 │  Phase 3: 統合・レポート生成                                          │
-│  └─ reports/YYYY-MM-DD/headline-scenario-analysis.md                │
+│  └─ reports/scenario_analysis_<topic>_YYYYMMDD.md                   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -103,13 +103,13 @@ Read references/scenario_playbooks.md
 
 ### Phase 2: エージェント呼び出し
 
-#### Step 2.1: headline-scenario-analyst 呼び出し
+#### Step 2.1: scenario-analyst 呼び出し
 
 Task toolを使用してメイン分析エージェントを呼び出します。
 
 ```
 Task tool:
-- subagent_type: "headline-scenario-analyst"
+- subagent_type: "scenario-analyst"
 - prompt: |
     以下のヘッドラインについて18ヶ月シナリオ分析を実行してください。
 
@@ -138,7 +138,7 @@ Task tool:
 
 #### Step 2.2: strategy-reviewer 呼び出し
 
-headline-scenario-analystの分析結果を受けて、レビューエージェントを呼び出します。
+scenario-analystの分析結果を受けて、レビューエージェントを呼び出します。
 
 ```
 Task tool:
@@ -150,7 +150,7 @@ Task tool:
     [入力されたヘッドライン]
 
     ## 分析結果
-    [headline-scenario-analystの出力全文]
+    [scenario-analystの出力全文]
 
     ## レビュー要件
     以下の観点でレビューを実施：
@@ -189,7 +189,7 @@ Task tool:
 
 以下の形式で最終レポートを生成し、ファイルに保存します。
 
-**保存先:** `reports/YYYY-MM-DD/headline-scenario-analysis.md`
+**保存先:** `reports/scenario_analysis_<topic>_YYYYMMDD.md`
 
 ```markdown
 # ヘッドライン・シナリオ分析レポート
@@ -201,7 +201,7 @@ Task tool:
 ---
 
 ## 1. 関連ニュース記事
-[headline-scenario-analystが収集したニュースリスト]
+[scenario-analystが収集したニュースリスト]
 
 ## 2. 想定シナリオ概要（18ヶ月後まで）
 
@@ -246,15 +246,16 @@ Task tool:
 [フォローすべき指標・イベント]
 
 ---
-**生成**: headline-scenario-analyzer skill
-**エージェント**: headline-scenario-analyst, strategy-reviewer
+**生成**: scenario-analyzer skill
+**エージェント**: scenario-analyst, strategy-reviewer
 ```
 
 #### Step 3.3: レポート保存
 
-1. `reports/YYYY-MM-DD/` ディレクトリが存在しない場合は作成
-2. `headline-scenario-analysis.md` として保存
+1. `reports/` ディレクトリが存在しない場合は作成
+2. `scenario_analysis_<topic>_YYYYMMDD.md` として保存（例: `scenario_analysis_venezuela_20260104.md`）
 3. 保存完了をユーザーに通知
+4. **プロジェクトルートに直接保存しないこと**
 
 ---
 
@@ -266,7 +267,7 @@ Task tool:
 - `references/scenario_playbooks.md` - シナリオ構築テンプレート
 
 ### Agents
-- `headline-scenario-analyst` - メインシナリオ分析
+- `scenario-analyst` - メインシナリオ分析
 - `strategy-reviewer` - セカンドオピニオン・レビュー
 
 ---
@@ -293,9 +294,12 @@ Task tool:
 - **必須**で実行（strategy-reviewerを常に呼び出す）
 - レビュー結果は最終判断に反映
 
-### 出力先
-- `reports/YYYY-MM-DD/headline-scenario-analysis.md`
-- 同日に複数実行した場合は上書き
+### 出力先（重要）
+- **必ず** `reports/` ディレクトリ配下に保存すること
+- パス: `reports/scenario_analysis_<topic>_YYYYMMDD.md`
+- 例: `reports/scenario_analysis_fed_rate_hike_20260104.md`
+- `reports/` ディレクトリが存在しない場合は作成すること
+- **プロジェクトルートに直接保存してはならない**
 
 ---
 

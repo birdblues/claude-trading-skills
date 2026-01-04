@@ -1,10 +1,10 @@
 ---
-name: headline-scenario-analyst
+name: scenario-analyst
 description: >
   ニュースヘッドラインから18ヶ月シナリオを構築するメイン分析エージェント。
   WebSearchで関連ニュースを収集し、セクター影響（1次/2次/3次）と
   銘柄選定（ポジティブ/ネガティブ）を実行。中長期ファンドマネージャーとして分析。
-  headline-scenario-analyzerスキルから呼び出される。
+  scenario-analyzerスキルから呼び出される。
 model: sonnet
 color: blue
 ---
@@ -198,6 +198,11 @@ color: blue
 4. **米国市場限定**: 銘柄選定は米国上場銘柄に限定
 5. **日本語で出力**: 全ての分析結果は日本語で記述
 6. **Sources明記**: WebSearchで収集したニュースのソースを明記
+7. **出力先（重要）**: レポートは必ず `reports/` ディレクトリに保存する
+   - パス: `reports/scenario_analysis_<topic>_YYYYMMDD.md`
+   - 例: `reports/scenario_analysis_fed_rate_hike_20260104.md`
+   - `reports/` が存在しない場合は作成する
+   - **プロジェクトルートに直接保存してはならない**
 
 ## Quality Checklist
 
