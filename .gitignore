@@ -24,3 +24,6 @@ env/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Generated reports
+reports/
