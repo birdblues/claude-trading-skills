@@ -68,6 +68,26 @@ def parse_arguments():
         "--full-sp500", action="store_true",
         help="Screen all S&P 500 stocks (requires paid API tier, ~350 calls)"
     )
+    parser.add_argument(
+        "--mode", choices=["all", "prebreakout"], default="all",
+        help="Output mode: 'all' shows everything, 'prebreakout' shows entry_ready only (default: all)"
+    )
+    parser.add_argument(
+        "--max-above-pivot", type=float, default=3.0,
+        help="Max %% above pivot for entry_ready (default: 3.0)"
+    )
+    parser.add_argument(
+        "--max-risk", type=float, default=15.0,
+        help="Max risk %% for entry_ready (default: 15.0)"
+    )
+    parser.add_argument(
+        "--no-require-valid-vcp", action="store_true",
+        help="Do not require valid_vcp=True for entry_ready"
+    )
+    parser.add_argument(
+        "--min-atr-pct", type=float, default=1.0,
+        help="Min avg daily range %% to exclude stale/acquired stocks (default: 1.0)"
+    )
 
     return parser.parse_args()
 
@@ -159,12 +179,14 @@ def analyze_stock(
     )
 
     # 6. Composite Score
+    valid_vcp = vcp_result.get("valid_vcp", False)
     composite = calculate_composite_score(
         trend_score=tt_result.get("score", 0),
         contraction_score=vcp_result.get("score", 0),
         volume_score=vol_result.get("score", 0),
         pivot_score=piv_result.get("score", 0),
         rs_score=rs_result.get("score", 0),
+        valid_vcp=valid_vcp,
     )
 
     return {
@@ -177,6 +199,8 @@ def analyze_stock(
         "rating": composite["rating"],
         "rating_description": composite["rating_description"],
         "guidance": composite["guidance"],
+        "valid_vcp": valid_vcp,
+        "distance_from_pivot_pct": piv_result.get("distance_from_pivot_pct"),
         "weakest_component": composite["weakest_component"],
         "weakest_score": composite["weakest_score"],
         "strongest_component": composite["strongest_component"],
@@ -187,6 +211,72 @@ def analyze_stock(
         "pivot_proximity": piv_result,
         "relative_strength": rs_result,
     }
+
+
+def is_stale_price(
+    historical: List[Dict],
+    lookback: int = 10,
+    threshold: float = 1.0,
+) -> bool:
+    """Detect acquired/pinned stocks with abnormally flat price action.
+
+    Args:
+        historical: Price data (most-recent-first)
+        lookback: Number of recent days to check
+        threshold: Max average daily range % to be considered stale
+
+    Returns:
+        True if the stock's price action is stale (likely acquired/pinned)
+    """
+    if len(historical) < lookback:
+        return False
+
+    recent = historical[:lookback]
+    ranges = []
+    for bar in recent:
+        high = bar.get("high", 0)
+        low = bar.get("low", 0)
+        close = bar.get("close", 0)
+        if close > 0:
+            ranges.append((high - low) / close * 100)
+
+    if not ranges:
+        return False
+
+    avg_range_pct = sum(ranges) / len(ranges)
+    return avg_range_pct < threshold
+
+
+def compute_entry_ready(
+    result: Dict,
+    max_above_pivot: float = 3.0,
+    max_risk: float = 15.0,
+    require_valid_vcp: bool = True,
+) -> bool:
+    """Determine if a stock is entry-ready based on configurable thresholds.
+
+    Args:
+        result: Analysis result dict from analyze_stock()
+        max_above_pivot: Max % above pivot for entry readiness
+        max_risk: Max risk % for entry readiness
+        require_valid_vcp: Whether valid_vcp=True is required
+    """
+    valid_vcp = result.get("valid_vcp", False)
+    distance = result.get("distance_from_pivot_pct")
+    dry_up_ratio = result.get("volume_pattern", {}).get("dry_up_ratio")
+    risk_pct = result.get("pivot_proximity", {}).get("risk_pct")
+
+    if require_valid_vcp and not valid_vcp:
+        return False
+    if distance is None:
+        return False
+    if not (-8.0 <= distance <= max_above_pivot):
+        return False
+    if dry_up_ratio is None or dry_up_ratio > 1.0:
+        return False
+    if risk_pct is None or risk_pct > max_risk:
+        return False
+    return True
 
 
 def main():
@@ -326,6 +416,11 @@ def main():
         if not sector or sector == "Unknown":
             sector = quote.get("sector", "Unknown")
 
+        # Skip stale/acquired stocks
+        if is_stale_price(hist, threshold=args.min_atr_pct):
+            print(f"  Skipping {sym} (stale price - likely acquired/pinned)")
+            continue
+
         print(f"  Analyzing {sym}...", end=" ", flush=True)
         analysis = analyze_stock(sym, hist, quote, sp500_history, sector, name)
 
@@ -338,8 +433,25 @@ def main():
 
     print()
 
+    # Compute entry_ready using CLI thresholds
+    require_vcp = not args.no_require_valid_vcp
+    for r in results:
+        r["entry_ready"] = compute_entry_ready(
+            r,
+            max_above_pivot=args.max_above_pivot,
+            max_risk=args.max_risk,
+            require_valid_vcp=require_vcp,
+        )
+
     # Sort by composite score
     results.sort(key=lambda x: x["composite_score"], reverse=True)
+
+    # Apply prebreakout filter if requested
+    if args.mode == "prebreakout":
+        total_before = len(results)
+        results = [r for r in results if r.get("entry_ready", False)]
+        print(f"  Pre-breakout filter: {total_before} -> {len(results)} candidates")
+        print()
 
     # ========================================================================
     # Generate Reports

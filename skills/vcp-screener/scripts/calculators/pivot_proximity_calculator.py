@@ -5,14 +5,18 @@ Pivot Proximity Calculator - Breakout Distance & Risk Analysis
 Calculates how close the current price is to the VCP pivot (breakout) point
 and computes the risk profile for a potential trade.
 
-Scoring by distance from pivot:
-- Breakout confirmed (above pivot + volume): 100
-- Within 2% below pivot:   90
-- 2-5% below:              75
-- 5-8% below:              60
-- 8-10% below:             45
-- 10-15% below:            30
-- > 15% below:             10
+Distance-priority scoring (Minervini: do not chase >5% above pivot):
+- 0-3% above pivot:  90 (+ volume bonus 10 = 100 BREAKOUT CONFIRMED)
+- 3-5% above:        65 (+ volume bonus 10 = 75)
+- 5-10% above:       50 (no volume bonus)
+- 10-20% above:      35 (no volume bonus)
+- >20% above:        20 (no volume bonus)
+- 0 to -2% below:    90 (AT PIVOT)
+- -2% to -5%:        75 (NEAR PIVOT)
+- -5% to -8%:        60 (APPROACHING)
+- -8% to -10%:       45 (DEVELOPING)
+- -10% to -15%:      30 (EARLY)
+- < -15%:            10 (FAR FROM PIVOT)
 
 Also calculates:
 - Stop-loss price (below last contraction low)
@@ -63,14 +67,22 @@ def calculate_pivot_proximity(
     # Distance from pivot (negative = below pivot)
     distance_pct = (current_price - pivot_price) / pivot_price * 100
 
-    # Determine trade status and score
-    if distance_pct > 0 and breakout_volume:
-        score = 100
-        trade_status = "BREAKOUT CONFIRMED"
+    # Determine trade status and score (distance-priority)
+    if distance_pct > 20:
+        score = 20
+        trade_status = "OVEREXTENDED - Do not chase"
+    elif distance_pct > 10:
+        score = 35
+        trade_status = "EXTENDED - Very high chase risk"
+    elif distance_pct > 5:
+        score = 50
+        trade_status = "EXTENDED - High chase risk"
+    elif distance_pct > 3:
+        score = 65
+        trade_status = "EXTENDED - Moderate chase risk"
     elif distance_pct > 0:
-        # Above pivot but without volume confirmation
-        score = 85
-        trade_status = "ABOVE PIVOT (no volume confirmation)"
+        score = 90
+        trade_status = "ABOVE PIVOT (within 3%)"
     elif distance_pct >= -2:
         score = 90
         trade_status = "AT PIVOT (within 2%)"
@@ -89,6 +101,15 @@ def calculate_pivot_proximity(
     else:
         score = 10
         trade_status = "FAR FROM PIVOT (>15% below)"
+
+    # Volume confirmation bonus (only for 0-5% above pivot)
+    if breakout_volume and distance_pct > 0:
+        if distance_pct <= 3:
+            score += 10
+            trade_status = "BREAKOUT CONFIRMED"
+        elif distance_pct <= 5:
+            score += 10
+            trade_status += " (vol confirmed)"
 
     # Calculate stop-loss and risk
     stop_loss_price = None
