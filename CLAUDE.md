@@ -70,6 +70,12 @@ The skill-creator will:
 4. Set up references and scripts directories
 5. Package the skill into a .zip file
 
+**MANDATORY: After creating or committing a new skill, update both READMEs:**
+1. Add skill description to the appropriate category in `README.md` (English)
+2. Add skill description to the matching category in `README.ja.md` (Japanese)
+3. If the skill requires API keys, add it to the API Requirements table in `README.md` and the API要件 section in `README.ja.md`
+4. If a new category is needed, create it in both files
+
 ### Packaging Skills for Distribution
 
 Skills are packaged as ZIP files for Claude web app users:
@@ -93,6 +99,17 @@ Skills are tested by invoking them in Claude Code conversations:
    - References load when needed
    - Scripts execute with proper error handling
    - Output matches expected format
+
+### Code Generation (TDD)
+
+When generating or modifying code in this repository, use a TDD-first workflow:
+
+1. Write or update tests first (expected to fail initially).
+2. Implement the minimal code change needed to pass tests.
+3. Refactor while keeping tests green.
+4. Run the relevant test suite before finishing.
+
+If no test exists for the changed behavior, add one whenever practical.
 
 ### API Key Management
 
