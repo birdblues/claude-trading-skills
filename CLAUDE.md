@@ -48,9 +48,10 @@ Each skill follows a standardized directory structure:
 - Scripts handle I/O; references handle knowledge
 
 **Output Generation:**
-- Skills generate markdown reports saved to repository root
-- Filename convention: `<skill>_<analysis-type>_<date>.md`
+- Skills generate reports (markdown + JSON) saved to `reports/` directory
+- Filename convention: `<skill>_<analysis-type>_<date>.md` (and `.json`)
 - Reports use structured templates from `assets/` directories
+- Scripts should default `--output-dir` to `reports/` (or pass `--output-dir reports/` when invoking)
 
 ## Common Development Tasks
 
@@ -313,7 +314,7 @@ These skills expect image inputs:
 1. User uploads chart image
 2. Skill loads relevant reference framework
 3. Analysis generates structured markdown report
-4. Report saved to repository root
+4. Report saved to `reports/` directory
 
 ### News Analysis Skills (Market News Analyst)
 
@@ -419,7 +420,7 @@ Skills are designed to be combined for comprehensive analysis:
 ### Analysis Output Requirements
 
 All analysis outputs must:
-- Be saved as markdown files in repository root
+- Be saved to the `reports/` directory (create if it does not exist)
 - Include date/time stamps
 - Use English language
 - Provide probability assessments where applicable
