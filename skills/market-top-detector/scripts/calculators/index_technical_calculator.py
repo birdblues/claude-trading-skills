@@ -45,8 +45,25 @@ def calculate_index_technical(sp500_history: List[Dict],
     sp500_result = _evaluate_index("S&P 500", sp500_history, sp500_quote)
     nasdaq_result = _evaluate_index("NASDAQ", nasdaq_history, nasdaq_quote)
 
-    # Average of both indices
-    avg_score = (sp500_result["raw_score"] + nasdaq_result["raw_score"]) / 2
+    # Average only indices with available data
+    scores = []
+    if sp500_result.get("data_available", False):
+        scores.append(sp500_result["raw_score"])
+    if nasdaq_result.get("data_available", False):
+        scores.append(nasdaq_result["raw_score"])
+
+    if not scores:
+        final_score = 50  # Neutral when no data
+        signal = "NO DATA: Index data unavailable"
+        return {
+            "score": final_score,
+            "signal": signal,
+            "sp500": sp500_result,
+            "nasdaq": nasdaq_result,
+            "data_available": False,
+        }
+
+    avg_score = sum(scores) / len(scores)
     final_score = round(min(100, max(0, avg_score)))
 
     if final_score >= 70:
@@ -65,6 +82,7 @@ def calculate_index_technical(sp500_history: List[Dict],
         "signal": signal,
         "sp500": sp500_result,
         "nasdaq": nasdaq_result,
+        "data_available": True,
     }
 
 
@@ -72,7 +90,8 @@ def _evaluate_index(name: str, history: List[Dict],
                     quote: Optional[Dict] = None) -> Dict:
     """Evaluate a single index's technical condition"""
     if not history or len(history) < 21:
-        return {"raw_score": 0, "flags": ["Insufficient data"], "mas": {}}
+        return {"raw_score": 0, "flags": ["Insufficient data"], "mas": {},
+                "data_available": False}
 
     closes = [d.get("close", d.get("adjClose", 0)) for d in history]
     highs = [d.get("high", d.get("close", 0)) for d in history]
@@ -148,6 +167,7 @@ def _evaluate_index(name: str, history: List[Dict],
         "price": round(price, 2),
         "flags": flags,
         "mas": mas,
+        "data_available": True,
     }
 
 

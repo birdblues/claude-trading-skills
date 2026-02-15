@@ -39,8 +39,9 @@ def calculate_breadth_divergence(breadth_200dma: Optional[float],
     """
     if breadth_200dma is None:
         return {
-            "score": 0,
-            "signal": "NO DATA: Breadth data not provided",
+            "score": 50,
+            "signal": "NO DATA: Breadth data not provided (neutral default)",
+            "data_available": False,
             "breadth_200dma": None,
             "breadth_50dma": breadth_50dma,
             "index_near_highs": False,
@@ -82,6 +83,7 @@ def calculate_breadth_divergence(breadth_200dma: Optional[float],
     return {
         "score": score,
         "signal": signal,
+        "data_available": True,
         "breadth_200dma": breadth_200dma,
         "breadth_50dma": breadth_50dma,
         "index_near_highs": index_near_highs,
