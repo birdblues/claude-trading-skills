@@ -70,13 +70,29 @@ def generate_markdown_report(results: List[Dict], metadata: Dict, output_file: s
     lines.append("---")
     lines.append("")
 
-    # Top candidates (results already truncated to --top by caller)
-    top_n = len(results)
-    lines.append(f"## Top {top_n} VCP Candidates")
-    lines.append("")
+    # Split results into entry_ready sections
+    section_a = [s for s in results if s.get("entry_ready", False)]
+    section_b = [s for s in results if not s.get("entry_ready", False)]
 
-    for i, stock in enumerate(results, 1):
-        lines.extend(_format_stock_entry(i, stock))
+    # Section A: Pre-Breakout Watchlist
+    lines.append("## Section A: Pre-Breakout Watchlist")
+    lines.append("")
+    if section_a:
+        for i, stock in enumerate(section_a, 1):
+            lines.extend(_format_stock_entry(i, stock))
+    else:
+        lines.append("No actionable pre-breakout candidates found.")
+        lines.append("")
+
+    # Section B: Extended / Quality VCP
+    lines.append("## Section B: Extended / Quality VCP")
+    lines.append("")
+    if section_b:
+        for i, stock in enumerate(section_b, 1):
+            lines.extend(_format_stock_entry(i, stock))
+    else:
+        lines.append("No extended VCP candidates.")
+        lines.append("")
 
     # Summary statistics
     lines.append("---")
@@ -151,7 +167,8 @@ def _format_stock_entry(rank: int, stock: Dict) -> List[str]:
 
     # Header with rating indicator
     rating = stock.get("rating", "N/A")
-    indicator = _rating_indicator(stock.get("composite_score", 0))
+    valid_vcp = stock.get("valid_vcp", True)
+    indicator = _rating_indicator(stock.get("composite_score", 0), valid_vcp)
     lines.append(f"### {rank}. {stock['symbol']} - {stock.get('company_name', 'N/A')} {indicator}")
 
     # Basic info
@@ -208,16 +225,46 @@ def _format_stock_entry(rank: int, stock: Dict) -> List[str]:
 
     lines.append("")
 
-    # Trade setup
+    # Trade setup (distance-aware)
     pivot_price = vcp.get("pivot_price")
     stop_loss = piv.get("stop_loss_price")
     risk_pct = piv.get("risk_pct")
+    dist = piv.get("distance_from_pivot_pct")
 
     lines.append("**Trade Setup:**")
-    lines.append(f"- Pivot: ${pivot_price:.2f}" if pivot_price else "- Pivot: N/A")
-    lines.append(f"- Stop-loss: ${stop_loss:.2f}" if stop_loss else "- Stop-loss: N/A")
-    lines.append(f"- Risk: {risk_pct:.1f}%" if risk_pct is not None else "- Risk: N/A")
-    lines.append(f"- Guidance: {stock.get('guidance', 'N/A')}")
+
+    if dist is not None and dist > 10:
+        # Overextended: trade missed
+        lines.append(f"- Original pivot: ${pivot_price:.2f} (current price is +{dist:.1f}% above)"
+                      if pivot_price else "- Pivot: N/A")
+        if risk_pct is not None:
+            lines.append(f"- TRADE MISSED: Entry at current level requires {risk_pct:.1f}% "
+                          "stop distance — not a valid setup.")
+        else:
+            lines.append("- TRADE MISSED: Too far above pivot for a valid entry.")
+        lines.append("- Action: Wait for new base formation and a new pivot point.")
+    elif dist is not None and 5 < dist <= 10:
+        # Chase warning zone
+        lines.append(f"- Pivot: ${pivot_price:.2f}" if pivot_price else "- Pivot: N/A")
+        lines.append(f"- Stop-loss: ${stop_loss:.2f}" if stop_loss else "- Stop-loss: N/A")
+        lines.append(f"- Risk from current price: {risk_pct:.1f}%"
+                      if risk_pct is not None else "- Risk: N/A")
+        lines.append(f"- WARNING: +{dist:.1f}% above pivot — consider waiting for pullback to pivot.")
+    else:
+        # Normal range (-8% to +5%) or below
+        lines.append(f"- Pivot: ${pivot_price:.2f}" if pivot_price else "- Pivot: N/A")
+        lines.append(f"- Stop-loss: ${stop_loss:.2f}" if stop_loss else "- Stop-loss: N/A")
+        lines.append(f"- Risk: {risk_pct:.1f}%" if risk_pct is not None else "- Risk: N/A")
+
+    guidance = stock.get('guidance', 'N/A')
+    trade_status = piv.get("trade_status", "")
+
+    if "EXTENDED" in trade_status or "OVEREXTENDED" in trade_status:
+        dist_val = piv.get("distance_from_pivot_pct", 0)
+        guidance += (f" | WARNING: Stock is +{dist_val:.1f}% above pivot - "
+                     "Minervini advises against chasing >5% above pivot")
+
+    lines.append(f"- Guidance: {guidance}")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -225,8 +272,10 @@ def _format_stock_entry(rank: int, stock: Dict) -> List[str]:
     return lines
 
 
-def _rating_indicator(score: float) -> str:
+def _rating_indicator(score: float, valid_vcp: bool = True) -> str:
     """Get indicator for rating."""
+    if not valid_vcp:
+        return "[PATTERN NOT CONFIRMED]"
     if score >= 90:
         return "[TEXTBOOK]"
     elif score >= 80:
@@ -240,13 +289,19 @@ def _rating_indicator(score: float) -> str:
 
 
 def _generate_summary(results: List[Dict]) -> Dict:
-    """Generate summary statistics."""
+    """Generate summary statistics based on rating (not raw composite_score).
+
+    Uses the ``rating`` field so that valid_vcp-capped stocks are counted
+    correctly (e.g. composite=72 but rating='Developing VCP' counts as
+    developing, not good).
+    """
     total = len(results)
-    textbook = sum(1 for s in results if s.get("composite_score", 0) >= 90)
-    strong = sum(1 for s in results if 80 <= s.get("composite_score", 0) < 90)
-    good = sum(1 for s in results if 70 <= s.get("composite_score", 0) < 80)
-    developing = sum(1 for s in results if 60 <= s.get("composite_score", 0) < 70)
-    weak = sum(1 for s in results if s.get("composite_score", 0) < 60)
+    textbook = sum(1 for s in results if s.get("rating") == "Textbook VCP")
+    strong = sum(1 for s in results if s.get("rating") == "Strong VCP")
+    good = sum(1 for s in results if s.get("rating") == "Good VCP")
+    developing = sum(1 for s in results if s.get("rating") == "Developing VCP")
+    weak = sum(1 for s in results
+               if s.get("rating") in ("Weak VCP", "No VCP"))
 
     return {
         "total": total,

@@ -6,27 +6,23 @@ Covers boundary conditions for VCP pattern detection, contraction validation,
 Trend Template criteria, volume patterns, pivot proximity, and scoring.
 """
 
-import os
-import sys
 import json
+import os
 import tempfile
-import pytest
 
-# Add parent to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
-from calculators.trend_template_calculator import calculate_trend_template
-from calculators.vcp_pattern_calculator import calculate_vcp_pattern, _validate_vcp
-from calculators.volume_pattern_calculator import calculate_volume_pattern
 from calculators.pivot_proximity_calculator import calculate_pivot_proximity
 from calculators.relative_strength_calculator import calculate_relative_strength
-from scorer import calculate_composite_score
+from calculators.trend_template_calculator import calculate_trend_template
+from calculators.vcp_pattern_calculator import _validate_vcp
+from calculators.volume_pattern_calculator import calculate_volume_pattern
 from report_generator import generate_json_report, generate_markdown_report
-
+from scorer import calculate_composite_score
+from screen_vcp import compute_entry_ready, is_stale_price
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_prices(n, start=100.0, daily_change=0.0, volume=1000000):
     """Generate synthetic price data (most-recent-first)."""
@@ -34,15 +30,17 @@ def _make_prices(n, start=100.0, daily_change=0.0, volume=1000000):
     p = start
     for i in range(n):
         p_day = p * (1 + daily_change * (n - i))  # linear drift
-        prices.append({
-            "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
-            "open": round(p_day, 2),
-            "high": round(p_day * 1.01, 2),
-            "low": round(p_day * 0.99, 2),
-            "close": round(p_day, 2),
-            "adjClose": round(p_day, 2),
-            "volume": volume,
-        })
+        prices.append(
+            {
+                "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
+                "open": round(p_day, 2),
+                "high": round(p_day * 1.01, 2),
+                "low": round(p_day * 0.99, 2),
+                "close": round(p_day, 2),
+                "adjClose": round(p_day, 2),
+                "volume": volume,
+            }
+        )
     return prices
 
 
@@ -52,16 +50,18 @@ def _make_vcp_contractions(depths, high_price=100.0):
     hp = high_price
     for i, depth in enumerate(depths):
         lp = hp * (1 - depth / 100)
-        contractions.append({
-            "label": f"T{i+1}",
-            "high_idx": i * 20,
-            "high_price": round(hp, 2),
-            "high_date": f"2025-01-{i*20+1:02d}",
-            "low_idx": i * 20 + 10,
-            "low_price": round(lp, 2),
-            "low_date": f"2025-01-{i*20+11:02d}",
-            "depth_pct": round(depth, 2),
-        })
+        contractions.append(
+            {
+                "label": f"T{i + 1}",
+                "high_idx": i * 20,
+                "high_price": round(hp, 2),
+                "high_date": f"2025-01-{i * 20 + 1:02d}",
+                "low_idx": i * 20 + 10,
+                "low_price": round(lp, 2),
+                "low_date": f"2025-01-{i * 20 + 11:02d}",
+                "depth_pct": round(depth, 2),
+            }
+        )
         hp = hp * 0.99  # next high slightly lower
     return contractions
 
@@ -69,6 +69,7 @@ def _make_vcp_contractions(depths, high_price=100.0):
 # ===========================================================================
 # VCP Pattern Validation Tests (Fix 1: contraction ratio 0.75 rule)
 # ===========================================================================
+
 
 class TestVCPValidation:
     """Test the strict 75% contraction ratio rule."""
@@ -124,8 +125,46 @@ class TestVCPValidation:
 
 
 # ===========================================================================
+# Stale Price (Acquisition) Filter Tests
+# ===========================================================================
+
+
+class TestStalePrice:
+    """Test is_stale_price() - detects acquired/pinned stocks."""
+
+    def test_stale_flat_price(self):
+        """Daily range < 1% for 10 days -> stale."""
+        prices = []
+        for i in range(20):
+            prices.append({
+                "date": f"2026-01-{20-i:02d}",
+                "open": 14.31, "high": 14.35, "low": 14.28,
+                "close": 14.31, "volume": 500000,
+            })
+        assert is_stale_price(prices) is True
+
+    def test_normal_price_action(self):
+        """Normal volatility -> not stale."""
+        prices = []
+        for i in range(20):
+            base = 100.0 + i * 0.5
+            prices.append({
+                "date": f"2026-01-{20-i:02d}",
+                "open": base, "high": base * 1.02, "low": base * 0.98,
+                "close": base + 0.3, "volume": 1000000,
+            })
+        assert is_stale_price(prices) is False
+
+    def test_insufficient_data(self):
+        """Less than lookback days -> not stale (let other filters handle)."""
+        prices = [{"date": "2026-01-01", "high": 10, "low": 10, "close": 10}]
+        assert is_stale_price(prices) is False
+
+
+# ===========================================================================
 # Trend Template Tests (Fix 5: C3 conservative with limited data)
 # ===========================================================================
+
 
 class TestTrendTemplate:
     """Test Trend Template scoring."""
@@ -159,6 +198,7 @@ class TestTrendTemplate:
 # Volume Pattern Tests
 # ===========================================================================
 
+
 class TestVolumePattern:
     def test_insufficient_data(self):
         result = calculate_volume_pattern([])
@@ -180,14 +220,17 @@ class TestVolumePattern:
 # Pivot Proximity Tests
 # ===========================================================================
 
+
 class TestPivotProximity:
     def test_no_pivot(self):
         result = calculate_pivot_proximity(100.0, None)
         assert result["score"] == 0
 
     def test_breakout_confirmed(self):
-        result = calculate_pivot_proximity(105.0, 100.0, last_contraction_low=95.0,
-                                           breakout_volume=True)
+        """0-3% above with volume -> base 90 + bonus 10 = 100, BREAKOUT CONFIRMED."""
+        result = calculate_pivot_proximity(
+            102.0, 100.0, last_contraction_low=95.0, breakout_volume=True
+        )
         assert result["score"] == 100
         assert result["trade_status"] == "BREAKOUT CONFIRMED"
 
@@ -204,10 +247,63 @@ class TestPivotProximity:
         result = calculate_pivot_proximity(90.0, 100.0, last_contraction_low=95.0)
         assert "BELOW STOP LEVEL" in result["trade_status"]
 
+    def test_extended_above_pivot_7pct(self):
+        """7% above pivot (no volume) -> score=50, High chase risk."""
+        result = calculate_pivot_proximity(107.0, 100.0, last_contraction_low=95.0)
+        assert result["score"] == 50
+        assert "High chase risk" in result["trade_status"]
+
+    def test_extended_above_pivot_25pct(self):
+        """25% above pivot -> score=20, OVEREXTENDED."""
+        result = calculate_pivot_proximity(125.0, 100.0, last_contraction_low=95.0)
+        assert result["score"] == 20
+        assert "OVEREXTENDED" in result["trade_status"]
+
+    def test_near_above_pivot_2pct(self):
+        """2% above pivot (no volume) -> score=90, ABOVE PIVOT."""
+        result = calculate_pivot_proximity(102.0, 100.0, last_contraction_low=95.0)
+        assert result["score"] == 90
+        assert "ABOVE PIVOT" in result["trade_status"]
+
+    # --- New distance-priority tests ---
+
+    def test_breakout_volume_no_override_at_33pct(self):
+        """+33.5% above, volume=True -> score=20 (distance priority, no bonus >5%)."""
+        result = calculate_pivot_proximity(
+            133.5, 100.0, last_contraction_low=95.0, breakout_volume=True
+        )
+        assert result["score"] == 20
+        assert "OVEREXTENDED" in result["trade_status"]
+
+    def test_breakout_volume_bonus_at_2pct(self):
+        """+2% above, volume=True -> base 90 + bonus 10 = 100."""
+        result = calculate_pivot_proximity(
+            102.0, 100.0, last_contraction_low=95.0, breakout_volume=True
+        )
+        assert result["score"] == 100
+        assert result["trade_status"] == "BREAKOUT CONFIRMED"
+
+    def test_breakout_volume_bonus_at_4pct(self):
+        """+4% above, volume=True -> base 65 + bonus 10 = 75."""
+        result = calculate_pivot_proximity(
+            104.0, 100.0, last_contraction_low=95.0, breakout_volume=True
+        )
+        assert result["score"] == 75
+        assert "vol confirmed" in result["trade_status"]
+
+    def test_breakout_volume_no_bonus_at_7pct(self):
+        """+7% above, volume=True -> score=50 (no bonus >5%)."""
+        result = calculate_pivot_proximity(
+            107.0, 100.0, last_contraction_low=95.0, breakout_volume=True
+        )
+        assert result["score"] == 50
+        assert "High chase risk" in result["trade_status"]
+
 
 # ===========================================================================
 # Relative Strength Tests
 # ===========================================================================
+
 
 class TestRelativeStrength:
     def test_insufficient_stock_data(self):
@@ -223,8 +319,83 @@ class TestRelativeStrength:
 
 
 # ===========================================================================
+# Entry Ready Tests
+# ===========================================================================
+
+
+class TestEntryReady:
+    """Test compute_entry_ready() from screen_vcp module."""
+
+    def _make_result(
+        self,
+        valid_vcp=True,
+        distance_from_pivot_pct=-1.0,
+        dry_up_ratio=0.5,
+        risk_pct=5.0,
+    ):
+        """Build a minimal analysis result dict for compute_entry_ready()."""
+        return {
+            "valid_vcp": valid_vcp,
+            "distance_from_pivot_pct": distance_from_pivot_pct,
+            "volume_pattern": {"dry_up_ratio": dry_up_ratio},
+            "pivot_proximity": {"risk_pct": risk_pct},
+        }
+
+    def test_entry_ready_ideal_candidate(self):
+        """valid_vcp=True, distance=-1%, dry_up=0.5, risk=5% -> True."""
+        result = self._make_result(
+            valid_vcp=True, distance_from_pivot_pct=-1.0,
+            dry_up_ratio=0.5, risk_pct=5.0,
+        )
+        assert compute_entry_ready(result) is True
+
+    def test_entry_ready_false_extended(self):
+        """valid_vcp=True, distance=+15% -> False (too far above pivot)."""
+        result = self._make_result(
+            valid_vcp=True, distance_from_pivot_pct=15.0,
+            dry_up_ratio=0.5, risk_pct=5.0,
+        )
+        assert compute_entry_ready(result) is False
+
+    def test_entry_ready_false_invalid_vcp(self):
+        """valid_vcp=False -> False regardless of distance."""
+        result = self._make_result(
+            valid_vcp=False, distance_from_pivot_pct=-1.0,
+            dry_up_ratio=0.5, risk_pct=5.0,
+        )
+        assert compute_entry_ready(result) is False
+
+    def test_entry_ready_false_high_risk(self):
+        """valid_vcp=True, distance=-1%, risk=20% -> False (risk too high)."""
+        result = self._make_result(
+            valid_vcp=True, distance_from_pivot_pct=-1.0,
+            dry_up_ratio=0.5, risk_pct=20.0,
+        )
+        assert compute_entry_ready(result) is False
+
+    def test_entry_ready_custom_max_above_pivot(self):
+        """CLI --max-above-pivot=5.0 allows +4% above pivot."""
+        result = self._make_result(distance_from_pivot_pct=4.0)
+        assert compute_entry_ready(result, max_above_pivot=5.0) is True
+        assert compute_entry_ready(result, max_above_pivot=3.0) is False
+
+    def test_entry_ready_custom_max_risk(self):
+        """CLI --max-risk=10.0 rejects risk=12%."""
+        result = self._make_result(risk_pct=12.0)
+        assert compute_entry_ready(result, max_risk=15.0) is True
+        assert compute_entry_ready(result, max_risk=10.0) is False
+
+    def test_entry_ready_no_require_valid_vcp(self):
+        """CLI --no-require-valid-vcp allows invalid VCP."""
+        result = self._make_result(valid_vcp=False)
+        assert compute_entry_ready(result, require_valid_vcp=True) is False
+        assert compute_entry_ready(result, require_valid_vcp=False) is True
+
+
+# ===========================================================================
 # Scorer Tests
 # ===========================================================================
+
 
 class TestScorer:
     def test_textbook_rating(self):
@@ -240,16 +411,55 @@ class TestScorer:
     def test_weights_sum_to_100(self):
         """Verify component weights sum to 1.0"""
         from scorer import COMPONENT_WEIGHTS
+
         total = sum(COMPONENT_WEIGHTS.values())
         assert abs(total - 1.0) < 0.001
+
+    def test_valid_vcp_false_caps_rating(self):
+        """valid_vcp=False with composite>=70 -> rating capped to 'Developing VCP'."""
+        # Scores: 80*0.25 + 70*0.25 + 70*0.20 + 70*0.15 + 70*0.15 = 72.5
+        result = calculate_composite_score(80, 70, 70, 70, 70, valid_vcp=False)
+        assert result["composite_score"] >= 70
+        assert result["rating"] == "Developing VCP"
+        assert "not confirmed" in result["rating_description"].lower()
+        assert result["valid_vcp"] is False
+
+    def test_valid_vcp_true_no_cap(self):
+        """valid_vcp=True with composite>=70 -> normal rating (Good VCP)."""
+        result = calculate_composite_score(80, 70, 70, 70, 70, valid_vcp=True)
+        assert result["composite_score"] >= 70
+        assert result["rating"] == "Good VCP"
+        assert result["valid_vcp"] is True
+
+    def test_valid_vcp_false_low_score_no_effect(self):
+        """valid_vcp=False with composite<70 -> no cap needed, normal rating."""
+        # Scores: 60*0.25 + 50*0.25 + 50*0.20 + 50*0.15 + 50*0.15 = 52.5
+        result = calculate_composite_score(60, 50, 50, 50, 50, valid_vcp=False)
+        assert result["composite_score"] < 70
+        assert result["rating"] == "Weak VCP"
+        assert result["valid_vcp"] is False
 
 
 # ===========================================================================
 # Report Generator Tests (Fix 2: market_cap=None, Fix 3/4: summary counts)
 # ===========================================================================
 
+
 class TestReportGenerator:
-    def _make_stock(self, symbol="TEST", score=75.0, market_cap=50e9):
+    def _make_stock(self, symbol="TEST", score=75.0, market_cap=50e9, rating=None):
+        if rating is None:
+            if score >= 90:
+                rating = "Textbook VCP"
+            elif score >= 80:
+                rating = "Strong VCP"
+            elif score >= 70:
+                rating = "Good VCP"
+            elif score >= 60:
+                rating = "Developing VCP"
+            elif score >= 50:
+                rating = "Weak VCP"
+            else:
+                rating = "No VCP"
         return {
             "symbol": symbol,
             "company_name": f"{symbol} Corp",
@@ -257,7 +467,7 @@ class TestReportGenerator:
             "price": 150.0,
             "market_cap": market_cap,
             "composite_score": score,
-            "rating": "Good VCP",
+            "rating": rating,
             "rating_description": "Solid VCP",
             "guidance": "Buy on volume confirmation",
             "weakest_component": "Volume",
@@ -265,14 +475,21 @@ class TestReportGenerator:
             "strongest_component": "Trend",
             "strongest_score": 100,
             "trend_template": {"score": 100, "criteria_passed": 7},
-            "vcp_pattern": {"score": 70, "num_contractions": 2, "contractions": [],
-                            "pivot_price": 145.0},
+            "vcp_pattern": {
+                "score": 70,
+                "num_contractions": 2,
+                "contractions": [],
+                "pivot_price": 145.0,
+            },
             "volume_pattern": {"score": 40, "dry_up_ratio": 0.8},
-            "pivot_proximity": {"score": 75, "distance_from_pivot_pct": -3.0,
-                                "stop_loss_price": 140.0, "risk_pct": 7.0,
-                                "trade_status": "NEAR PIVOT"},
-            "relative_strength": {"score": 80, "rs_rank_estimate": 80,
-                                  "weighted_rs": 15.0},
+            "pivot_proximity": {
+                "score": 75,
+                "distance_from_pivot_pct": -3.0,
+                "stop_loss_price": 140.0,
+                "risk_pct": 7.0,
+                "trade_status": "NEAR PIVOT",
+            },
+            "relative_strength": {"score": 80, "rs_rank_estimate": 80, "weighted_rs": 15.0},
         }
 
     def test_market_cap_none(self):
@@ -303,8 +520,7 @@ class TestReportGenerator:
         }
         with tempfile.TemporaryDirectory() as tmpdir:
             json_file = os.path.join(tmpdir, "test.json")
-            generate_json_report(top_results, metadata, json_file,
-                                 all_results=all_results)
+            generate_json_report(top_results, metadata, json_file, all_results=all_results)
             with open(json_file) as f:
                 data = json.load(f)
             assert data["summary"]["total"] == 10
@@ -340,7 +556,61 @@ class TestReportGenerator:
             generate_markdown_report(stocks, metadata, md_file)
             with open(md_file) as f:
                 content = f.read()
-            assert "## Top 25 VCP Candidates" in content
-            # All 25 stocks should have an entry header
+            # All 25 stocks should appear in Section A or B
+            assert "Section A:" in content or "Section B:" in content
             for i in range(25):
                 assert f"S{i:02d}" in content
+
+    def test_report_two_sections(self):
+        """Report splits into Pre-Breakout Watchlist and Extended sections."""
+        entry_ready_stock = self._make_stock("READY", score=80.0, rating="Strong VCP")
+        entry_ready_stock["entry_ready"] = True
+        entry_ready_stock["distance_from_pivot_pct"] = -1.0
+
+        extended_stock = self._make_stock("EXTENDED", score=75.0, rating="Good VCP")
+        extended_stock["entry_ready"] = False
+        extended_stock["distance_from_pivot_pct"] = 15.0
+
+        results = [entry_ready_stock, extended_stock]
+        metadata = {
+            "generated_at": "2026-01-01",
+            "universe_description": "Test",
+            "funnel": {"vcp_candidates": 2},
+            "api_stats": {},
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            md_file = os.path.join(tmpdir, "test.md")
+            generate_markdown_report(results, metadata, md_file)
+            with open(md_file) as f:
+                content = f.read()
+            assert "Pre-Breakout Watchlist" in content
+            assert "Extended / Quality VCP" in content
+            assert "READY" in content
+            assert "EXTENDED" in content
+
+    def test_summary_counts_by_rating_not_score(self):
+        """Summary should use rating field, not composite_score.
+
+        A stock with composite=72 but rating='Developing VCP' (valid_vcp cap)
+        must count as developing, not good.
+        """
+        from report_generator import _generate_summary
+
+        results = [
+            # Normal: composite=75, rating=Good VCP
+            self._make_stock("GOOD1", score=75.0, rating="Good VCP"),
+            # Capped: composite=72 but valid_vcp=False -> Developing VCP
+            self._make_stock("CAPPED", score=72.0, rating="Developing VCP"),
+            # Normal developing
+            self._make_stock("DEV1", score=65.0, rating="Developing VCP"),
+            # Weak
+            self._make_stock("WEAK1", score=55.0, rating="Weak VCP"),
+        ]
+
+        summary = _generate_summary(results)
+        assert summary["total"] == 4
+        assert summary["good"] == 1       # only GOOD1
+        assert summary["developing"] == 2  # CAPPED + DEV1
+        assert summary["weak"] == 1       # WEAK1
+        assert summary["textbook"] == 0
+        assert summary["strong"] == 0

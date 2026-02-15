@@ -56,18 +56,31 @@ Based on dry-up ratio (recent 10-bar avg / 50-day avg):
 - Net accumulation > 3 days (in 20d): +10
 - Net distribution > 3 days (in 20d): -10
 
-### 4. Pivot Proximity (0-100)
+### 4. Pivot Proximity (0-100) — Distance-Priority Scoring
 
-| Distance from Pivot | Score | Trade Status |
-|--------------------|-------|--------------|
-| Above pivot + volume | 100 | Breakout Confirmed |
-| Above pivot (no vol) | 85 | Above Pivot |
-| Within 2% below | 90 | At Pivot |
-| 2-5% below | 75 | Near Pivot |
-| 5-8% below | 60 | Approaching |
-| 8-10% below | 45 | Developing |
-| 10-15% below | 30 | Early |
-| > 15% below | 10 | Far from Pivot |
+Scoring is distance-first. Volume confirmation adds a bonus only within 0-5% above pivot (Minervini: never chase >5% above pivot).
+
+| Distance from Pivot | Base Score | Volume Bonus | Final Score | Trade Status |
+|--------------------|-----------|-------------|------------|--------------|
+| 0-3% above | 90 | +10 | 100 | BREAKOUT CONFIRMED |
+| 3-5% above | 65 | +10 | 75 | EXTENDED - Moderate chase risk (vol confirmed) |
+| 5-10% above | 50 | — (none) | 50 | EXTENDED - High chase risk |
+| 10-20% above | 35 | — (none) | 35 | EXTENDED - Very high chase risk |
+| >20% above | 20 | — (none) | 20 | OVEREXTENDED - Do not chase |
+| 0 to -2% below | 90 | — | 90 | AT PIVOT (within 2%) |
+| -2% to -5% | 75 | — | 75 | NEAR PIVOT |
+| -5% to -8% | 60 | — | 60 | APPROACHING |
+| -8% to -10% | 45 | — | 45 | DEVELOPING |
+| -10% to -15% | 30 | — | 30 | EARLY |
+| < -15% | 10 | — | 10 | FAR FROM PIVOT |
+
+**Volume bonus rules:**
+- 0-3% above pivot + volume: +10 points, status = "BREAKOUT CONFIRMED"
+- 3-5% above pivot + volume: +10 points, "(vol confirmed)" appended to status
+- >5% above pivot: no volume bonus (Minervini: do not chase extended breakouts)
+- Below pivot: volume bonus not applicable
+
+**Chase risk rule (Minervini):** Do not buy stocks >5% above their pivot point. Distance determines the base score; volume confirmation is a bonus, not an override.
 
 ### 5. Relative Strength (0-100)
 
@@ -100,6 +113,34 @@ Minervini weighting (emphasizes recent performance):
 | 60-69 | Developing VCP | Wait | Watchlist only |
 | 50-59 | Weak VCP | Skip | Monitor only |
 | < 50 | No VCP | Skip | Not actionable |
+
+### valid_vcp Gate Rule
+
+When the VCP pattern calculator returns `valid_vcp=false` (e.g., contraction ratios exceed 0.75, expanding contractions), the rating is capped regardless of composite score:
+
+- If `valid_vcp=false` AND composite >= 70: rating is overridden to **"Developing VCP"** with guidance "Watchlist only - VCP pattern not validated, do not buy"
+- If `valid_vcp=false` AND composite < 70: no override needed (already below actionable threshold)
+
+This prevents stocks with expanding or non-contracting patterns from receiving actionable buy ratings.
+
+## Entry Ready Conditions
+
+A stock is classified as `entry_ready=True` when all of the following conditions are met:
+
+| Condition | Default Threshold | CLI Override |
+|-----------|-------------------|--------------|
+| `valid_vcp` | `True` | `--no-require-valid-vcp` |
+| `distance_from_pivot_pct` | -8.0% to +3.0% | `--max-above-pivot` |
+| `dry_up_ratio` | <= 1.0 | — |
+| `risk_pct` | <= 15.0% | `--max-risk` |
+
+**Report sections:**
+- **Section A: Pre-Breakout Watchlist** — `entry_ready=True` stocks, sorted by composite score
+- **Section B: Extended / Quality VCP** — `entry_ready=False` stocks, sorted by composite score
+
+**CLI mode:**
+- `--mode all` (default): Shows both sections
+- `--mode prebreakout`: Shows only entry_ready=True stocks
 
 ## Pre-Filter Criteria (Phase 1)
 
