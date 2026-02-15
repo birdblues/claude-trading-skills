@@ -65,8 +65,9 @@ def calculate_defensive_rotation(historical: Dict[str, List[Dict]],
 
     if not def_returns or not off_returns:
         return {
-            "score": 0,
-            "signal": "INSUFFICIENT DATA",
+            "score": 50,
+            "signal": "INSUFFICIENT DATA (neutral default)",
+            "data_available": False,
             "relative_performance": 0,
             "defensive_avg_return": 0,
             "offensive_avg_return": 0,
@@ -95,6 +96,7 @@ def calculate_defensive_rotation(historical: Dict[str, List[Dict]],
     return {
         "score": score,
         "signal": signal,
+        "data_available": True,
         "relative_performance": round(relative, 2),
         "defensive_avg_return": round(def_avg, 2),
         "offensive_avg_return": round(off_avg, 2),

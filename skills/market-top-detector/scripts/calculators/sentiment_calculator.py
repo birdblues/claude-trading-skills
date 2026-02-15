@@ -52,6 +52,16 @@ def calculate_sentiment(vix_level: Optional[float] = None,
     Returns:
         Dict with score (0-100), signal, component details
     """
+    # All inputs missing -> neutral default
+    if vix_level is None and put_call_ratio is None and vix_term_structure is None:
+        return {
+            "score": 50,
+            "signal": "NO DATA: All sentiment inputs missing (neutral default)",
+            "data_available": False,
+            "total_points": 0,
+            "details": {},
+        }
+
     total_points = 0
     details = {}
 
@@ -146,6 +156,7 @@ def calculate_sentiment(vix_level: Optional[float] = None,
     return {
         "score": score,
         "signal": signal,
+        "data_available": True,
         "total_points": total_points,
         "details": details,
     }

@@ -51,6 +51,9 @@ def generate_markdown_report(analysis: Dict, output_file: str):
                  f"({composite.get('strongest_warning', {}).get('score', 0)}/100) |")
     lines.append(f"| **Weakest Warning** | {composite.get('weakest_warning', {}).get('label', 'N/A')} "
                  f"({composite.get('weakest_warning', {}).get('score', 0)}/100) |")
+    dq = composite.get("data_quality", {})
+    if dq:
+        lines.append(f"| **Data Quality** | {dq.get('label', 'N/A')} |")
     lines.append("")
 
     # Guidance
@@ -130,7 +133,9 @@ def generate_markdown_report(analysis: Dict, output_file: str):
             for sym, det in sorted(etf_details.items(),
                                    key=lambda x: x[1].get("deterioration_score", 0),
                                    reverse=True):
-                flags_str = "; ".join(det.get("flags", []))[:60]
+                flags = det.get("flags", [])
+                flags_joined = "; ".join(flags)
+                flags_str = flags_joined if len(flags_joined) <= 80 else flags_joined[:77] + "..."
                 lines.append(f"| {sym} | {det.get('deterioration_score', 0)} | "
                              f"{det.get('distance_from_high_pct', 0):+.1f}% | {flags_str} |")
     lines.append("")

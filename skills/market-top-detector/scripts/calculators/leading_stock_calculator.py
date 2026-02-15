@@ -56,6 +56,7 @@ def calculate_leading_stock_health(quotes: Dict[str, Dict],
             "etf_details": {},
             "etfs_evaluated": 0,
             "etfs_deteriorating": 0,
+            "data_available": False,
         }
 
     avg_deterioration = sum(etf_scores) / len(etf_scores)
@@ -91,6 +92,7 @@ def calculate_leading_stock_health(quotes: Dict[str, Dict],
         "deteriorating_pct": round(deteriorating_pct * 100, 1),
         "amplified": deteriorating_pct >= 0.60,
         "etf_details": etf_details,
+        "data_available": True,
     }
 
 

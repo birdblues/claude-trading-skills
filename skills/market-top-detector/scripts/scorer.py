@@ -21,7 +21,7 @@ Risk Zone Mapping:
   81-100:Critical(Top Formation)      - Risk Budget: 20-35%
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 COMPONENT_WEIGHTS = {
@@ -43,18 +43,24 @@ COMPONENT_LABELS = {
 }
 
 
-def calculate_composite_score(component_scores: Dict[str, float]) -> Dict:
+def calculate_composite_score(component_scores: Dict[str, float],
+                              data_availability: Optional[Dict[str, bool]] = None) -> Dict:
     """
     Calculate weighted composite market top probability score.
 
     Args:
         component_scores: Dict with keys matching COMPONENT_WEIGHTS,
                          each value 0-100
+        data_availability: Optional dict mapping component key -> bool indicating
+                          if data was actually available (vs neutral default)
 
     Returns:
         Dict with composite_score, zone, risk_budget, guidance,
-        weakest/strongest components, and component breakdown
+        weakest/strongest components, component breakdown, and data_quality
     """
+    if data_availability is None:
+        data_availability = {}
+
     # Calculate weighted composite
     composite = 0.0
     for key, weight in COMPONENT_WEIGHTS.items():
@@ -77,6 +83,33 @@ def calculate_composite_score(component_scores: Dict[str, float]) -> Dict:
     # Get zone interpretation
     zone_info = _interpret_zone(composite)
 
+    # Calculate data quality
+    available_count = sum(
+        1 for k in COMPONENT_WEIGHTS
+        if data_availability.get(k, True)  # Default True for backward compat
+    )
+    total_components = len(COMPONENT_WEIGHTS)
+    missing_components = [
+        COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS
+        if not data_availability.get(k, True)
+    ]
+
+    if available_count == total_components:
+        quality_label = f"Complete ({available_count}/{total_components} components)"
+    elif available_count >= total_components - 2:
+        quality_label = (f"Partial ({available_count}/{total_components} components)"
+                        " - interpret with caution")
+    else:
+        quality_label = (f"Limited ({available_count}/{total_components} components)"
+                        " - low confidence")
+
+    data_quality = {
+        "available_count": available_count,
+        "total_components": total_components,
+        "label": quality_label,
+        "missing_components": missing_components,
+    }
+
     return {
         "composite_score": composite,
         "zone": zone_info["zone"],
@@ -94,6 +127,7 @@ def calculate_composite_score(component_scores: Dict[str, float]) -> Dict:
             "label": COMPONENT_LABELS.get(weakest_warning, weakest_warning),
             "score": valid_scores.get(weakest_warning, 0),
         },
+        "data_quality": data_quality,
         "component_scores": {
             k: {
                 "score": component_scores.get(k, 0),
@@ -183,10 +217,11 @@ def detect_follow_through_day(index_history: List[Dict],
     Detect Follow-Through Day (FTD) signal for bottom confirmation.
     Only relevant when composite > 40 (Orange zone or worse).
 
-    O'Neil's FTD Rules:
-    - After a market decline, identify Rally Attempt Day (first up day)
-    - FTD occurs on day 4-7 of rally attempt
-    - Requires significant price gain on higher volume
+    O'Neil's Strict FTD Rules:
+    1. Identify swing low: significant decline (3+ down days, -3%+ from recent high)
+    2. Rally Day 1: first up day (close > previous close) after swing low
+    3. FTD: Day 4-7 of rally, gain >= 1.5% on volume higher than previous day
+    4. Rally resets if price closes below swing low
 
     Args:
         index_history: Daily OHLCV (most recent first)
@@ -209,74 +244,152 @@ def detect_follow_through_day(index_history: List[Dict],
             "reason": "Insufficient data for FTD analysis",
         }
 
-    # Find rally attempt start (first up day after decline)
-    rally_start = None
-    for i in range(min(20, len(index_history) - 1)):
-        today_close = index_history[i].get("close", 0)
-        yesterday_close = index_history[i + 1].get("close", 0)
-        if yesterday_close > 0 and today_close > yesterday_close:
-            # Count consecutive up days from here
-            rally_start = i
-            break
+    # Work in chronological order (oldest first)
+    history = list(reversed(index_history))
+    n = len(history)
 
-    if rally_start is None:
+    # Only look at the most recent 40 trading days
+    lookback = min(40, n)
+    history = history[n - lookback:]
+    n = len(history)
+
+    # Step 1: Find swing low within the lookback window
+    # Swing low = lowest close after a decline of 3%+ from a recent high
+    swing_low_idx = None
+    swing_low_price = None
+
+    # Scan for the most recent swing low
+    for i in range(n - 1, 2, -1):  # from recent to old
+        low_close = history[i].get("close", 0)
+        if low_close <= 0:
+            continue
+
+        # Look back from this point for a recent high (within 20 days)
+        search_start = max(0, i - 20)
+        recent_high = 0
+        for j in range(search_start, i):
+            c = history[j].get("close", 0)
+            if c > recent_high:
+                recent_high = c
+
+        if recent_high <= 0:
+            continue
+
+        decline_pct = (low_close - recent_high) / recent_high * 100
+
+        # Check for 3%+ decline from recent high
+        if decline_pct <= -3.0:
+            # Verify at least 3 down days in the decline
+            down_days = 0
+            for j in range(search_start + 1, i + 1):
+                prev_c = history[j - 1].get("close", 0)
+                curr_c = history[j].get("close", 0)
+                if prev_c > 0 and curr_c < prev_c:
+                    down_days += 1
+
+            if down_days >= 3:
+                # Check this is actually a local low
+                is_local_low = True
+                if i > 0 and history[i - 1].get("close", 0) < low_close:
+                    is_local_low = False
+                if i + 1 < n and history[i + 1].get("close", 0) < low_close:
+                    is_local_low = False
+
+                if is_local_low:
+                    swing_low_idx = i
+                    swing_low_price = low_close
+                    break
+
+    if swing_low_idx is None:
         return {
             "ftd_detected": False,
             "applicable": True,
-            "reason": "No rally attempt detected in last 20 days",
+            "reason": "No qualifying swing low found (need 3%+ decline with 3+ down days)",
             "rally_day_count": 0,
         }
 
-    # Count rally days (consecutive closes above rally start close)
-    rally_base = index_history[rally_start + 1].get("close", 0)
-    rally_day_count = 0
-    for j in range(rally_start, -1, -1):
-        if index_history[j].get("close", 0) > rally_base:
-            rally_day_count += 1
-        else:
+    # Step 2: Find Rally Day 1 (first up day after swing low)
+    rally_day_1_idx = None
+    for i in range(swing_low_idx + 1, n):
+        curr_close = history[i].get("close", 0)
+        prev_close = history[i - 1].get("close", 0)
+        if prev_close > 0 and curr_close > prev_close:
+            rally_day_1_idx = i
             break
 
-    # Check for FTD on days 4-7
+    if rally_day_1_idx is None:
+        return {
+            "ftd_detected": False,
+            "applicable": True,
+            "reason": "No rally attempt started after swing low",
+            "rally_day_count": 0,
+            "swing_low_date": history[swing_low_idx].get("date", "N/A"),
+            "swing_low_price": swing_low_price,
+        }
+
+    # Step 3: Count rally days and check for FTD / reset
+    rally_day_count = 0
     ftd_detected = False
     ftd_day = None
+    rally_reset = False
 
-    if rally_day_count >= 4:
-        # Check days 4-7 for big up day on volume
-        check_start = max(0, rally_start - 6)
-        check_end = max(0, rally_start - 3)
+    for i in range(rally_day_1_idx, n):
+        curr_close = history[i].get("close", 0)
 
-        for k in range(check_start, check_end + 1):
-            if k >= len(index_history) - 1:
-                continue
-            day = index_history[k]
-            prev_day = index_history[k + 1]
+        # Check for rally reset: price closes below swing low
+        if curr_close < swing_low_price:
+            rally_reset = True
+            # Try to find a new swing low from here
+            swing_low_idx = i
+            swing_low_price = curr_close
+            rally_day_count = 0
+            ftd_detected = False
+            rally_reset = False
+            # Look for new rally day 1
+            continue
 
-            day_close = day.get("close", 0)
-            prev_close = prev_day.get("close", 0)
-            day_volume = day.get("volume", 0)
-            prev_volume = prev_day.get("volume", 0)
+        prev_close = history[i - 1].get("close", 0) if i > 0 else 0
 
-            if prev_close == 0:
-                continue
+        if prev_close > 0 and curr_close > prev_close:
+            rally_day_count += 1
+        elif prev_close > 0 and curr_close <= prev_close:
+            # Down day during rally - still count toward rally days
+            rally_day_count += 1
 
-            gain_pct = (day_close - prev_close) / prev_close * 100
-            volume_up = day_volume > prev_volume
+        # Check FTD on days 4-7
+        if 4 <= rally_day_count <= 7 and prev_close > 0:
+            gain_pct = (curr_close - prev_close) / prev_close * 100
+            curr_volume = history[i].get("volume", 0)
+            prev_volume = history[i - 1].get("volume", 0)
 
-            # FTD: gain >= 1.5% on higher volume
-            if gain_pct >= 1.5 and volume_up:
+            if gain_pct >= 1.5 and prev_volume > 0 and curr_volume > prev_volume:
                 ftd_detected = True
-                ftd_day = day.get("date", f"day-{k}")
+                ftd_day = history[i].get("date", f"day-{i}")
                 break
+
+    # Cap rally_day_count for reporting
+    days_since_rally_start = n - rally_day_1_idx
+    rally_day_count = min(rally_day_count, days_since_rally_start)
+
+    swing_low_date = history[swing_low_idx].get("date", "N/A")
+
+    if ftd_detected:
+        reason = f"Follow-Through Day detected on {ftd_day} (Day {rally_day_count} of rally from {swing_low_date} low)"
+    elif rally_day_count >= 7:
+        reason = (f"Rally attempt: Day {rally_day_count} from {swing_low_date} low - "
+                 "FTD window (Day 4-7) passed without qualifying day")
+    else:
+        reason = (f"Rally attempt: Day {rally_day_count} from {swing_low_date} low "
+                 f"(FTD requires Day 4-7 with >= 1.5% gain on higher volume)")
 
     return {
         "ftd_detected": ftd_detected,
         "applicable": True,
         "rally_day_count": rally_day_count,
         "ftd_day": ftd_day,
-        "reason": (
-            f"Follow-Through Day detected on {ftd_day}" if ftd_detected
-            else f"Rally attempt: Day {rally_day_count} (FTD requires day 4-7 with strong gain on volume)"
-        ),
+        "swing_low_date": swing_low_date,
+        "swing_low_price": swing_low_price,
+        "reason": reason,
     }
 
 
@@ -331,6 +444,30 @@ if __name__ == "__main__":
     print(f"Test 3 - Crisis:")
     print(f"  Composite: {result3['composite_score']}/100")
     print(f"  Zone: {result3['zone']}")
+    print()
+
+    # Test 4: Data quality tracking
+    partial_scores = {
+        "distribution_days": 45,
+        "leading_stocks": 52,
+        "defensive_rotation": 50,
+        "breadth_divergence": 50,
+        "index_technical": 42,
+        "sentiment": 50,
+    }
+    partial_availability = {
+        "distribution_days": True,
+        "leading_stocks": True,
+        "defensive_rotation": False,
+        "breadth_divergence": False,
+        "index_technical": True,
+        "sentiment": False,
+    }
+    result4 = calculate_composite_score(partial_scores, partial_availability)
+    print(f"Test 4 - Partial Data:")
+    print(f"  Composite: {result4['composite_score']}/100")
+    print(f"  Data Quality: {result4['data_quality']['label']}")
+    print(f"  Missing: {result4['data_quality']['missing_components']}")
     print()
 
     print("All tests completed.")

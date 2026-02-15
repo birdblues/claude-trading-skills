@@ -245,7 +245,16 @@ def main():
         "sentiment": comp6["score"],
     }
 
-    composite = calculate_composite_score(component_scores)
+    data_availability = {
+        "distribution_days": True,  # Always available (requires S&P data to run)
+        "leading_stocks": comp2.get("data_available", True),
+        "defensive_rotation": comp3.get("data_available", True),
+        "breadth_divergence": comp4.get("data_available", True),
+        "index_technical": comp5.get("data_available", True),
+        "sentiment": comp6.get("data_available", True),
+    }
+
+    composite = calculate_composite_score(component_scores, data_availability)
 
     print(f"  Composite Score: {composite['composite_score']}/100")
     print(f"  Risk Zone: {composite['zone']}")
