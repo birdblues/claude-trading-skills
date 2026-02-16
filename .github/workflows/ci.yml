@@ -72,6 +72,16 @@ jobs:
           --cov-report=term-missing
           --cov-append
 
+      - name: Install theme-detector extra deps
+        run: pip install pandas numpy
+
+      - name: Test theme-detector
+        run: >
+          python -m pytest skills/theme-detector/scripts/tests/ -v
+          --cov=skills/theme-detector/scripts
+          --cov-report=term-missing
+          --cov-append
+
       - name: Coverage summary
         if: always()
         run: python -m coverage report

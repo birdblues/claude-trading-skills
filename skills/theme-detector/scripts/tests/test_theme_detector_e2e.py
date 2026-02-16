@@ -164,3 +164,134 @@ class TestThemeDetectorE2E:
         # Verify perf values are reasonable (not multiplied by 100 again)
         assert "500.0%" not in md_report
         assert "1200.0%" not in md_report
+
+    def test_dynamic_stocks_with_mock_selector(self):
+        """Dynamic stock selection produces stock_details in scored_theme."""
+        from unittest.mock import MagicMock
+        from theme_detector import _get_representative_stocks
+
+        # Mock selector
+        mock_selector = MagicMock()
+        mock_selector.select_stocks.return_value = [
+            {
+                "symbol": "NEM",
+                "source": "finviz_public",
+                "market_cap": 50_000_000_000,
+                "matched_industries": ["Gold"],
+                "reasons": ["Public screener: Gold"],
+                "composite_score": 0.95,
+            },
+            {
+                "symbol": "GOLD",
+                "source": "finviz_public",
+                "market_cap": 30_000_000_000,
+                "matched_industries": ["Gold"],
+                "reasons": ["Public screener: Gold"],
+                "composite_score": 0.85,
+            },
+        ]
+
+        theme = {
+            "theme_name": "Gold & Precious Metals",
+            "direction": "bullish",
+            "matching_industries": [{"name": "Gold"}],
+            "proxy_etfs": ["GDX"],
+            "static_stocks": ["NEM", "GOLD", "AEM"],
+        }
+
+        tickers, details = _get_representative_stocks(theme, mock_selector, max_stocks=10)
+        assert tickers == ["NEM", "GOLD"]
+        assert len(details) == 2
+        assert details[0]["source"] == "finviz_public"
+        assert details[0]["composite_score"] == 0.95
+
+    def test_static_fallback_without_selector(self):
+        """Without selector, static_stocks are returned."""
+        from theme_detector import _get_representative_stocks
+
+        theme = {
+            "theme_name": "Test",
+            "direction": "bullish",
+            "matching_industries": [],
+            "proxy_etfs": [],
+            "static_stocks": ["A", "B", "C"],
+        }
+
+        tickers, details = _get_representative_stocks(theme, None, max_stocks=10)
+        assert tickers == ["A", "B", "C"]
+        assert all(d["source"] == "static" for d in details)
+
+    def test_stock_details_in_scored_theme_and_report(self):
+        """stock_details flows through to scored_theme and into markdown."""
+        raw = [
+            _make_raw_industry("Semiconductors", "Technology", 5.0, 12.0, 25.0),
+            _make_raw_industry("Software - Application", "Technology", 4.0, 10.0, 20.0),
+            _make_raw_industry("Software - Infrastructure", "Technology", 3.5, 9.0, 18.0),
+        ]
+
+        ranked = rank_industries(raw)
+        themes = classify_themes(ranked, E2E_THEMES_CONFIG, top_n=30)
+        theme = themes[0]
+        theme_wr = sum(
+            ind.get("weighted_return", 0) for ind in theme["matching_industries"]
+        ) / len(theme["matching_industries"])
+
+        momentum = momentum_strength_score(theme_wr)
+        breadth = breadth_signal_score(1.0)
+        heat = calculate_theme_heat(momentum, None, None, breadth)
+        duration = estimate_duration_score(12.0, 25.0, 30.0, None, False)
+        maturity = calculate_lifecycle_maturity(duration, 50, 50, 50, 30)
+        stage = classify_stage(maturity)
+        confidence = calculate_confidence(True, False, False, False)
+        data_mode = determine_data_mode(False, False)
+        score = score_theme(
+            round(heat, 2), round(maturity, 2), stage, "bullish", confidence, data_mode
+        )
+
+        stock_details = [
+            {"symbol": "NVDA", "source": "finviz_public",
+             "market_cap": 2_800_000_000_000,
+             "matched_industries": ["Semiconductors"],
+             "reasons": ["Public screener"], "composite_score": 0.95},
+            {"symbol": "AVGO", "source": "finviz_public",
+             "market_cap": 500_000_000_000,
+             "matched_industries": ["Semiconductors"],
+             "reasons": ["Public screener"], "composite_score": 0.80},
+        ]
+
+        scored_theme = {
+            "name": "AI & Semiconductors",
+            "direction": "bullish",
+            "heat": round(heat, 2),
+            "maturity": round(maturity, 2),
+            "stage": stage,
+            "confidence": confidence,
+            "heat_label": score["heat_label"],
+            "heat_breakdown": {"momentum_strength": round(momentum, 2)},
+            "maturity_breakdown": {"duration_estimate": round(duration, 2)},
+            "representative_stocks": ["NVDA", "AVGO"],
+            "stock_details": stock_details,
+            "proxy_etfs": ["SMH", "SOXX"],
+            "industries": ["Semiconductors", "Software - Application",
+                           "Software - Infrastructure"],
+            "sector_weights": {"Technology": 1.0},
+        }
+
+        metadata = {
+            "generated_at": "2026-02-16 09:00:00",
+            "data_mode": data_mode,
+            "data_sources": {},
+        }
+        json_report = generate_json_report(
+            [scored_theme], {"top": [], "bottom": []}, {}, metadata
+        )
+
+        # Verify stock_details in JSON
+        theme_in_report = json_report["themes"]["bullish"][0]
+        assert "stock_details" in theme_in_report
+        assert len(theme_in_report["stock_details"]) == 2
+
+        # Verify markdown has source labels
+        md_report = generate_markdown_report(json_report, top_n_detail=3)
+        assert "NVDA[Fp]" in md_report
+        assert "AVGO[Fp]" in md_report
