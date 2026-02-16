@@ -209,3 +209,37 @@ class TestCalculateThemeHeat:
 
     def test_returns_float(self):
         assert isinstance(calculate_theme_heat(50, 50, 50, 50), float)
+
+
+# ── uptrend_signal_score with None values ────────────────────────────
+
+class TestUptrendSignalNoneValues:
+    """Ensure None values in sector_data don't cause TypeError."""
+
+    def test_none_ma_10(self):
+        """ma_10=None should not crash (treated as 0)."""
+        data = [{"sector": "Tech", "ratio": 0.5, "ma_10": None, "slope": 0.01, "weight": 1.0}]
+        score = uptrend_signal_score(data, is_bearish=False)
+        # ratio(0.5) > ma_10(0) AND slope(0.01) > 0 => 80
+        assert score == pytest.approx(80.0)
+
+    def test_none_slope(self):
+        """slope=None should not crash (treated as 0)."""
+        data = [{"sector": "Tech", "ratio": 0.5, "ma_10": 0.3, "slope": None, "weight": 1.0}]
+        score = uptrend_signal_score(data, is_bearish=False)
+        # ratio(0.5) > ma_10(0.3) but slope(0) not > 0 => 60
+        assert score == pytest.approx(60.0)
+
+    def test_none_ratio(self):
+        """ratio=None should not crash (treated as 0)."""
+        data = [{"sector": "Tech", "ratio": None, "ma_10": 0.3, "slope": 0.01, "weight": 1.0}]
+        score = uptrend_signal_score(data, is_bearish=False)
+        # ratio(0) not > ma_10(0.3) but slope(0.01) > 0 => 60
+        assert score == pytest.approx(60.0)
+
+    def test_all_none(self):
+        """All values None should not crash."""
+        data = [{"sector": "Tech", "ratio": None, "ma_10": None, "slope": None, "weight": 1.0}]
+        score = uptrend_signal_score(data, is_bearish=False)
+        # ratio(0) not > ma_10(0), slope(0) not > 0 => 20
+        assert score == pytest.approx(20.0)

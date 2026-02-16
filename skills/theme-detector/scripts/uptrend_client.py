@@ -86,12 +86,15 @@ def _calculate_slope(values: List[float]) -> Optional[float]:
     return round(numerator / denominator, 6)
 
 
-def is_data_stale(latest_date_str: str, threshold_days: int = 2) -> bool:
+def is_data_stale(latest_date_str: str, threshold_bdays: int = 2) -> bool:
     """Check if the latest data is older than threshold business days.
+
+    Counts only Mon-Fri as business days, so Friday data is not considered
+    stale when checked on Saturday or Sunday.
 
     Args:
         latest_date_str: Date string in YYYY-MM-DD format
-        threshold_days: Maximum acceptable age in calendar days (default 2)
+        threshold_bdays: Maximum acceptable age in business days (default 2)
 
     Returns:
         True if data is stale (older than threshold)
@@ -99,8 +102,15 @@ def is_data_stale(latest_date_str: str, threshold_days: int = 2) -> bool:
     try:
         latest = datetime.strptime(latest_date_str, "%Y-%m-%d")
         now = datetime.now()
-        diff = (now - latest).days
-        return diff > threshold_days
+        # Compare at date level to avoid intraday time issues
+        now_midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        bdays = 0
+        current = latest
+        while current < now_midnight:
+            current += timedelta(days=1)
+            if current.weekday() < 5:  # Mon-Fri
+                bdays += 1
+        return bdays > threshold_bdays
     except (ValueError, TypeError):
         return True
 
