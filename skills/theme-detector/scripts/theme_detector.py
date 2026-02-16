@@ -551,18 +551,33 @@ def _get_representative_stocks(
 ) -> List[str]:
     """Get representative stocks for a theme using fallback chain.
 
+    Phase 1: static_stocks only.
+    Phase 2 TODO: Implement FINVIZ Elite CSV export (priority 1)
+                  and FMP ETF holdings (priority 2).
+
     Priority:
-    1. FINVIZ Elite CSV export (if key available)
-    2. FMP ETF Holdings (if key available)
-    3. Static stocks from theme config
+    1. FINVIZ Elite CSV export (if key available) [Phase 2]
+    2. FMP ETF Holdings (if key available) [Phase 2]
+    3. Static stocks from theme config [Phase 1]
     4. Empty list (flag as unavailable)
     """
-    # Phase 1: Use static stocks from theme config
+    # Phase 2: FINVIZ Elite CSV export
+    # if finviz_elite_key:
+    #     stocks = _fetch_finviz_elite_stocks(theme, finviz_elite_key, max_stocks)
+    #     if stocks:
+    #         return stocks
+
+    # Phase 2: FMP ETF Holdings
+    # if fmp_api_key:
+    #     stocks = _fetch_fmp_etf_holdings(theme, fmp_api_key, max_stocks)
+    #     if stocks:
+    #         return stocks
+
+    # Phase 1: Static fallback
     static = theme.get("static_stocks", [])
     if static:
         return static[:max_stocks]
 
-    # No stocks available
     return []
 
 
@@ -603,8 +618,8 @@ def _get_theme_uptrend_data(
             sector_data.append({
                 "sector": sector_name,
                 "ratio": uptrend_entry["ratio"],
-                "ma_10": uptrend_entry.get("ma_10", 0),
-                "slope": uptrend_entry.get("slope", 0),
+                "ma_10": uptrend_entry.get("ma_10") or 0,
+                "slope": uptrend_entry.get("slope") or 0,
                 "weight": weight,
             })
 
@@ -751,7 +766,7 @@ def main():
         # Check freshness from any sector's latest_date
         any_sector = next(iter(sector_uptrend.values()), {})
         latest_date = any_sector.get("latest_date", "")
-        stale_data = is_data_stale(latest_date, threshold_days=2)
+        stale_data = is_data_stale(latest_date, threshold_bdays=2)
         if stale_data:
             print(f"  WARNING: Uptrend data is stale (latest: {latest_date})",
                   file=sys.stderr)
@@ -910,7 +925,7 @@ def main():
     json_report = generate_json_report(
         scored_themes, industry_rankings, sector_uptrend, metadata
     )
-    md_report = generate_markdown_report(json_report)
+    md_report = generate_markdown_report(json_report, top_n_detail=args.top)
 
     # Resolve output directory relative to repo root if relative
     output_dir = args.output_dir

@@ -86,24 +86,29 @@ python3 skills/theme-detector/scripts/theme_detector.py \
 
 **Script Options:**
 ```bash
-# Full run with FINVIZ Elite (recommended)
+# Full run (public FINVIZ mode, no API key required)
+python3 skills/theme-detector/scripts/theme_detector.py \
+  --output-dir reports/
+
+# With FINVIZ Elite API key
 python3 skills/theme-detector/scripts/theme_detector.py \
   --finviz-api-key $FINVIZ_API_KEY \
   --output-dir reports/
 
-# Public FINVIZ mode (no API key required, slower)
+# With FMP API key for enhanced stock data
 python3 skills/theme-detector/scripts/theme_detector.py \
-  --mode public \
+  --fmp-api-key $FMP_API_KEY \
   --output-dir reports/
 
-# Specific themes only
+# Custom limits
 python3 skills/theme-detector/scripts/theme_detector.py \
-  --themes "AI & Semiconductors" "Clean Energy & EV" "Cybersecurity" \
+  --max-themes 5 \
+  --max-stocks-per-theme 5 \
   --output-dir reports/
 
-# With uptrend-dashboard integration
+# Explicit FINVIZ mode
 python3 skills/theme-detector/scripts/theme_detector.py \
-  --uptrend-csv path/to/uptrend_dashboard.csv \
+  --finviz-mode public \
   --output-dir reports/
 ```
 

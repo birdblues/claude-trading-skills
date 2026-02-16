@@ -64,13 +64,19 @@ def generate_json_report(themes: List[Dict],
     }
 
 
-def generate_markdown_report(json_data: Dict) -> str:
+def generate_markdown_report(json_data: Dict,
+                              top_n_detail: int = 3) -> str:
     """Generate a formatted Markdown report from JSON data.
+
+    Args:
+        json_data: Full JSON report dict from generate_json_report().
+        top_n_detail: Number of top themes to show in detail sections
+            (default 3, corresponds to --top CLI arg).
 
     Sections:
     1. Theme Dashboard (all themes table)
-    2. Bullish Themes Detail (top 3)
-    3. Bearish Themes Detail (top 3)
+    2. Bullish Themes Detail (top N)
+    3. Bearish Themes Detail (top N)
     4. All Themes Summary Table
     5. Industry Rankings (top/bottom 15)
     6. Sector Uptrend Ratios (3-point display)
@@ -120,16 +126,16 @@ def generate_markdown_report(json_data: Dict) -> str:
     # Section 2: Bullish Themes Detail
     lines.append("---")
     lines.append("")
-    lines.append("## 2. Bullish Themes (Top 3)")
+    lines.append(f"## 2. Bullish Themes (Top {top_n_detail})")
     lines.append("")
-    _add_theme_details(lines, bullish[:3])
+    _add_theme_details(lines, bullish[:top_n_detail])
 
     # Section 3: Bearish Themes Detail
     lines.append("---")
     lines.append("")
-    lines.append("## 3. Bearish Themes (Top 3)")
+    lines.append(f"## 3. Bearish Themes (Top {top_n_detail})")
     lines.append("")
-    _add_theme_details(lines, bearish[:3])
+    _add_theme_details(lines, bearish[:top_n_detail])
 
     # Section 4: All Themes Summary Table
     lines.append("---")
@@ -179,7 +185,7 @@ def generate_markdown_report(json_data: Dict) -> str:
                 f"| {_fmt_pct(ind.get('perf_1w'))} "
                 f"| {_fmt_pct(ind.get('perf_1m'))} "
                 f"| {_fmt_pct(ind.get('perf_3m'))} "
-                f"| {ind.get('composite_score', 0):.2f} |"
+                f"| {ind.get('momentum_score', 0):.2f} |"
             )
         lines.append("")
 
@@ -195,7 +201,7 @@ def generate_markdown_report(json_data: Dict) -> str:
                 f"| {_fmt_pct(ind.get('perf_1w'))} "
                 f"| {_fmt_pct(ind.get('perf_1m'))} "
                 f"| {_fmt_pct(ind.get('perf_3m'))} "
-                f"| {ind.get('composite_score', 0):.2f} |"
+                f"| {ind.get('momentum_score', 0):.2f} |"
             )
         lines.append("")
 
@@ -383,10 +389,10 @@ def _direction_arrow(direction: Optional[str]) -> str:
 
 
 def _fmt_pct(value: Optional[float]) -> str:
-    """Format a decimal value as percentage string."""
+    """Format a percent value as percentage string (no conversion)."""
     if value is None:
         return "N/A"
-    return f"{value * 100:+.1f}%"
+    return f"{value:+.1f}%"
 
 
 def _add_theme_details(lines: List[str], themes: List[Dict]) -> None:

@@ -349,3 +349,109 @@ class TestClassifyThemesEdgeCases:
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
         theme_names = [t["theme_name"] for t in themes]
         assert "AI & Automation" in theme_names
+
+
+# ---------------------------------------------------------------------------
+# top_n filtering
+# ---------------------------------------------------------------------------
+
+
+class TestTopNFiltering:
+    """Test that classify_themes only considers top/bottom N industries."""
+
+    def test_middle_industries_excluded_with_small_top_n(self):
+        """With 100 industries and top_n=5, middle industries are excluded."""
+        # Build 100 industries: top 5 include AI keywords, bottom 5 include Green keywords
+        # Middle 90 include Infrastructure keywords that should NOT match
+        ranked = []
+
+        # Top 5 (highest momentum)
+        ranked.append(
+            _make_ranked_industry("Semiconductor", 20.0, 95.0, "bullish", 1, "Technology"))
+        ranked.append(
+            _make_ranked_industry("Software - Application", 18.0, 90.0, "bullish", 2, "Technology"))
+        ranked.append(
+            _make_ranked_industry("IT Services", 16.0, 88.0, "bullish", 3, "Technology"))
+        ranked.append(
+            _make_ranked_industry("Banks - Diversified", 15.0, 85.0, "bullish", 4, "Financial"))
+        ranked.append(
+            _make_ranked_industry("Gold", 14.0, 82.0, "bullish", 5, "Basic Materials"))
+
+        # Middle 90: include Building Materials and Steel (Infrastructure keywords)
+        for i in range(6, 96):
+            if i == 50:
+                ranked.append(
+                    _make_ranked_industry("Building Materials", 0.0, 50.0, "bullish", i, "Industrials"))
+            elif i == 51:
+                ranked.append(
+                    _make_ranked_industry("Steel", -0.1, 49.0, "bearish", i, "Basic Materials"))
+            elif i == 52:
+                ranked.append(
+                    _make_ranked_industry("Engineering & Construction", 0.1, 50.5, "bullish", i, "Industrials"))
+            else:
+                ranked.append(
+                    _make_ranked_industry(f"Industry_{i}", 10.0 - i * 0.2, 80.0 - i * 0.3, "bullish", i, "Other"))
+
+        # Bottom 5 (lowest momentum)
+        ranked.append(
+            _make_ranked_industry("Solar", -18.0, 10.0, "bearish", 96, "Energy"))
+        ranked.append(
+            _make_ranked_industry("Auto Manufacturers", -19.0, 8.0, "bearish", 97, "Consumer Cyclical"))
+        ranked.append(
+            _make_ranked_industry("Utilities - Renewable", -20.0, 5.0, "bearish", 98, "Utilities"))
+        ranked.append(
+            _make_ranked_industry("Retail_A", -21.0, 4.0, "bearish", 99, "Consumer Cyclical"))
+        ranked.append(
+            _make_ranked_industry("Retail_B", -22.0, 3.0, "bearish", 100, "Consumer Cyclical"))
+
+        themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG, top_n=5)
+        theme_names = [t["theme_name"] for t in themes]
+
+        # AI keywords (Semiconductor, Software - App) are in top 5 -> AI detected
+        assert "AI & Automation" in theme_names
+
+        # Green keywords (Solar, Auto Manufacturers) are in bottom 5 -> Green detected
+        assert "Green Energy Transition" in theme_names
+
+        # Infrastructure keywords (Building Materials, Steel, E&C) are in middle -> NOT detected
+        assert "Infrastructure Boom" not in theme_names
+
+    def test_top_n_default_30(self):
+        """Default top_n=30 works for small datasets (< 30 items)."""
+        ranked = [
+            _make_ranked_industry("Semiconductor", 15.0, 82.0, "bullish", 1, "Technology"),
+            _make_ranked_industry("Software - Application", 12.0, 75.0, "bullish", 2, "Technology"),
+        ]
+        # Default top_n=30, with only 2 items, all should be considered
+        themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
+        theme_names = [t["theme_name"] for t in themes]
+        assert "AI & Automation" in theme_names
+
+    def test_vertical_theme_only_in_top_bottom(self):
+        """Vertical themes only detected from top/bottom N, not middle."""
+        ranked = []
+        # Top 3: mixed sectors
+        ranked.append(
+            _make_ranked_industry("Gold", 20.0, 95.0, "bullish", 1, "Basic Materials"))
+        ranked.append(
+            _make_ranked_industry("Banks - Regional", 18.0, 90.0, "bullish", 2, "Financial"))
+        ranked.append(
+            _make_ranked_industry("Solar", 16.0, 88.0, "bullish", 3, "Energy"))
+
+        # Middle: 3 Technology industries (would trigger vertical if not filtered)
+        for i, name in enumerate(["Semiconductor", "Software - Application", "IT Services"], 4):
+            ranked.append(
+                _make_ranked_industry(name, 5.0, 50.0, "bullish", i, "Technology"))
+
+        # Bottom 3: mixed sectors
+        ranked.append(
+            _make_ranked_industry("Oil & Gas E&P", -15.0, 10.0, "bearish", 7, "Energy"))
+        ranked.append(
+            _make_ranked_industry("Retail_A", -18.0, 8.0, "bearish", 8, "Consumer Cyclical"))
+        ranked.append(
+            _make_ranked_industry("Retail_B", -20.0, 5.0, "bearish", 9, "Consumer Cyclical"))
+
+        themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG, top_n=3)
+        vertical_names = [t["theme_name"] for t in themes if "Sector" in t["theme_name"]]
+        # Technology industries are in middle -> no Technology vertical theme
+        assert not any("Technology" in n for n in vertical_names)

@@ -62,10 +62,10 @@ def uptrend_signal_score(sector_data: List[Dict],
     weighted_sum = 0.0
 
     for entry in sector_data:
-        ratio = entry.get("ratio", 0)
-        ma_10 = entry.get("ma_10", 0)
-        slope = entry.get("slope", 0)
-        weight = entry.get("weight", 1.0)
+        ratio = entry.get("ratio") or 0
+        ma_10 = entry.get("ma_10") or 0
+        slope = entry.get("slope") or 0
+        weight = entry.get("weight") or 1.0
 
         above_ma = ratio > ma_10
         positive_slope = slope > 0

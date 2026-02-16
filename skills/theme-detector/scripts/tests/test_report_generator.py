@@ -11,6 +11,7 @@ from report_generator import (
     generate_json_report,
     generate_markdown_report,
     save_reports,
+    _fmt_pct,
 )
 
 
@@ -18,26 +19,26 @@ from report_generator import (
 
 @pytest.fixture
 def sample_themes():
-    """Sample theme data for testing."""
+    """Sample theme data for testing (0-100 scale for heat/maturity)."""
     return [
         {
             "name": "AI / Semiconductors",
             "direction": "bullish",
-            "heat": 8.5,
-            "maturity": 6.2,
+            "heat": 85.0,
+            "maturity": 62.0,
             "stage": "growth",
-            "confidence": 85,
+            "confidence": "High",
             "industries": ["Semiconductors", "Software - Infrastructure",
                            "Information Technology Services"],
             "heat_breakdown": {
-                "performance_momentum": 7.5,
-                "volume_confirmation": 8.0,
-                "breadth_score": 9.0,
+                "performance_momentum": 75.0,
+                "volume_confirmation": 80.0,
+                "breadth_score": 90.0,
             },
             "maturity_breakdown": {
-                "duration_score": 6.0,
-                "crowding_score": 5.5,
-                "acceleration": 7.0,
+                "duration_score": 60.0,
+                "crowding_score": 55.0,
+                "acceleration": 70.0,
             },
             "representative_stocks": ["NVDA", "AVGO", "AMD", "MSFT"],
             "proxy_etfs": ["SMH", "SOXX", "XLK"],
@@ -45,15 +46,15 @@ def sample_themes():
         {
             "name": "Energy Transition",
             "direction": "bullish",
-            "heat": 6.3,
-            "maturity": 4.1,
+            "heat": 63.0,
+            "maturity": 41.0,
             "stage": "early",
-            "confidence": 70,
+            "confidence": "Medium",
             "industries": ["Solar", "Uranium"],
             "heat_breakdown": {
-                "performance_momentum": 6.0,
-                "volume_confirmation": 5.5,
-                "breadth_score": 7.0,
+                "performance_momentum": 60.0,
+                "volume_confirmation": 55.0,
+                "breadth_score": 70.0,
             },
             "maturity_breakdown": {},
             "representative_stocks": ["FSLR", "ENPH"],
@@ -62,15 +63,15 @@ def sample_themes():
         {
             "name": "Traditional Retail",
             "direction": "bearish",
-            "heat": 5.8,
-            "maturity": 7.5,
+            "heat": 58.0,
+            "maturity": 75.0,
             "stage": "decline",
-            "confidence": 65,
+            "confidence": "Low",
             "industries": ["Specialty Retail", "Department Stores"],
             "heat_breakdown": {
-                "performance_momentum": -4.0,
-                "volume_confirmation": 3.0,
-                "breadth_score": 2.5,
+                "performance_momentum": -40.0,
+                "volume_confirmation": 30.0,
+                "breadth_score": 25.0,
             },
             "maturity_breakdown": {},
             "representative_stocks": ["M", "KSS"],
@@ -81,19 +82,19 @@ def sample_themes():
 
 @pytest.fixture
 def sample_industry_rankings():
-    """Sample industry rankings."""
+    """Sample industry rankings (perf values in percent, score is momentum_score)."""
     return {
         "top": [
-            {"name": "Semiconductors", "perf_1w": 0.05, "perf_1m": 0.12,
-             "perf_3m": 0.25, "composite_score": 0.89},
-            {"name": "Software - Infrastructure", "perf_1w": 0.03,
-             "perf_1m": 0.08, "perf_3m": 0.18, "composite_score": 0.75},
+            {"name": "Semiconductors", "perf_1w": 5.0, "perf_1m": 12.0,
+             "perf_3m": 25.0, "momentum_score": 0.89},
+            {"name": "Software - Infrastructure", "perf_1w": 3.0,
+             "perf_1m": 8.0, "perf_3m": 18.0, "momentum_score": 0.75},
         ],
         "bottom": [
-            {"name": "Department Stores", "perf_1w": -0.04, "perf_1m": -0.10,
-             "perf_3m": -0.15, "composite_score": -0.65},
-            {"name": "Specialty Retail", "perf_1w": -0.03, "perf_1m": -0.07,
-             "perf_3m": -0.12, "composite_score": -0.50},
+            {"name": "Department Stores", "perf_1w": -4.0, "perf_1m": -10.0,
+             "perf_3m": -15.0, "momentum_score": -0.65},
+            {"name": "Specialty Retail", "perf_1w": -3.0, "perf_1m": -7.0,
+             "perf_3m": -12.0, "momentum_score": -0.50},
         ],
     }
 
@@ -273,6 +274,27 @@ class TestGenerateMarkdownReport:
         assert "## 5. Industry Rankings" in md
         assert "unavailable" in md.lower() or "Industry" in md
 
+    def test_top_n_detail_default_3(self, sample_json_report):
+        """Default top_n_detail=3 shows 'Top 3' in section headers."""
+        md = generate_markdown_report(sample_json_report)
+        assert "## 2. Bullish Themes (Top 3)" in md
+        assert "## 3. Bearish Themes (Top 3)" in md
+
+    def test_top_n_detail_custom(self, sample_json_report):
+        """Custom top_n_detail changes section headers and limits themes."""
+        md = generate_markdown_report(sample_json_report, top_n_detail=5)
+        assert "## 2. Bullish Themes (Top 5)" in md
+        assert "## 3. Bearish Themes (Top 5)" in md
+
+    def test_top_n_detail_1(self, sample_json_report):
+        """top_n_detail=1 only shows 1 theme per direction."""
+        md = generate_markdown_report(sample_json_report, top_n_detail=1)
+        assert "## 2. Bullish Themes (Top 1)" in md
+        # Only the top bullish theme detail section should appear
+        # AI / Semiconductors (heat 85) should appear, Energy Transition (heat 63) should not
+        assert "### AI / Semiconductors" in md
+        assert "### Energy Transition" not in md
+
 
 # --- Tests for save_reports ---
 
@@ -314,3 +336,49 @@ class TestSaveReports:
             nested = os.path.join(tmpdir, "reports", "sub")
             paths = save_reports(sample_json_report, md, nested)
             assert os.path.exists(paths["json"])
+
+
+# --- Tests for _fmt_pct ---
+
+class TestFmtPct:
+    """_fmt_pct formats percent values directly (no *100 conversion)."""
+
+    def test_positive_value(self):
+        assert _fmt_pct(5.0) == "+5.0%"
+
+    def test_negative_value(self):
+        assert _fmt_pct(-3.2) == "-3.2%"
+
+    def test_zero(self):
+        assert _fmt_pct(0.0) == "+0.0%"
+
+    def test_none_returns_na(self):
+        assert _fmt_pct(None) == "N/A"
+
+    def test_large_value(self):
+        assert _fmt_pct(25.7) == "+25.7%"
+
+    def test_small_negative(self):
+        assert _fmt_pct(-0.5) == "-0.5%"
+
+
+# --- Tests for Industry Rankings key usage ---
+
+class TestIndustryRankingsKey:
+    """Verify industry rankings use momentum_score, not composite_score."""
+
+    def test_top_industries_show_momentum_score(self, sample_json_report):
+        md = generate_markdown_report(sample_json_report)
+        # momentum_score=0.89 should appear, not composite_score
+        assert "0.89" in md
+
+    def test_bottom_industries_show_momentum_score(self, sample_json_report):
+        md = generate_markdown_report(sample_json_report)
+        assert "-0.65" in md
+
+    def test_industry_perf_not_multiplied(self, sample_json_report):
+        """Perf values should appear as-is (already in percent)."""
+        md = generate_markdown_report(sample_json_report)
+        # 5.0% should appear, not 500.0%
+        assert "+5.0%" in md
+        assert "500.0%" not in md
