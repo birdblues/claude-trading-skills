@@ -20,7 +20,7 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # Ensure scripts directory is on the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -50,9 +50,10 @@ from scorer import (
     determine_data_mode,
 )
 from report_generator import generate_json_report, generate_markdown_report, save_reports
-from finviz_performance_client import get_sector_performance, get_industry_performance
-from etf_scanner import ETFScanner
-from uptrend_client import fetch_sector_uptrend_data, is_data_stale
+
+# Heavy-dependency modules (pandas/numpy/yfinance/finvizfinance) are imported
+# lazily inside main() to allow lightweight helpers like _get_representative_stocks
+# to be imported without triggering sys.exit(1) when pandas is absent.
 
 
 # ---------------------------------------------------------------------------
@@ -515,6 +516,18 @@ def parse_args() -> argparse.Namespace:
         default=10,
         help="Maximum stocks per theme (default: 10)",
     )
+    parser.add_argument(
+        "--dynamic-stocks",
+        action="store_true",
+        default=False,
+        help="Enable dynamic stock selection via FINVIZ screener (default: off)",
+    )
+    parser.add_argument(
+        "--dynamic-min-cap",
+        choices=["micro", "small", "mid"],
+        default="small",
+        help="Minimum market cap for dynamic stock selection (default: small=$300mln+)",
+    )
     return parser.parse_args()
 
 
@@ -545,40 +558,39 @@ def _convert_perf_to_pct(industries: List[Dict]) -> List[Dict]:
 
 def _get_representative_stocks(
     theme: Dict,
-    fmp_api_key: Optional[str],
-    finviz_elite_key: Optional[str],
+    selector,  # Optional[RepresentativeStockSelector]
     max_stocks: int,
-) -> List[str]:
-    """Get representative stocks for a theme using fallback chain.
+) -> Tuple[List[str], List[Dict]]:
+    """Get representative stocks and metadata for a theme.
 
-    Phase 1: static_stocks only.
-    Phase 2 TODO: Implement FINVIZ Elite CSV export (priority 1)
-                  and FMP ETF holdings (priority 2).
+    When selector is provided (--dynamic-stocks), uses FINVIZ/FMP fallback chain.
+    Otherwise falls back to static_stocks from config.
 
-    Priority:
-    1. FINVIZ Elite CSV export (if key available) [Phase 2]
-    2. FMP ETF Holdings (if key available) [Phase 2]
-    3. Static stocks from theme config [Phase 1]
-    4. Empty list (flag as unavailable)
+    Returns:
+        (tickers, stock_details)
+        tickers: ["NVDA", "AVGO", ...] (backward compatible)
+        stock_details: [{symbol, source, market_cap, matched_industries,
+                         reasons, composite_score}, ...]
     """
-    # Phase 2: FINVIZ Elite CSV export
-    # if finviz_elite_key:
-    #     stocks = _fetch_finviz_elite_stocks(theme, finviz_elite_key, max_stocks)
-    #     if stocks:
-    #         return stocks
+    if selector is not None:
+        details = selector.select_stocks(theme, max_stocks)
+        tickers = [d["symbol"] for d in details]
+        return tickers, details
 
-    # Phase 2: FMP ETF Holdings
-    # if fmp_api_key:
-    #     stocks = _fetch_fmp_etf_holdings(theme, fmp_api_key, max_stocks)
-    #     if stocks:
-    #         return stocks
-
-    # Phase 1: Static fallback
-    static = theme.get("static_stocks", [])
-    if static:
-        return static[:max_stocks]
-
-    return []
+    # Static fallback (selector is None = --dynamic-stocks not set)
+    static = theme.get("static_stocks", [])[:max_stocks]
+    details = [
+        {
+            "symbol": s,
+            "source": "static",
+            "market_cap": 0,
+            "matched_industries": [],
+            "reasons": ["Static config"],
+            "composite_score": 0,
+        }
+        for s in static
+    ]
+    return static, details
 
 
 def _calculate_breadth_ratio(theme: Dict) -> Optional[float]:
@@ -640,6 +652,12 @@ def _get_theme_weighted_return(theme: Dict) -> float:
 # Main orchestrator
 # ---------------------------------------------------------------------------
 def main():
+    # Lazy imports: these modules depend on pandas/numpy/yfinance/finvizfinance
+    # and are only needed at runtime, not when importing helpers for testing.
+    from finviz_performance_client import get_sector_performance, get_industry_performance
+    from etf_scanner import ETFScanner
+    from uptrend_client import fetch_sector_uptrend_data, is_data_stale
+
     args = parse_args()
     start_time = time.time()
 
@@ -712,18 +730,46 @@ def main():
     # Step 4: Collect all stock symbols for batch download
     # -----------------------------------------------------------------------
     print("Selecting representative stocks...", file=sys.stderr)
+
+    # Create dynamic selector if requested
+    selector = None
+    if args.dynamic_stocks:
+        from representative_stock_selector import RepresentativeStockSelector
+        selector = RepresentativeStockSelector(
+            finviz_elite_key=args.finviz_api_key,
+            fmp_api_key=args.fmp_api_key,
+            finviz_mode=finviz_mode,
+            rate_limit_sec=1.0,
+            min_cap=args.dynamic_min_cap,
+        )
+        print("  Dynamic stock selection: ON", file=sys.stderr)
+
     theme_stocks: Dict[str, List[str]] = {}
+    theme_stock_details: Dict[str, List[Dict]] = {}
     all_symbols = set()
 
     for theme in themes:
-        stocks = _get_representative_stocks(
-            theme, args.fmp_api_key, args.finviz_api_key, args.max_stocks_per_theme
+        tickers, stock_details = _get_representative_stocks(
+            theme, selector, args.max_stocks_per_theme
         )
-        theme_stocks[theme["theme_name"]] = stocks
-        all_symbols.update(stocks)
+        theme_stocks[theme["theme_name"]] = tickers
+        theme_stock_details[theme["theme_name"]] = stock_details
+        all_symbols.update(tickers)
 
     all_symbols_list = sorted(all_symbols)
     print(f"  Total unique stocks: {len(all_symbols_list)}", file=sys.stderr)
+
+    if selector:
+        print(f"  Dynamic stock queries: {selector.query_count}", file=sys.stderr)
+        print(f"  Dynamic stock failures: {selector.failure_count}", file=sys.stderr)
+        print(f"  Dynamic stock status: {selector.status}", file=sys.stderr)
+        metadata["data_sources"]["dynamic_stocks_status"] = selector.status
+        metadata["data_sources"]["dynamic_stocks_queries"] = selector.query_count
+        metadata["data_sources"]["dynamic_stocks_failures"] = selector.failure_count
+        metadata["data_sources"]["dynamic_stocks_source_states"] = {
+            name: {"disabled": s.disabled, "failures": s.total_failures}
+            for name, s in selector.source_states.items()
+        }
 
     # -----------------------------------------------------------------------
     # Step 5: Batch fetch stock metrics (yfinance)
@@ -904,6 +950,7 @@ def main():
             "heat_breakdown": heat_breakdown,
             "maturity_breakdown": maturity_breakdown,
             "representative_stocks": stocks,
+            "stock_details": theme_stock_details.get(theme_name, []),
             "proxy_etfs": theme.get("proxy_etfs", []),
             "industries": [ind.get("name", "") for ind in
                           theme.get("matching_industries", [])],

@@ -47,6 +47,7 @@ testpaths = [
     "skills/ftd-detector/scripts/tests",
     "skills/vcp-screener/scripts/tests",
     "skills/macro-regime-detector/scripts/tests",
+    "skills/theme-detector/scripts/tests",
 ]
 
 [tool.bandit]

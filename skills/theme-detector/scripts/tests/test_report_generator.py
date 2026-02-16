@@ -12,6 +12,7 @@ from report_generator import (
     generate_markdown_report,
     save_reports,
     _fmt_pct,
+    _format_stock_list,
 )
 
 
@@ -382,3 +383,134 @@ class TestIndustryRankingsKey:
         # 5.0% should appear, not 500.0%
         assert "+5.0%" in md
         assert "500.0%" not in md
+
+
+# --- Tests for _format_stock_list ---
+
+class TestFormatStockList:
+
+    def test_no_details_uses_tickers(self):
+        """Without stock_details, plain tickers are shown."""
+        theme = {"representative_stocks": ["NVDA", "AMD", "AVGO"]}
+        assert _format_stock_list(theme) == "NVDA, AMD, AVGO"
+
+    def test_empty_stocks_returns_na(self):
+        theme = {"representative_stocks": []}
+        assert _format_stock_list(theme) == "N/A"
+
+    def test_finviz_public_labels(self):
+        """stock_details with finviz_public source shows [Fp] labels."""
+        theme = {
+            "representative_stocks": ["NEM", "GOLD"],
+            "stock_details": [
+                {"symbol": "NEM", "source": "finviz_public"},
+                {"symbol": "GOLD", "source": "finviz_public"},
+            ],
+        }
+        result = _format_stock_list(theme)
+        assert "NEM[Fp]" in result
+        assert "GOLD[Fp]" in result
+
+    def test_finviz_elite_labels(self):
+        theme = {
+            "representative_stocks": ["NVDA"],
+            "stock_details": [
+                {"symbol": "NVDA", "source": "finviz_elite"},
+            ],
+        }
+        assert "NVDA[Fe]" in _format_stock_list(theme)
+
+    def test_etf_holdings_labels(self):
+        theme = {
+            "representative_stocks": ["AAPL"],
+            "stock_details": [
+                {"symbol": "AAPL", "source": "etf_holdings"},
+            ],
+        }
+        assert "AAPL[E]" in _format_stock_list(theme)
+
+    def test_static_labels(self):
+        theme = {
+            "representative_stocks": ["XOM"],
+            "stock_details": [
+                {"symbol": "XOM", "source": "static"},
+            ],
+        }
+        assert "XOM[S]" in _format_stock_list(theme)
+
+    def test_mixed_sources(self):
+        theme = {
+            "representative_stocks": ["NVDA", "AAPL", "XOM"],
+            "stock_details": [
+                {"symbol": "NVDA", "source": "finviz_public"},
+                {"symbol": "AAPL", "source": "etf_holdings"},
+                {"symbol": "XOM", "source": "static"},
+            ],
+        }
+        result = _format_stock_list(theme)
+        assert "NVDA[Fp]" in result
+        assert "AAPL[E]" in result
+        assert "XOM[S]" in result
+
+    def test_unknown_source_shows_question_mark(self):
+        theme = {
+            "representative_stocks": ["X"],
+            "stock_details": [
+                {"symbol": "X", "source": "unknown_source"},
+            ],
+        }
+        assert "X[?]" in _format_stock_list(theme)
+
+
+class TestMarkdownWithStockDetails:
+
+    def test_markdown_shows_source_labels(self):
+        """Markdown report includes source labels when stock_details present."""
+        themes = [
+            {
+                "name": "Gold Theme",
+                "direction": "bullish",
+                "heat": 70.0,
+                "maturity": 40.0,
+                "stage": "growth",
+                "confidence": "Medium",
+                "industries": ["Gold"],
+                "heat_breakdown": {},
+                "maturity_breakdown": {},
+                "representative_stocks": ["NEM", "GOLD"],
+                "stock_details": [
+                    {"symbol": "NEM", "source": "finviz_public"},
+                    {"symbol": "GOLD", "source": "finviz_public"},
+                ],
+                "proxy_etfs": ["GDX"],
+            },
+        ]
+        metadata = {"generated_at": "2026-02-16 10:00:00", "data_sources": {}}
+        report = generate_json_report(themes, {"top": [], "bottom": []}, {}, metadata)
+        md = generate_markdown_report(report)
+        assert "NEM[Fp]" in md
+        assert "GOLD[Fp]" in md
+
+    def test_markdown_no_details_plain_tickers(self):
+        """Without stock_details, plain tickers are shown in markdown."""
+        themes = [
+            {
+                "name": "Test Theme",
+                "direction": "bullish",
+                "heat": 60.0,
+                "maturity": 30.0,
+                "stage": "early",
+                "confidence": "Low",
+                "industries": ["Tech"],
+                "heat_breakdown": {},
+                "maturity_breakdown": {},
+                "representative_stocks": ["AAPL", "MSFT"],
+                "proxy_etfs": [],
+            },
+        ]
+        metadata = {"generated_at": "2026-02-16 10:00:00", "data_sources": {}}
+        report = generate_json_report(themes, {"top": [], "bottom": []}, {}, metadata)
+        md = generate_markdown_report(report)
+        assert "AAPL, MSFT" in md
+        assert "[Fp]" not in md
+        assert "[S]" not in md

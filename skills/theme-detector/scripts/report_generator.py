@@ -395,6 +395,33 @@ def _fmt_pct(value: Optional[float]) -> str:
     return f"{value:+.1f}%"
 
 
+_SOURCE_LABELS = {
+    "finviz_elite": "Fe",
+    "finviz_public": "Fp",
+    "etf_holdings": "E",
+    "static": "S",
+}
+
+
+def _format_stock_list(theme_data: Dict) -> str:
+    """Format stock list with optional source labels.
+
+    When stock_details is present and contains non-static sources,
+    appends [Fe]/[Fp]/[E]/[S] labels. Otherwise plain comma-joined tickers.
+    """
+    details = theme_data.get("stock_details", [])
+    tickers = theme_data.get("representative_stocks", [])
+
+    if not details:
+        return ", ".join(tickers) if tickers else "N/A"
+
+    parts = []
+    for d in details:
+        label = _SOURCE_LABELS.get(d.get("source", ""), "?")
+        parts.append(f"{d['symbol']}[{label}]")
+    return ", ".join(parts) if parts else "N/A"
+
+
 def _add_theme_details(lines: List[str], themes: List[Dict]) -> None:
     """Add detailed theme sections to the report lines."""
     if not themes:
@@ -439,10 +466,8 @@ def _add_theme_details(lines: List[str], themes: List[Dict]) -> None:
             lines.append("")
 
         # Representative stocks
-        stocks = t.get("representative_stocks", [])
-        if stocks:
-            lines.append(f"**Representative Stocks:** {', '.join(stocks)}")
-            lines.append("")
+        lines.append(f"**Representative Stocks:** {_format_stock_list(t)}")
+        lines.append("")
 
         # Proxy ETFs
         etfs = t.get("proxy_etfs", [])

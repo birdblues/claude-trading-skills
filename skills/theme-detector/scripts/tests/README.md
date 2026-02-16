@@ -9,6 +9,9 @@
 - test_report_generator.py
 - test_uptrend_client.py
 
+## Unit Tests (Phase 2)
+- test_representative_stock_selector.py (dynamic stock selection, FINVIZ/FMP fallback, circuit breaker)
+
 ## Integration Tests
 - test_theme_detector_e2e.py (full pipeline, mocked I/O, no network required)
 
