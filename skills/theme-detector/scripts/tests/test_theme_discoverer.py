@@ -407,6 +407,36 @@ class TestIsDuplicateOfExisting:
         }]
         assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is False
 
+    def test_subset_detected_by_overlap_coefficient(self):
+        """Small cluster that is a subset of a large theme should be detected.
+
+        Jaccard alone misses this: intersection=2, union=12 → Jaccard=0.17.
+        Overlap coefficient catches it: intersection=2, min(2,12)=2 → coeff=1.0.
+        """
+        cluster = [{"name": "A"}, {"name": "B"}]
+        existing = [{
+            "direction": "bullish",
+            "matching_industries": [
+                {"name": n} for n in "ABCDEFGHIJKL"
+            ],
+        }]
+        # Jaccard = 2/12 = 0.17 < 0.5 → would PASS Jaccard-only check
+        # Overlap coeff = 2/2 = 1.0 >= 0.5 → caught by overlap coefficient
+        assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is True
+
+    def test_partial_overlap_below_both_thresholds_passes(self):
+        """Cluster with low overlap on both metrics should not be duplicate."""
+        cluster = [{"name": "A"}, {"name": "X"}, {"name": "Y"}, {"name": "Z"}]
+        existing = [{
+            "direction": "bullish",
+            "matching_industries": [
+                {"name": n} for n in "ABCDEFGHIJ"
+            ],
+        }]
+        # Jaccard = 1/13 = 0.077 < 0.5
+        # Overlap coeff = 1/4 = 0.25 < 0.5
+        assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is False
+
 
 # ---------------------------------------------------------------------------
 # TestBuildThemeDict

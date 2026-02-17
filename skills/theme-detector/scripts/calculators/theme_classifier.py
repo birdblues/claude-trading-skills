@@ -90,7 +90,6 @@ def classify_themes(
     # 2. Vertical (single-sector) theme detection
     # Count industries per sector in top N and bottom N separately
     top_set = set(ind["name"] for ind in top)
-    bottom_set = set(ind["name"] for ind in bottom) - top_set
 
     # Top N sector groups
     top_sector_groups: Dict[str, List[Dict]] = {}
