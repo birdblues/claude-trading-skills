@@ -246,6 +246,27 @@ class TestFMPQuoteFetch:
         result = scanner._fetch_fmp_quotes(["AAPL"])
         assert result == {}
 
+    @patch("etf_scanner._requests_lib")
+    def test_original_symbol_retry_normalizes_cache_key(self, mock_requests):
+        """When retry returns BRK-B, it is cached under normalized BRK.B."""
+        scanner = self._make_scanner()
+
+        # Batch call with normalized BRK.B: stable fails, v3 fails
+        fail_resp = MagicMock()
+        fail_resp.status_code = 500
+        # Retry with original BRK-B: stable returns data with BRK-B symbol
+        retry_resp = MagicMock()
+        retry_resp.status_code = 200
+        retry_resp.json.return_value = [{"symbol": "BRK-B", "pe": 10}]
+        mock_requests.get.side_effect = [fail_resp, fail_resp, retry_resp]
+
+        result = scanner._fetch_fmp_quotes(["BRK-B"])
+        # Cache key is normalized to BRK.B despite API returning BRK-B
+        assert "BRK.B" in scanner._fmp_quote_cache
+        # Result maps back to original symbol
+        assert "BRK-B" in result
+        assert result["BRK-B"]["pe"] == 10
+
 
 # ---------------------------------------------------------------------------
 # TestFMPHistoricalFetch
@@ -349,6 +370,33 @@ class TestFMPHistoricalFetch:
 
         result = scanner._fetch_fmp_historical(["AAPL"], timeseries=20)
         assert result == {}
+
+    @patch("etf_scanner._requests_lib")
+    def test_original_symbol_retry_normalizes_result_key(self, mock_requests):
+        """When retry returns BRK-B, result key is normalized to BRK.B."""
+        scanner = self._make_scanner()
+
+        # Batch with normalized BRK.B: stable+v3 both fail
+        fail_resp = MagicMock()
+        fail_resp.status_code = 500
+        # Per-symbol retry with normalized BRK.B: fails
+        # Per-symbol retry with original BRK-B: returns data
+        retry_resp = MagicMock()
+        retry_resp.status_code = 200
+        retry_resp.json.return_value = {
+            "symbol": "BRK-B",
+            "historical": [{"close": 400}],
+        }
+        mock_requests.get.side_effect = [
+            fail_resp, fail_resp,  # batch stable+v3
+            fail_resp, fail_resp,  # per-symbol BRK.B stable+v3
+            retry_resp,            # per-symbol BRK-B stable succeeds
+        ]
+
+        result = scanner._fetch_fmp_historical(["BRK-B"], timeseries=20)
+        # Result maps to original symbol despite API returning BRK-B
+        assert "BRK-B" in result
+        assert result["BRK-B"][0]["close"] == 400
 
 
 # ---------------------------------------------------------------------------
