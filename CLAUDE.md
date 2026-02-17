@@ -135,6 +135,7 @@ If no test exists for the changed behavior, add one whenever practical.
 | US Stock Analysis | ❌ Not required | ❌ Not used | ❌ Not used | User provides data |
 | Backtest Expert | ❌ Not required | ❌ Not used | ❌ Not used | User provides strategy parameters |
 | US Market Bubble Detector | ❌ Not required | ❌ Not used | ❌ Not used | User provides indicators |
+| **Theme Detector** | 🟡 Optional | 🟡 Optional (Recommended) | ❌ Not used | FINVIZ for dynamic stocks; FMP for ETF holdings fallback |
 
 #### API Key Setup
 
@@ -289,6 +290,20 @@ python3 options-strategy-advisor/scripts/black_scholes.py \
   --ticker AAPL \
   --strategy covered_call \
   --stock-price 155
+```
+
+**Theme Detector:** 🟡 FINVIZ Elite optional; FMP optional
+```bash
+# Static mode (no API keys required)
+python3 skills/theme-detector/scripts/theme_detector.py --output-dir reports/
+
+# Dynamic stock selection (uses FINVIZ Public screener, no key needed)
+python3 skills/theme-detector/scripts/theme_detector.py \
+  --dynamic-stocks --output-dir reports/
+
+# With FINVIZ Elite (faster, more reliable)
+python3 skills/theme-detector/scripts/theme_detector.py \
+  --dynamic-stocks --finviz-api-key $FINVIZ_API_KEY --output-dir reports/
 ```
 
 **Portfolio Manager:** ⚠️ Requires Alpaca MCP Server
