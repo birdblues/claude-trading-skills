@@ -169,7 +169,7 @@ class ETFScanner:
             data = self._fmp_request("quote", ",".join(normalized))
             if isinstance(data, list):
                 for item in data:
-                    sym = item.get("symbol", "")
+                    sym = self._normalize_symbol_for_fmp(item.get("symbol", ""))
                     self._fmp_quote_cache[sym] = item
 
         # Per-symbol retry for missing: try original symbol if different
@@ -181,7 +181,7 @@ class ETFScanner:
                 data = self._fmp_request("quote", s)
                 if isinstance(data, list):
                     for item in data:
-                        sym = item.get("symbol", "")
+                        sym = self._normalize_symbol_for_fmp(item.get("symbol", ""))
                         self._fmp_quote_cache[sym] = item
 
         for s in symbols:
@@ -234,17 +234,20 @@ class ETFScanner:
         return mapped
 
     def _parse_historical_response(self, data: Any, result: Dict) -> None:
-        """Parse FMP historical response (batch or single format)."""
+        """Parse FMP historical response (batch or single format).
+
+        Keys in result are always normalized (e.g., BRK.B not BRK-B).
+        """
         if isinstance(data, dict):
             if "historicalStockList" in data:
                 for entry in data["historicalStockList"]:
                     sym = entry.get("symbol", "")
                     if sym and "historical" in entry:
-                        result[sym] = entry["historical"]
+                        result[self._normalize_symbol_for_fmp(sym)] = entry["historical"]
             elif "historical" in data:
                 sym = data.get("symbol", "")
                 if sym:
-                    result[sym] = data["historical"]
+                    result[self._normalize_symbol_for_fmp(sym)] = data["historical"]
 
     # -------------------------------------------------------------------
     # FMP-based stock metrics
