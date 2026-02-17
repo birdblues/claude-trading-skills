@@ -87,7 +87,6 @@ def generate_markdown_report(json_data: Dict,
     all_themes = themes_data.get("all", [])
     bullish = themes_data.get("bullish", [])
     bearish = themes_data.get("bearish", [])
-    metadata = json_data.get("metadata", {})
     summary = json_data.get("summary", {})
 
     # Header

@@ -45,7 +45,6 @@ from calculators.lifecycle_calculator import (
 )
 from scorer import (
     score_theme,
-    get_heat_label,
     calculate_confidence,
     determine_data_mode,
 )
@@ -419,7 +418,7 @@ def _get_theme_weighted_return(theme: Dict) -> float:
 def main():
     # Lazy imports: these modules depend on pandas/numpy/yfinance/finvizfinance
     # and are only needed at runtime, not when importing helpers for testing.
-    from finviz_performance_client import get_sector_performance, get_industry_performance
+    from finviz_performance_client import get_industry_performance
     from etf_scanner import ETFScanner
     from uptrend_client import fetch_sector_uptrend_data, is_data_stale
     from config_loader import load_themes_config
@@ -439,7 +438,7 @@ def main():
     fmp_available = args.fmp_api_key is not None
     data_mode = determine_data_mode(fmp_available, finviz_mode == "elite")
 
-    print(f"Theme Detector starting...", file=sys.stderr)
+    print("Theme Detector starting...", file=sys.stderr)
     print(f"  Data mode: {data_mode}", file=sys.stderr)
     print(f"  FINVIZ mode: {finviz_mode}", file=sys.stderr)
     print(f"  FMP API: {'available' if fmp_available else 'not available'}",
@@ -535,16 +534,19 @@ def main():
         )
         print("  Dynamic stock selection: ON", file=sys.stderr)
 
-    theme_stocks: Dict[str, List[str]] = {}
-    theme_stock_details: Dict[str, List[Dict]] = {}
+    # Use index-based keys to avoid collisions when multiple themes share
+    # the same name (e.g. two "{Sector} Sector Concentration" themes for
+    # top and bottom, or duplicate auto-names from the discoverer).
+    theme_stocks: Dict[int, List[str]] = {}
+    theme_stock_details: Dict[int, List[Dict]] = {}
     all_symbols = set()
 
-    for theme in themes:
+    for idx, theme in enumerate(themes):
         tickers, stock_details = _get_representative_stocks(
             theme, selector, args.max_stocks_per_theme
         )
-        theme_stocks[theme["theme_name"]] = tickers
-        theme_stock_details[theme["theme_name"]] = stock_details
+        theme_stocks[idx] = tickers
+        theme_stock_details[idx] = stock_details
         all_symbols.update(tickers)
 
     all_symbols_list = sorted(all_symbols)
@@ -619,11 +621,11 @@ def main():
     print("Scoring themes...", file=sys.stderr)
     scored_themes = []
 
-    for theme in themes:
+    for idx, theme in enumerate(themes):
         theme_name = theme["theme_name"]
         direction = theme["direction"]
         is_bearish = direction == "bearish"
-        stocks = theme_stocks.get(theme_name, [])
+        stocks = theme_stocks.get(idx, [])
 
         # --- Theme Heat ---
         # Momentum: average weighted_return of matching industries
@@ -741,7 +743,7 @@ def main():
             "heat_breakdown": heat_breakdown,
             "maturity_breakdown": maturity_breakdown,
             "representative_stocks": stocks,
-            "stock_details": theme_stock_details.get(theme_name, []),
+            "stock_details": theme_stock_details.get(idx, []),
             "proxy_etfs": theme.get("proxy_etfs", []),
             "industries": [ind.get("name", "") for ind in
                           theme.get("matching_industries", [])],

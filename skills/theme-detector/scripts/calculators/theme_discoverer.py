@@ -228,10 +228,11 @@ def _is_duplicate_of_existing(
 
     A cluster is considered duplicate if:
     1. Direction matches an existing theme, AND
-    2. Jaccard similarity of industry names >= threshold
+    2. Jaccard similarity >= threshold OR overlap coefficient >= threshold.
 
-    This uses industry overlap (not name-based matching) to catch
-    renamed themes with the same constituent industries.
+    The overlap coefficient (intersection / min(|A|, |B|)) catches cases
+    where a small cluster is a subset of a large existing theme, which
+    Jaccard alone would miss because the union denominator dilutes the ratio.
     """
     cluster_names = {ind.get("name", "") for ind in cluster_industries}
     if not cluster_names:
@@ -246,7 +247,9 @@ def _is_duplicate_of_existing(
         intersection = cluster_names & theme_names
         union = cluster_names | theme_names
         jaccard = len(intersection) / len(union) if union else 0
-        if jaccard >= overlap_threshold:
+        min_size = min(len(cluster_names), len(theme_names))
+        overlap_coeff = len(intersection) / min_size if min_size else 0
+        if jaccard >= overlap_threshold or overlap_coeff >= overlap_threshold:
             return True
 
     return False

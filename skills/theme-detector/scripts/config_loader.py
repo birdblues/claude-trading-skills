@@ -15,6 +15,14 @@ import os
 import sys
 from typing import Dict, Optional, Tuple
 
+# Build tuple of catchable YAML errors (yaml may not be installed)
+_YAML_ERRORS: tuple = ()
+try:
+    import yaml
+    _YAML_ERRORS = (yaml.YAMLError,)
+except ImportError:
+    pass
+
 
 def load_themes_config(
     yaml_path: Optional[str] = None,
@@ -48,8 +56,9 @@ def load_themes_config(
         catalog = _extract_etf_catalog(raw)
         config = _strip_etf_count(raw)
         return config, catalog
-    except Exception:
-        print("WARNING: YAML load failed, using inline config", file=sys.stderr)
+    except (FileNotFoundError, ValueError, RuntimeError, ImportError, *_YAML_ERRORS) as exc:
+        print(f"WARNING: YAML load failed ({exc}), using inline config",
+              file=sys.stderr)
         from default_theme_config import DEFAULT_THEMES_CONFIG, ETF_CATALOG
         return copy.deepcopy(DEFAULT_THEMES_CONFIG), dict(ETF_CATALOG)
 
