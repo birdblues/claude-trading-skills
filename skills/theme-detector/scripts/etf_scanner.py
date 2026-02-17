@@ -11,7 +11,7 @@ FMP API key is optional; without it, yfinance is used exclusively.
 
 import sys
 import time
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import pandas as pd
@@ -172,6 +172,18 @@ class ETFScanner:
                     sym = item.get("symbol", "")
                     self._fmp_quote_cache[sym] = item
 
+        # Per-symbol retry for missing: try original symbol if different
+        for s in uncached:
+            norm = self._normalize_symbol_for_fmp(s)
+            if norm in self._fmp_quote_cache:
+                continue
+            if norm != s:
+                data = self._fmp_request("quote", s)
+                if isinstance(data, list):
+                    for item in data:
+                        sym = item.get("symbol", "")
+                        self._fmp_quote_cache[sym] = item
+
         for s in symbols:
             norm = self._normalize_symbol_for_fmp(s)
             cached = self._fmp_quote_cache.get(norm)
@@ -199,13 +211,19 @@ class ETFScanner:
             self._parse_historical_response(data, result)
 
         # Phase 2: per-symbol retry for missing symbols
+        # Try normalized form first, then original if different
         missing = [s for s in symbols if self._normalize_symbol_for_fmp(s) not in result]
         for s in missing:
             norm = self._normalize_symbol_for_fmp(s)
             data = self._fmp_request("historical", norm, extra)
-            if data is None:
+            if data is not None:
+                self._parse_historical_response(data, result)
                 continue
-            self._parse_historical_response(data, result)
+            # Retry with original symbol if normalization changed it
+            if norm != s:
+                data = self._fmp_request("historical", s, extra)
+                if data is not None:
+                    self._parse_historical_response(data, result)
 
         # Map normalized keys back to original symbols
         mapped: Dict[str, List[Dict]] = {}
@@ -428,7 +446,8 @@ class ETFScanner:
 
         # Phase 1: Try FMP batch
         fmp_results: Dict[str, Dict] = {}
-        if self._fmp_api_key and HAS_REQUESTS:
+        fmp_attempted = self._fmp_api_key and HAS_REQUESTS
+        if fmp_attempted:
             fmp_results = self._batch_etf_volume_ratios_fmp(symbols)
 
         # Phase 2: yfinance for missing/empty
@@ -442,7 +461,7 @@ class ETFScanner:
                 missing_for_yf.append(sym)
 
         if missing_for_yf:
-            if fmp_results:
+            if fmp_attempted:
                 self._stats["yf_fallbacks"] += 1
             for sym in missing_for_yf:
                 self._stats["yf_calls"] += 1
@@ -465,7 +484,8 @@ class ETFScanner:
 
         # Phase 1: Try FMP
         fmp_results: Dict[str, Dict] = {}
-        if self._fmp_api_key and HAS_REQUESTS:
+        fmp_attempted = self._fmp_api_key and HAS_REQUESTS
+        if fmp_attempted:
             fmp_list = self._batch_stock_metrics_fmp(symbols)
             for m in fmp_list:
                 sym = m["symbol"]
@@ -476,7 +496,7 @@ class ETFScanner:
         missing = [s for s in symbols if s not in fmp_results]
         yf_results: Dict[str, Dict] = {}
         if missing:
-            if fmp_results:
+            if fmp_attempted:
                 self._stats["yf_fallbacks"] += 1
             yf_list = self._batch_stock_metrics_yfinance(missing)
             self._stats["yf_calls"] += 1

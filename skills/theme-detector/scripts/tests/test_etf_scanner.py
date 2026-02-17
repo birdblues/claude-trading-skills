@@ -4,8 +4,7 @@ Tests FMP backend, symbol normalization, caching, batching,
 per-symbol retry, symbol-level fallback, and backend stats.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock
 import pandas as pd
 import numpy as np
 
@@ -630,7 +629,7 @@ class TestSymbolLevelFallback:
         mock_requests.get.side_effect = [quote_resp, hist_resp]
 
         with patch("etf_scanner.yf") as mock_yf:
-            results = scanner.batch_stock_metrics(["AAPL"])
+            scanner.batch_stock_metrics(["AAPL"])
             mock_yf.download.assert_not_called()
 
         assert scanner._stats["yf_calls"] == 0
@@ -715,6 +714,7 @@ class TestBackendStats:
         scanner.batch_stock_metrics(["AAPL"])
         stats = scanner.backend_stats()
         assert stats["yf_calls"] == 1
+        assert stats["yf_fallbacks"] == 1  # FMP attempted but failed entirely
         assert stats["fmp_failures"] > 0
 
     @patch("etf_scanner._requests_lib")
