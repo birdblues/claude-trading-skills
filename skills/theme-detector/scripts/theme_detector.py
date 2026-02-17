@@ -577,15 +577,7 @@ def main():
             stock_metrics_map[m["symbol"]] = m
         # Backward compatible key (1 release coexistence)
         metadata["data_sources"]["yfinance_stocks"] = len(all_metrics)
-        # New: actual backend usage statistics
-        scanner_stats = scanner.backend_stats()
-        metadata["data_sources"]["scanner_backend"] = scanner_stats
         print(f"  Got metrics for {len(all_metrics)} stocks", file=sys.stderr)
-        print(f"  Scanner: FMP {scanner_stats['fmp_calls']} calls "
-              f"({scanner_stats['fmp_failures']} failures), "
-              f"yfinance: {scanner_stats['yf_calls']} calls "
-              f"({scanner_stats['yf_fallbacks']} fallbacks)",
-              file=sys.stderr)
 
     # -----------------------------------------------------------------------
     # Step 6: Fetch ETF volume ratios for each theme's proxy ETFs
@@ -600,6 +592,15 @@ def main():
     etf_volume_map = scanner.batch_etf_volume_ratios(sorted(all_etfs))
 
     metadata["data_sources"]["etf_volume"] = len(etf_volume_map)
+
+    # Capture backend stats after all scanner calls (stock + ETF)
+    scanner_stats = scanner.backend_stats()
+    metadata["data_sources"]["scanner_backend"] = scanner_stats
+    print(f"  Scanner: FMP {scanner_stats['fmp_calls']} calls "
+          f"({scanner_stats['fmp_failures']} failures), "
+          f"yfinance: {scanner_stats['yf_calls']} calls "
+          f"({scanner_stats['yf_fallbacks']} fallbacks)",
+          file=sys.stderr)
 
     # -----------------------------------------------------------------------
     # Step 7: Fetch uptrend-dashboard data
