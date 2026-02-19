@@ -140,6 +140,11 @@ def _period_return(closes: List[float], period: int) -> float:
 def rank_relative_strength_universe(rs_results: Dict[str, Dict]) -> Dict[str, Dict]:
     """Rank all candidates by weighted_rs and assign percentile-based scores.
 
+    Stocks with weighted_rs=None are excluded from percentile ranking and
+    assigned score=0, rs_percentile=0. Small populations (fewer than
+    MIN_POPULATION_FOR_FULL_SCORE valid stocks) have their scores capped
+    to prevent inflated rankings.
+
     Args:
         rs_results: {symbol: {score, weighted_rs, ...}} for each candidate
 
@@ -149,35 +154,64 @@ def rank_relative_strength_universe(rs_results: Dict[str, Dict]) -> Dict[str, Di
     if not rs_results:
         return {}
 
-    # Sort by weighted_rs (None treated as -inf)
-    symbols = list(rs_results.keys())
-    symbols.sort(key=lambda s: rs_results[s].get("weighted_rs") if rs_results[s].get("weighted_rs") is not None else -999)
+    # Separate valid (weighted_rs is not None) from invalid
+    valid_symbols = [s for s in rs_results if rs_results[s].get("weighted_rs") is not None]
+    invalid_symbols = [s for s in rs_results if rs_results[s].get("weighted_rs") is None]
 
-    n = len(symbols)
+    # Handle invalid stocks: score=0, rs_percentile=0
+    result = {}
+    for sym in invalid_symbols:
+        updated = dict(rs_results[sym])
+        updated["rs_percentile"] = 0
+        updated["score"] = 0
+        result[sym] = updated
+
+    if not valid_symbols:
+        return result
+
+    # Sort valid symbols by weighted_rs
+    valid_symbols.sort(key=lambda s: rs_results[s]["weighted_rs"])
+
+    n = len(valid_symbols)
     # Assign percentiles (handle ties by giving same percentile)
     percentiles = {}
     i = 0
     while i < n:
-        # Find all symbols with the same weighted_rs
-        current_val = rs_results[symbols[i]].get("weighted_rs")
+        current_val = rs_results[valid_symbols[i]]["weighted_rs"]
         j = i + 1
-        while j < n and rs_results[symbols[j]].get("weighted_rs") == current_val:
+        while j < n and rs_results[valid_symbols[j]]["weighted_rs"] == current_val:
             j += 1
-        # Assign percentile as the upper rank of the tie group
         pct = int(round(j / n * 100))
         for k in range(i, j):
-            percentiles[symbols[k]] = pct
+            percentiles[valid_symbols[k]] = pct
         i = j
 
-    # Update results with percentile and recalculated score
-    result = {}
-    for sym, data in rs_results.items():
-        updated = dict(data)
+    # Small population cap: with fewer valid stocks, cap the maximum score
+    max_score = _small_population_max_score(n)
+
+    for sym in valid_symbols:
+        updated = dict(rs_results[sym])
         updated["rs_percentile"] = percentiles[sym]
-        updated["score"] = _percentile_to_score(percentiles[sym])
+        raw_score = _percentile_to_score(percentiles[sym])
+        updated["score"] = min(raw_score, max_score)
         result[sym] = updated
 
     return result
+
+
+# Minimum population for unrestricted percentile scoring
+MIN_POPULATION_FOR_FULL_SCORE = 20
+
+
+def _small_population_max_score(n: int) -> int:
+    """Cap maximum RS score when population is too small for reliable percentiles."""
+    if n >= MIN_POPULATION_FOR_FULL_SCORE:
+        return 100
+    if n >= 10:
+        return 90
+    if n >= 5:
+        return 80
+    return 70
 
 
 def _percentile_to_score(percentile: int) -> int:

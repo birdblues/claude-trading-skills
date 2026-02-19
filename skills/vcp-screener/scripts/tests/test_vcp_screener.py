@@ -1046,14 +1046,16 @@ class TestRSPercentileRanking:
         assert ranked["S0"]["score"] <= 30
 
     def test_single_stock(self):
-        """Single stock gets percentile 100."""
+        """Single stock gets percentile 100 but score capped by small-population rule."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
         rs_map = {"ONLY": {"score": 50, "weighted_rs": 10.0}}
         ranked = rank_relative_strength_universe(rs_map)
         assert ranked["ONLY"]["rs_percentile"] == 100
+        # With n=1, max score is 70 (small population cap)
+        assert ranked["ONLY"]["score"] <= 70
 
     def test_handles_none_weighted_rs(self):
-        """Stocks with None weighted_rs get lowest ranking."""
+        """Stocks with None weighted_rs get score=0 and percentile=0."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
         rs_map = {
             "GOOD": {"score": 80, "weighted_rs": 20.0},
@@ -1061,6 +1063,8 @@ class TestRSPercentileRanking:
         }
         ranked = rank_relative_strength_universe(rs_map)
         assert ranked["GOOD"]["rs_percentile"] > ranked["BAD"]["rs_percentile"]
+        assert ranked["BAD"]["score"] == 0
+        assert ranked["BAD"]["rs_percentile"] == 0
 
     def test_empty_dict(self):
         """Empty input returns empty dict."""
@@ -1298,8 +1302,8 @@ class TestVCPPatternEnhanced:
         result = calculate_vcp_pattern(
             prices, atr_multiplier=2.0, atr_period=10, min_contraction_days=3
         )
+        assert isinstance(result, dict)
         assert "score" in result
-        assert result["error"] is None or result["error"] is not None  # no crash
 
     def test_atr_value_in_result(self):
         """Result should include atr_value when ZigZag is used."""
@@ -1399,28 +1403,32 @@ class TestVolumeZoneAnalysis:
         assert result["dry_up_ratio"] < 0.5
 
     def test_contraction_volume_declining_bonus(self):
-        """Declining volume across contractions should add bonus."""
-        # Build prices where contraction zones have declining volume
+        """Declining volume across contractions should add bonus and report trend."""
+        # Build prices where T1 zone has higher volume than T2 zone
+        n = 60
         prices = []
-        for i in range(60):
+        for i in range(n):
             vol = 1000000
-            # Earlier contraction zone (T1): high volume
-            # Later contraction zone (T2): lower volume
+            # T1: chronological 10-20, reversed = 39-49
+            if 39 <= i <= 49:
+                vol = 2000000
+            # T2: chronological 35-45, reversed = 14-24
+            elif 14 <= i <= 24:
+                vol = 500000
             prices.append({
                 "date": f"day-{i}",
                 "open": 100.0, "high": 101.0, "low": 99.0,
                 "close": 100.0, "volume": vol,
             })
-        # Contractions in chronological indices (oldest first)
         contractions = [
             {"high_idx": 10, "low_idx": 20, "label": "T1"},
-            {"high_idx": 30, "low_idx": 45, "label": "T2"},
+            {"high_idx": 35, "low_idx": 45, "label": "T2"},
         ]
         result = calculate_volume_pattern(
             prices, pivot_price=101.0, contractions=contractions
         )
-        # Should have contraction_volume_trend
         assert "contraction_volume_trend" in result
+        assert result["contraction_volume_trend"]["declining"] is True
 
     def test_empty_contractions_fallback(self):
         """Empty contractions list should use old behavior."""
@@ -1456,3 +1464,166 @@ class TestVolumeZoneAnalysis:
             prices, pivot_price=101.0, contractions=contractions
         )
         assert result["breakout_volume_detected"] is True
+
+
+# ===========================================================================
+# Code Review Fix Tests: RS None handling, weakest/strongest update,
+# small population, and tautological test fixes
+# ===========================================================================
+
+
+class TestRSNoneHandling:
+    """Issue #1 (High): weighted_rs=None stocks must not inflate scores."""
+
+    def test_all_none_get_score_zero(self):
+        """All-None universe: every stock should get score=0, not score=100."""
+        from calculators.relative_strength_calculator import rank_relative_strength_universe
+        rs_map = {
+            "A": {"score": 0, "weighted_rs": None, "error": "No SPY data"},
+            "B": {"score": 0, "weighted_rs": None, "error": "No SPY data"},
+            "C": {"score": 0, "weighted_rs": None, "error": "No SPY data"},
+        }
+        ranked = rank_relative_strength_universe(rs_map)
+        for sym in ["A", "B", "C"]:
+            assert ranked[sym]["score"] == 0
+            assert ranked[sym]["rs_percentile"] == 0
+
+    def test_mixed_none_excludes_none_from_percentile(self):
+        """None stocks excluded from percentile; valid stocks ranked among themselves."""
+        from calculators.relative_strength_calculator import rank_relative_strength_universe
+        rs_map = {
+            "GOOD1": {"score": 80, "weighted_rs": 30.0},
+            "GOOD2": {"score": 70, "weighted_rs": 10.0},
+            "BAD":   {"score": 0, "weighted_rs": None, "error": "No data"},
+        }
+        ranked = rank_relative_strength_universe(rs_map)
+        # BAD should get score=0
+        assert ranked["BAD"]["score"] == 0
+        assert ranked["BAD"]["rs_percentile"] == 0
+        # GOOD1 should still be ranked highest among valid stocks
+        assert ranked["GOOD1"]["rs_percentile"] > ranked["GOOD2"]["rs_percentile"]
+        assert ranked["GOOD1"]["score"] > 0
+
+    def test_none_stock_preserves_error(self):
+        """None-weighted_rs stock should preserve its original error field."""
+        from calculators.relative_strength_calculator import rank_relative_strength_universe
+        rs_map = {
+            "OK": {"score": 50, "weighted_rs": 10.0},
+            "ERR": {"score": 0, "weighted_rs": None, "error": "SPY fetch failed"},
+        }
+        ranked = rank_relative_strength_universe(rs_map)
+        assert ranked["ERR"]["error"] == "SPY fetch failed"
+
+
+class TestRSSmallPopulation:
+    """Issue #3 (Medium): small populations should cap percentile scores."""
+
+    def test_small_population_caps_score(self):
+        """With fewer than 10 valid stocks, scores should be capped."""
+        from calculators.relative_strength_calculator import rank_relative_strength_universe
+        # 3 stocks: highest should NOT get score=100
+        rs_map = {
+            "A": {"score": 50, "weighted_rs": 20.0},
+            "B": {"score": 50, "weighted_rs": 10.0},
+            "C": {"score": 50, "weighted_rs": 5.0},
+        }
+        ranked = rank_relative_strength_universe(rs_map)
+        # With only 3 valid stocks, best should be capped at 80
+        assert ranked["A"]["score"] <= 80
+
+    def test_large_population_no_cap(self):
+        """With 20+ valid stocks, no cap is applied."""
+        from calculators.relative_strength_calculator import rank_relative_strength_universe
+        rs_map = {
+            f"S{i}": {"score": 50, "weighted_rs": float(i)} for i in range(20)
+        }
+        ranked = rank_relative_strength_universe(rs_map)
+        assert ranked["S19"]["score"] >= 90
+
+
+class TestWeakestStrongestUpdate:
+    """Issue #2 (Medium): weakest/strongest must update after RS re-ranking."""
+
+    def test_weakest_strongest_reflects_updated_rs(self):
+        """After RS re-ranking, composite result must have fresh weakest/strongest."""
+        # Simulate a result where RS was initially strongest (score=100)
+        # but after re-ranking becomes weaker (score=40)
+        composite = calculate_composite_score(
+            trend_score=80,
+            contraction_score=70,
+            volume_score=60,
+            pivot_score=50,
+            rs_score=40,  # RS now weakest after re-ranking
+        )
+        assert composite["weakest_component"] == "Relative Strength"
+        assert composite["weakest_score"] == 40
+        # The strongest should be Trend Template
+        assert composite["strongest_component"] == "Trend Template (Stage 2)"
+        assert composite["strongest_score"] == 80
+
+
+class TestFixedTautologicalTests:
+    """Issue #4 (Low): fix tests that were always-true."""
+
+    def test_new_params_no_crash(self):
+        """calculate_vcp_pattern with new params should not raise an exception."""
+        prices = TestVCPPatternEnhanced._make_vcp_prices(None)
+        result = calculate_vcp_pattern(
+            prices, atr_multiplier=2.0, atr_period=10, min_contraction_days=3
+        )
+        assert isinstance(result, dict)
+        assert "score" in result
+
+    def test_declining_volume_bonus_value(self):
+        """Declining contraction volume should yield +5 bonus vs non-declining."""
+        # Build prices with declining volume in contraction zones
+        prices_declining = []
+        prices_flat = []
+        for i in range(60):
+            close = 100.0
+            vol_base = 1000000
+            prices_declining.append({
+                "date": f"day-{i}",
+                "open": 100.0, "high": 101.0, "low": 99.0,
+                "close": close, "volume": vol_base,
+            })
+            prices_flat.append({
+                "date": f"day-{i}",
+                "open": 100.0, "high": 101.0, "low": 99.0,
+                "close": close, "volume": vol_base,
+            })
+
+        # Contractions where T1 zone has higher volume than T2 zone
+        # (chronological indices: T1 is earlier, T2 is later)
+        n = 60
+        # T1: indices 10-20 (chronological), reversed = 39-49
+        # T2: indices 35-45 (chronological), reversed = 14-24
+        # For declining: T1 zone gets high volume, T2 zone gets low volume
+        for i in range(n):
+            rev_idx = n - 1 - i
+            # T1 chronological 10-20 -> reversed 39-49
+            if 39 <= i <= 49:
+                prices_declining[i]["volume"] = 2000000
+                prices_flat[i]["volume"] = 1000000
+            # T2 chronological 35-45 -> reversed 14-24
+            if 14 <= i <= 24:
+                prices_declining[i]["volume"] = 500000
+                prices_flat[i]["volume"] = 1000000
+
+        contractions = [
+            {"high_idx": 10, "low_idx": 20, "label": "T1"},
+            {"high_idx": 35, "low_idx": 45, "label": "T2"},
+        ]
+
+        result_declining = calculate_volume_pattern(
+            prices_declining, pivot_price=101.0, contractions=contractions
+        )
+        result_flat = calculate_volume_pattern(
+            prices_flat, pivot_price=101.0, contractions=contractions
+        )
+
+        # Declining should have the bonus
+        assert result_declining.get("contraction_volume_trend", {}).get("declining") is True
+        assert result_flat.get("contraction_volume_trend", {}).get("declining") is False
+        # Score difference should be exactly 5
+        assert result_declining["score"] - result_flat["score"] == 5
