@@ -84,6 +84,45 @@ Present the generated Markdown report to the user, highlighting:
 | 20-39 | Cautious | Defensive (30-60%) |
 | 0-19 | Bear | Capital Preservation (0-30%) |
 
+### 7-Level Zone Detail
+
+Each scoring zone is further divided into sub-zones for finer-grained assessment:
+
+| Score | Zone Detail | Color |
+|-------|-------------|-------|
+| 80-100 | Strong Bull | Green |
+| 70-79 | Bull-Upper | Light Green |
+| 60-69 | Bull-Lower | Light Green |
+| 40-59 | Neutral | Yellow |
+| 30-39 | Cautious-Upper | Orange |
+| 20-29 | Cautious-Lower | Orange |
+| 0-19 | Bear | Red |
+
+### Warning System
+
+Active warnings trigger exposure penalties that tighten guidance even when the composite score is high:
+
+| Warning | Condition | Penalty |
+|---------|-----------|---------|
+| **Late Cycle** | Commodity avg > both Cyclical and Defensive | -5 |
+| **High Spread** | Max-min sector ratio spread > 40pp | -3 |
+| **Divergence** | Intra-group std > 8pp, spread > 20pp, or trend dissenters | -3 |
+
+Penalties stack (max -10) + multi-warning discount (+1 when ≥2 active). Applied after composite scoring.
+
+### Momentum Smoothing
+
+Slope values are smoothed using EMA(3) (Exponential Moving Average, span=3) before scoring. Acceleration is calculated by comparing the recent 10-point average vs prior 10-point average of smoothed slopes (10v10 window), with fallback to 5v5 when fewer than 20 data points are available.
+
+### Historical Confidence Indicator
+
+The Historical Context component includes a confidence assessment based on:
+- **Sample size:** Number of historical data points available
+- **Regime coverage:** Proportion of distinct market regimes (bull/bear/neutral) observed
+- **Recency:** How recent the latest data point is
+
+Confidence levels: High, Medium, Low.
+
 ---
 
 ## API Requirements

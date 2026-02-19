@@ -45,8 +45,8 @@ def parse_arguments():
     )
     parser.add_argument(
         "--output-dir",
-        default=".",
-        help="Output directory for reports (default: current directory)"
+        default="reports/",
+        help="Output directory for reports (default: reports/)"
     )
     return parser.parse_args()
 
@@ -154,14 +154,20 @@ def main():
     warning_flags = {
         "late_cycle": comp3.get("late_cycle_flag", False),
         "high_spread": (comp2.get("spread") is not None and comp2["spread"] > 0.40),
+        "divergence": comp3.get("divergence_flag", False),
     }
 
-    composite = calculate_composite_score(component_scores, data_availability,
-                                          warning_flags)
+    composite = calculate_composite_score(
+        component_scores, data_availability, warning_flags,
+        historical_data_points=comp5.get("data_points"),
+    )
 
     print(f"  Composite Score: {composite['composite_score']}/100")
-    print(f"  Zone: {composite['zone']}")
+    print(f"  Zone: {composite['zone']} ({composite.get('zone_detail', '')})")
     print(f"  Exposure Guidance: {composite['exposure_guidance']}")
+    if composite.get("warning_penalty", 0) != 0:
+        print(f"  Warning Penalty: {composite['warning_penalty']} "
+              f"(raw score: {composite.get('composite_score_raw', 'N/A')})")
     print(f"  Strongest: {composite['strongest_component']['label']} "
           f"({composite['strongest_component']['score']})")
     print(f"  Weakest: {composite['weakest_component']['label']} "

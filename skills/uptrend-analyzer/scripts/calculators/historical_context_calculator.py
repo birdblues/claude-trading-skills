@@ -76,6 +76,13 @@ def calculate_historical_context(all_timeseries: List[Dict]) -> Dict:
 
     signal = _build_signal(score, percentile, current_ratio)
 
+    # Assess confidence of historical analysis
+    confidence = _assess_confidence(ratios)
+
+    # Append confidence caveat to signal if low
+    if confidence["confidence_level"] in ("Low", "Very Low"):
+        signal += f" [confidence: {confidence['confidence_level']}]"
+
     return {
         "score": score,
         "signal": signal,
@@ -95,6 +102,86 @@ def calculate_historical_context(all_timeseries: List[Dict]) -> Dict:
         "avg_90d_pct": round(avg_90d * 100, 1) if avg_90d is not None else None,
         "data_points": len(ratios),
         "date_range": f"{all_timeseries[0].get('date', '?')} to {all_timeseries[-1].get('date', '?')}",
+        "confidence": confidence,
+    }
+
+
+def _assess_confidence(ratios: List[float]) -> Dict:
+    """Assess confidence level of percentile analysis.
+
+    Evaluates:
+    - Sample size: >=1000 full, 500-999 moderate, 200-499 limited, <200 minimal
+    - Regime coverage: Has bear data (min<10%) AND bull data (max>40%)
+    - Recency bias: Whether recent 90 days span less than 30% of full range
+
+    Returns:
+        Dict with confidence_level, confidence_score, regime details
+    """
+    n = len(ratios)
+
+    # Sample size assessment
+    if n >= 1000:
+        size_score = 3
+        size_label = "full"
+    elif n >= 500:
+        size_score = 2
+        size_label = "moderate"
+    elif n >= 200:
+        size_score = 1
+        size_label = "limited"
+    else:
+        size_score = 0
+        size_label = "minimal"
+
+    # Regime coverage
+    hist_min = min(ratios) if ratios else 0
+    hist_max = max(ratios) if ratios else 0
+    has_bear = hist_min < 0.10  # Below 10%
+    has_bull = hist_max > 0.40  # Above 40%
+
+    if has_bear and has_bull:
+        regime_coverage = "Both"
+        regime_score = 2
+    elif has_bear or has_bull:
+        regime_coverage = "Partial"
+        regime_score = 1
+    else:
+        regime_coverage = "Narrow"
+        regime_score = 0
+
+    # Recency bias
+    full_range = hist_max - hist_min if hist_max != hist_min else 1.0
+    recent_90 = ratios[-90:] if len(ratios) >= 90 else ratios
+    recent_range = max(recent_90) - min(recent_90) if len(recent_90) >= 2 else 0
+    recency_ratio = recent_range / full_range if full_range > 0 else 0
+
+    if recency_ratio >= 0.30:
+        recency_label = "balanced"
+        recency_score = 1
+    else:
+        recency_label = "biased"
+        recency_score = 0
+
+    # Overall confidence
+    total_score = size_score + regime_score + recency_score
+    if total_score >= 5:
+        confidence_level = "High"
+    elif total_score >= 3:
+        confidence_level = "Moderate"
+    elif total_score >= 1:
+        confidence_level = "Low"
+    else:
+        confidence_level = "Very Low"
+
+    return {
+        "confidence_level": confidence_level,
+        "confidence_score": total_score,
+        "sample_size": n,
+        "sample_label": size_label,
+        "has_bear_data": has_bear,
+        "has_bull_data": has_bull,
+        "regime_coverage": regime_coverage,
+        "recency_label": recency_label,
     }
 
 
