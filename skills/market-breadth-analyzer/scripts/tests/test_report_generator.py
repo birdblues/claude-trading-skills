@@ -377,3 +377,54 @@ class TestGuidanceCaution:
         analysis["components"]["ma_crossover"]["direction_modifier"] = -10
         md = _generate_to_string(analysis)
         assert "Caution" in md
+
+
+# =========================================================================
+# Condition-dependent actions when Caution fires
+# =========================================================================
+
+
+class TestConditionDependentActions:
+    def test_cautionary_actions_injected_when_falling(self):
+        analysis = _base_analysis()
+        analysis["components"]["breadth_level_trend"]["direction_modifier"] = -10
+        analysis["components"]["ma_crossover"]["direction_modifier"] = -10
+        md = _generate_to_string(analysis)
+        assert "Reduce new position sizes" in md
+        assert "Tighten stop-loss levels" in md
+
+    def test_no_cautionary_actions_when_healthy(self):
+        analysis = _base_analysis()
+        analysis["components"]["breadth_level_trend"]["direction_modifier"] = 0
+        analysis["components"]["ma_crossover"]["direction_modifier"] = 0
+        md = _generate_to_string(analysis)
+        assert "Reduce new position sizes" not in md
+        assert "Tighten stop-loss levels" not in md
+
+    def test_cautionary_actions_when_only_c1_negative(self):
+        analysis = _base_analysis()
+        analysis["components"]["breadth_level_trend"]["direction_modifier"] = -10
+        analysis["components"]["ma_crossover"]["direction_modifier"] = 0
+        md = _generate_to_string(analysis)
+        assert "Reduce new position sizes" in md
+
+
+# =========================================================================
+# C6 score displays as int (not float)
+# =========================================================================
+
+
+class TestC6ScoreIntDisplay:
+    def test_c6_float_score_renders_as_int(self):
+        analysis = _base_analysis()
+        analysis["composite"]["component_scores"]["divergence"]["score"] = 62.0
+        md = _generate_to_string(analysis)
+        # Should show "62" not "62.0" in the score column
+        assert " 62.0 " not in md
+        assert " 62 " in md
+
+    def test_integer_scores_unchanged(self):
+        analysis = _base_analysis()
+        md = _generate_to_string(analysis)
+        # C1 score=80 should still appear as 80
+        assert " 80 " in md

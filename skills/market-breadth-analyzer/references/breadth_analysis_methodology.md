@@ -122,11 +122,14 @@ Composite score = 60d_score x 0.6 + 20d_score x 0.4
 
 **Early Warning flag:** When the 20-day window shows bearish divergence (score <= 25) while the 60-day window is still healthy (score >= 50), an Early Warning is triggered. This signals that short-term breadth deterioration has begun before it becomes visible in the structural window.
 
+**Near-flat classification:** When both S&P 500 change and breadth change are below noise thresholds (|S&P %| < 0.5 and |breadth change| < 0.01), the window is classified as "Near-flat (insufficient movement)" with a neutral score of 50. This prevents misclassification of trivial movements as divergence or alignment signals.
+
 **Key patterns (per window):**
 - **S&P up + Breadth up:** Healthy, sustainable rally (70)
 - **S&P up + Breadth down:** Dangerous narrow market (10-25)
 - **S&P down + Breadth up:** Bullish divergence, potential bottom (65-80)
 - **S&P down + Breadth down:** Consistent decline, wait for stabilization (30)
+- **Both near-flat:** Neutral (50) - insufficient movement to classify
 
 ### Weight Redistribution
 
@@ -162,6 +165,16 @@ effective_weight[i] = base_weight[i] / sum(base_weight[j] for all available j)
 | 40-59 | **Neutral** | 60-75% | Selective; tighter stops; avoid speculative names |
 | 20-39 | **Weakening** | 40-60% | Profit-taking; raise cash; defensive rotation |
 | 0-19 | **Critical** | 25-40% | Capital preservation; hedging; watch for trough |
+
+### Guidance Caution Warning
+
+When the 8MA direction modifier is negative in C1 (Breadth Level & Trend) or C2 (MA Crossover), the report automatically appends a Caution warning to the Overall Assessment guidance. This alerts analysts that the zone-based guidance (e.g., "Normal operations") may be overly optimistic given the deteriorating short-term momentum.
+
+The Caution warning also triggers additional protective actions in the Recommended Actions section:
+- "Reduce new position sizes until 8MA stabilizes"
+- "Tighten stop-loss levels on existing positions"
+
+These are appended to the standard zone-based actions, not replacing them.
 
 ### Cross-Referencing with Other Skills
 
