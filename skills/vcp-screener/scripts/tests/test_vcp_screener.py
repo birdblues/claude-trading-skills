@@ -1046,13 +1046,13 @@ class TestRSPercentileRanking:
         assert ranked["S0"]["score"] <= 30
 
     def test_single_stock(self):
-        """Single stock gets percentile 100 but score capped by small-population rule."""
+        """Single stock capped by small-population rule (n=1 -> max score 70)."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
         rs_map = {"ONLY": {"score": 50, "weighted_rs": 10.0}}
         ranked = rank_relative_strength_universe(rs_map)
-        assert ranked["ONLY"]["rs_percentile"] == 100
-        # With n=1, max score is 70 (small population cap)
+        # With n=1, percentile and score are both capped
         assert ranked["ONLY"]["score"] <= 70
+        assert ranked["ONLY"]["rs_percentile"] <= 74
 
     def test_handles_none_weighted_rs(self):
         """Stocks with None weighted_rs get score=0 and percentile=0."""
@@ -1531,6 +1531,25 @@ class TestRSSmallPopulation:
         # With only 3 valid stocks, best should be capped at 80
         assert ranked["A"]["score"] <= 80
 
+    def test_small_population_caps_percentile_consistently(self):
+        """rs_percentile must be capped consistently with score."""
+        from calculators.relative_strength_calculator import (
+            rank_relative_strength_universe,
+            _percentile_to_score,
+        )
+        # 3 stocks: raw percentile would be 100 for top stock
+        rs_map = {
+            "A": {"score": 50, "weighted_rs": 20.0},
+            "B": {"score": 50, "weighted_rs": 10.0},
+            "C": {"score": 50, "weighted_rs": 5.0},
+        }
+        ranked = rank_relative_strength_universe(rs_map)
+        # Percentile must produce the capped score when passed through _percentile_to_score
+        for sym in ["A", "B", "C"]:
+            pct = ranked[sym]["rs_percentile"]
+            score = ranked[sym]["score"]
+            assert _percentile_to_score(pct) == score
+
     def test_large_population_no_cap(self):
         """With 20+ valid stocks, no cap is applied."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
@@ -1539,6 +1558,8 @@ class TestRSSmallPopulation:
         }
         ranked = rank_relative_strength_universe(rs_map)
         assert ranked["S19"]["score"] >= 90
+        # Percentile should also be uncapped
+        assert ranked["S19"]["rs_percentile"] >= 95
 
 
 class TestWeakestStrongestUpdate:
