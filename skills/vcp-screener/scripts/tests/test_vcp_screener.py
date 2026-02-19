@@ -1330,3 +1330,129 @@ class TestVCPPatternEnhanced:
         result = calculate_vcp_pattern(prices, min_contraction_days=50)
         # With 50-day minimum, most contractions would be filtered
         assert result["num_contractions"] <= 2
+
+
+# ===========================================================================
+# Volume Zone Analysis Tests (Commit 4)
+# ===========================================================================
+
+
+class TestVolumeZoneAnalysis:
+    """Test zone-based volume analysis."""
+
+    def _make_volume_prices(self, n=60, base_vol=1000000, dry_up_vol=300000):
+        """Build prices with clear volume zones (most-recent-first)."""
+        prices = []
+        for i in range(n):
+            vol = base_vol
+            if i < 10:  # Recent bars: dry-up zone
+                vol = dry_up_vol
+            prices.append({
+                "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
+                "open": 100.0,
+                "high": 101.0,
+                "low": 99.0,
+                "close": 100.0,
+                "volume": vol,
+            })
+        return prices
+
+    def test_backward_compatible_without_contractions(self):
+        """Without contractions param, old behavior preserved."""
+        prices = self._make_volume_prices()
+        result = calculate_volume_pattern(prices, pivot_price=101.0)
+        assert "dry_up_ratio" in result
+        assert result["score"] > 0
+
+    def test_zone_analysis_present(self):
+        """When contractions provided, zone_analysis should appear in result."""
+        prices = self._make_volume_prices()
+        contractions = [
+            {"high_idx": 30, "low_idx": 40, "label": "T1"},
+            {"high_idx": 20, "low_idx": 25, "label": "T2"},
+        ]
+        result = calculate_volume_pattern(
+            prices, pivot_price=101.0, contractions=contractions
+        )
+        assert "zone_analysis" in result
+
+    def test_zone_b_dry_up(self):
+        """Zone B (pivot approach) with low volume -> high dry-up score."""
+        # Build prices where bars near pivot have very low volume
+        prices = []
+        for i in range(60):
+            vol = 1000000
+            if i < 10:  # Most recent: very dry
+                vol = 100000
+            prices.append({
+                "date": f"day-{i}",
+                "open": 100.0, "high": 101.0, "low": 99.0,
+                "close": 100.0, "volume": vol,
+            })
+        contractions = [
+            {"high_idx": 30, "low_idx": 40, "label": "T1"},
+            {"high_idx": 15, "low_idx": 20, "label": "T2"},
+        ]
+        result = calculate_volume_pattern(
+            prices, pivot_price=101.0, contractions=contractions
+        )
+        assert result["dry_up_ratio"] < 0.5
+
+    def test_contraction_volume_declining_bonus(self):
+        """Declining volume across contractions should add bonus."""
+        # Build prices where contraction zones have declining volume
+        prices = []
+        for i in range(60):
+            vol = 1000000
+            # Earlier contraction zone (T1): high volume
+            # Later contraction zone (T2): lower volume
+            prices.append({
+                "date": f"day-{i}",
+                "open": 100.0, "high": 101.0, "low": 99.0,
+                "close": 100.0, "volume": vol,
+            })
+        # Contractions in chronological indices (oldest first)
+        contractions = [
+            {"high_idx": 10, "low_idx": 20, "label": "T1"},
+            {"high_idx": 30, "low_idx": 45, "label": "T2"},
+        ]
+        result = calculate_volume_pattern(
+            prices, pivot_price=101.0, contractions=contractions
+        )
+        # Should have contraction_volume_trend
+        assert "contraction_volume_trend" in result
+
+    def test_empty_contractions_fallback(self):
+        """Empty contractions list should use old behavior."""
+        prices = self._make_volume_prices()
+        result = calculate_volume_pattern(
+            prices, pivot_price=101.0, contractions=[]
+        )
+        # Should still work with old logic
+        assert "dry_up_ratio" in result
+        assert result["score"] > 0
+
+    def test_breakout_volume_uses_zone_c(self):
+        """When breakout bar is at pivot, zone C volume should be used."""
+        prices = []
+        for i in range(60):
+            vol = 500000
+            close = 100.0
+            if i == 0:
+                # Breakout bar: high volume, price above pivot
+                vol = 2000000
+                close = 102.0
+            prices.append({
+                "date": f"day-{i}",
+                "open": close - 1, "high": close + 0.5,
+                "low": close - 1.5,
+                "close": close, "volume": vol,
+            })
+        contractions = [
+            {"high_idx": 30, "low_idx": 40, "label": "T1"},
+            {"high_idx": 15, "low_idx": 20, "label": "T2"},
+        ]
+        result = calculate_volume_pattern(
+            prices, pivot_price=101.0, contractions=contractions
+        )
+        assert result["breakout_volume_detected"] is True

@@ -27,13 +27,22 @@ from typing import Dict, List, Optional
 def calculate_volume_pattern(
     historical_prices: List[Dict],
     pivot_price: Optional[float] = None,
+    contractions: Optional[List[Dict]] = None,
 ) -> Dict:
     """
     Analyze volume behavior near the VCP pivot point.
 
+    When contractions are provided, uses zone-based analysis:
+    - Zone A: Last contraction period (volume during tightening)
+    - Zone B: Pivot approach (5-10 bars before pivot)
+    - Zone C: Breakout bar (price above pivot on high volume)
+
+    When contractions is None or empty, uses legacy 10-bar window.
+
     Args:
         historical_prices: Daily OHLCV data (most recent first), need 50+ days
         pivot_price: The pivot (breakout) price level. If None, uses recent high.
+        contractions: List of contraction dicts with high_idx/low_idx (chronological)
 
     Returns:
         Dict with score (0-100), dry_up_ratio, volume details
@@ -59,11 +68,23 @@ def calculate_volume_pattern(
             "error": "No volume data available",
         }
 
-    # Recent volume (last 10 bars, representing area near pivot)
-    recent_period = min(10, len(volumes))
-    avg_volume_recent = sum(volumes[:recent_period]) / recent_period if recent_period > 0 else 0
+    # Zone-based analysis when contractions are provided
+    zone_analysis = None
+    contraction_volume_trend = None
+    use_zone = contractions is not None and len(contractions) >= 1
 
-    # Volume dry-up ratio
+    if use_zone:
+        zone_analysis, contraction_volume_trend = _zone_volume_analysis(
+            volumes, closes, contractions, pivot_price, avg_volume_50d
+        )
+
+    # Dry-up ratio: use Zone B if available, otherwise legacy 10-bar window
+    if use_zone and zone_analysis and zone_analysis.get("zone_b_avg_volume"):
+        avg_volume_recent = zone_analysis["zone_b_avg_volume"]
+    else:
+        recent_period = min(10, len(volumes))
+        avg_volume_recent = sum(volumes[:recent_period]) / recent_period if recent_period > 0 else 0
+
     dry_up_ratio = avg_volume_recent / avg_volume_50d if avg_volume_50d > 0 else 1.0
 
     # Base score from dry-up ratio
@@ -89,7 +110,6 @@ def calculate_volume_pattern(
             score += 10
 
     # Modifier: Net accumulation/distribution in last 20 days
-    # Count up-volume vs down-volume days
     up_vol_days = 0
     down_vol_days = 0
     analysis_period = min(20, len(closes) - 1)
@@ -106,9 +126,13 @@ def calculate_volume_pattern(
     elif net_accumulation < -3:
         score -= 10
 
+    # Zone bonus: declining contraction volume
+    if contraction_volume_trend and contraction_volume_trend.get("declining"):
+        score += 5
+
     score = max(0, min(100, score))
 
-    return {
+    result = {
         "score": score,
         "dry_up_ratio": round(dry_up_ratio, 3),
         "avg_volume_50d": int(avg_volume_50d),
@@ -119,3 +143,85 @@ def calculate_volume_pattern(
         "net_accumulation": net_accumulation,
         "error": None,
     }
+
+    if zone_analysis is not None:
+        result["zone_analysis"] = zone_analysis
+    if contraction_volume_trend is not None:
+        result["contraction_volume_trend"] = contraction_volume_trend
+
+    return result
+
+
+def _zone_volume_analysis(
+    volumes: List[int],
+    closes: List[float],
+    contractions: List[Dict],
+    pivot_price: Optional[float],
+    avg_volume_50d: float,
+) -> tuple:
+    """Perform zone-based volume analysis using contraction boundaries.
+
+    Data is most-recent-first. Contraction indices are chronological (oldest-first).
+    We convert contraction indices to most-recent-first by: rev_idx = n - 1 - chrono_idx
+
+    Returns:
+        (zone_analysis dict, contraction_volume_trend dict)
+    """
+    n = len(volumes)
+
+    # Zone A: Last contraction period
+    last_c = contractions[-1]
+    # Convert chronological indices to most-recent-first
+    zone_a_start_rev = n - 1 - last_c["low_idx"]
+    zone_a_end_rev = n - 1 - last_c["high_idx"]
+    zone_a_start = min(zone_a_start_rev, zone_a_end_rev)
+    zone_a_end = max(zone_a_start_rev, zone_a_end_rev)
+    zone_a_vols = volumes[max(0, zone_a_start):min(n, zone_a_end + 1)]
+    zone_a_avg = int(sum(zone_a_vols) / len(zone_a_vols)) if zone_a_vols else 0
+
+    # Zone B: Pivot approach (most recent 5-10 bars before current)
+    zone_b_start = 1  # skip bar 0 (potential breakout)
+    zone_b_end = min(10, n)
+    zone_b_vols = volumes[zone_b_start:zone_b_end]
+    zone_b_avg = int(sum(zone_b_vols) / len(zone_b_vols)) if zone_b_vols else 0
+
+    # Zone C: Breakout bar (bar 0 if price > pivot)
+    zone_c_vol = None
+    zone_c_ratio = None
+    if pivot_price and n > 0 and closes[0] > pivot_price:
+        zone_c_vol = volumes[0]
+        zone_c_ratio = round(zone_c_vol / avg_volume_50d, 3) if avg_volume_50d > 0 else None
+
+    zone_analysis = {
+        "zone_a_avg_volume": zone_a_avg,
+        "zone_a_ratio": round(zone_a_avg / avg_volume_50d, 3) if avg_volume_50d > 0 else None,
+        "zone_b_avg_volume": zone_b_avg,
+        "zone_b_ratio": round(zone_b_avg / avg_volume_50d, 3) if avg_volume_50d > 0 else None,
+        "zone_c_volume": zone_c_vol,
+        "zone_c_ratio": zone_c_ratio,
+    }
+
+    # Contraction volume trend: check if volume declines across contractions
+    contraction_avgs = []
+    for c in contractions:
+        c_start_rev = n - 1 - c["low_idx"]
+        c_end_rev = n - 1 - c["high_idx"]
+        c_start = min(c_start_rev, c_end_rev)
+        c_end = max(c_start_rev, c_end_rev)
+        c_vols = volumes[max(0, c_start):min(n, c_end + 1)]
+        if c_vols:
+            contraction_avgs.append(int(sum(c_vols) / len(c_vols)))
+
+    declining = False
+    if len(contraction_avgs) >= 2:
+        declining = all(
+            contraction_avgs[i] >= contraction_avgs[i + 1]
+            for i in range(len(contraction_avgs) - 1)
+        )
+
+    contraction_volume_trend = {
+        "declining": declining,
+        "contraction_volumes": contraction_avgs,
+    }
+
+    return zone_analysis, contraction_volume_trend
