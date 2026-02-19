@@ -186,14 +186,15 @@ def rank_relative_strength_universe(rs_results: Dict[str, Dict]) -> Dict[str, Di
             percentiles[valid_symbols[k]] = pct
         i = j
 
-    # Small population cap: with fewer valid stocks, cap the maximum score
+    # Small population cap: with fewer valid stocks, cap score and percentile
     max_score = _small_population_max_score(n)
+    max_percentile = _score_to_max_percentile(max_score)
 
     for sym in valid_symbols:
         updated = dict(rs_results[sym])
-        updated["rs_percentile"] = percentiles[sym]
-        raw_score = _percentile_to_score(percentiles[sym])
-        updated["score"] = min(raw_score, max_score)
+        capped_pct = min(percentiles[sym], max_percentile)
+        updated["rs_percentile"] = capped_pct
+        updated["score"] = _percentile_to_score(capped_pct)
         result[sym] = updated
 
     return result
@@ -212,6 +213,28 @@ def _small_population_max_score(n: int) -> int:
     if n >= 5:
         return 80
     return 70
+
+
+def _score_to_max_percentile(max_score: int) -> int:
+    """Return the highest percentile that maps to max_score via _percentile_to_score.
+
+    This ensures rs_percentile and score stay consistent when capped.
+    """
+    if max_score >= 100:
+        return 100
+    if max_score >= 90:
+        return 94   # _percentile_to_score(94) == 90
+    if max_score >= 80:
+        return 84   # _percentile_to_score(84) == 80
+    if max_score >= 70:
+        return 74   # _percentile_to_score(74) == 70
+    if max_score >= 60:
+        return 59
+    if max_score >= 50:
+        return 44
+    if max_score >= 40:
+        return 29
+    return 14
 
 
 def _percentile_to_score(percentile: int) -> int:
