@@ -22,62 +22,93 @@ from typing import Dict, List, Optional, Tuple
 def calculate_vcp_pattern(
     historical_prices: List[Dict],
     lookback_days: int = 120,
+    atr_multiplier: float = 1.5,
+    atr_period: int = 14,
+    min_contraction_days: int = 5,
 ) -> Dict:
     """
     Detect Volatility Contraction Pattern in price data.
 
+    Uses ATR-based ZigZag swing detection with fallback to fixed-window method.
+    Tries multiple starting highs (multi-start) and selects the best pattern.
+
     Args:
         historical_prices: Daily OHLCV data (most recent first), need 30+ days
         lookback_days: Number of days to look back for pattern (default 120)
+        atr_multiplier: ATR multiplier for ZigZag swing threshold
+        atr_period: ATR calculation period
+        min_contraction_days: Minimum days for a contraction to count
 
     Returns:
         Dict with score (0-100), contractions list, pattern validity, pivot point
     """
+    empty_result = {
+        "score": 0,
+        "valid_vcp": False,
+        "contractions": [],
+        "num_contractions": 0,
+        "pivot_price": None,
+        "error": None,
+    }
+
     if not historical_prices or len(historical_prices) < 30:
-        return {
-            "score": 0,
-            "valid_vcp": False,
-            "contractions": [],
-            "num_contractions": 0,
-            "pivot_price": None,
-            "error": "Insufficient data (need 30+ days)",
-        }
+        empty_result["error"] = "Insufficient data (need 30+ days)"
+        return empty_result
 
     # Work in chronological order (oldest first)
     prices = list(reversed(historical_prices[:lookback_days]))
     n = len(prices)
 
     if n < 30:
-        return {
-            "score": 0,
-            "valid_vcp": False,
-            "contractions": [],
-            "num_contractions": 0,
-            "pivot_price": None,
-            "error": "Insufficient data in lookback window",
-        }
+        empty_result["error"] = "Insufficient data in lookback window"
+        return empty_result
 
-    # Step A: Find swing points
+    # Extract price arrays
     highs = [d.get("high", d.get("close", 0)) for d in prices]
     lows = [d.get("low", d.get("close", 0)) for d in prices]
     closes = [d.get("close", 0) for d in prices]
     dates = [d.get("date", f"day-{i}") for i, d in enumerate(prices)]
 
-    swing_highs = _find_swing_highs(highs, window=5)
-    swing_lows = _find_swing_lows(lows, window=5)
+    # Step A: Find swing points using ZigZag (primary) with fixed-window fallback
+    atr_val = _calculate_atr(highs, lows, closes, atr_period)
+    zz_highs, zz_lows = _zigzag_swing_points(
+        highs, lows, closes, dates, atr_multiplier, atr_period
+    )
+
+    # Use ZigZag results if they have enough points, otherwise fallback
+    if len(zz_highs) >= 1 and len(zz_lows) >= 1:
+        swing_highs = zz_highs
+        swing_lows = zz_lows
+    else:
+        swing_highs = _find_swing_highs(highs, window=5)
+        swing_lows = _find_swing_lows(lows, window=5)
 
     if len(swing_highs) < 1 or len(swing_lows) < 1:
-        return {
-            "score": 0,
-            "valid_vcp": False,
-            "contractions": [],
-            "num_contractions": 0,
-            "pivot_price": None,
-            "error": "Insufficient swing points detected",
-        }
+        empty_result["error"] = "Insufficient swing points detected"
+        return empty_result
 
-    # Step B: Identify contractions
-    contractions = _identify_contractions(swing_highs, swing_lows, highs, lows, dates)
+    # Step B: Multi-start contraction detection
+    # Try top 3 swing highs as starting points, pick the best pattern
+    sorted_highs = sorted(swing_highs, key=lambda x: x[1], reverse=True)
+    best_contractions = []
+    best_score = -1
+
+    for start_high in sorted_highs[:3]:
+        candidate = _build_contractions_from(
+            start_high, swing_highs, swing_lows, highs, lows, dates,
+            min_contraction_days=min_contraction_days,
+        )
+        if len(candidate) > len(best_contractions) or (
+            len(candidate) == len(best_contractions) and len(candidate) >= 2
+        ):
+            # Evaluate which has better validation
+            v = _validate_vcp(candidate, n) if len(candidate) >= 2 else {"valid": False}
+            s = _score_vcp(candidate, v) if len(candidate) >= 2 else 0
+            if s > best_score:
+                best_contractions = candidate
+                best_score = s
+
+    contractions = best_contractions
 
     if len(contractions) < 2:
         return {
@@ -86,7 +117,8 @@ def calculate_vcp_pattern(
             "contractions": contractions,
             "num_contractions": len(contractions),
             "pivot_price": _get_pivot_price(contractions, highs, swing_highs),
-            "error": "Fewer than 2 contractions found" if len(contractions) < 2 else None,
+            "atr_value": round(atr_val, 4) if atr_val else None,
+            "error": "Fewer than 2 contractions found",
         }
 
     # Step C: Validate VCP
@@ -96,12 +128,9 @@ def calculate_vcp_pattern(
     pivot_price = _get_pivot_price(contractions, highs, swing_highs)
 
     # Calculate pattern duration
-    if len(contractions) >= 2:
-        first_idx = contractions[0]["high_idx"]
-        last_low_idx = contractions[-1]["low_idx"]
-        pattern_duration = last_low_idx - first_idx
-    else:
-        pattern_duration = 0
+    first_idx = contractions[0]["high_idx"]
+    last_low_idx = contractions[-1]["low_idx"]
+    pattern_duration = last_low_idx - first_idx
 
     # Score the pattern
     score = _score_vcp(contractions, validation)
@@ -114,6 +143,7 @@ def calculate_vcp_pattern(
         "pivot_price": round(pivot_price, 2) if pivot_price else None,
         "pattern_duration_days": pattern_duration,
         "validation": validation,
+        "atr_value": round(atr_val, 4) if atr_val else None,
         "error": None,
     }
 
@@ -309,6 +339,94 @@ def _identify_contractions(
         })
 
         # Find next swing high after this low (for the next contraction)
+        next_high = None
+        for idx, val in swing_highs:
+            if idx > low_idx:
+                next_high = (idx, val)
+                break
+
+        if next_high is None:
+            break
+
+        current_high_idx, current_high_val = next_high
+
+    return contractions
+
+
+def _build_contractions_from(
+    start_high: Tuple[int, float],
+    swing_highs: List[Tuple[int, float]],
+    swing_lows: List[Tuple[int, float]],
+    highs: List[float],
+    lows: List[float],
+    dates: List[str],
+    min_contraction_days: int = 5,
+) -> List[Dict]:
+    """Build contraction sequence from a specific swing high starting point.
+
+    Args:
+        start_high: (index, value) of starting swing high
+        swing_highs: All swing highs
+        swing_lows: All swing lows
+        highs: All high prices
+        lows: All low prices
+        dates: All dates
+        min_contraction_days: Minimum days between high and low for a contraction
+    """
+    h1_idx, h1_val = start_high
+    contractions = []
+    current_high_idx = h1_idx
+    current_high_val = h1_val
+
+    for _ in range(4):  # Max 4 contractions
+        # Find next swing low after current high
+        next_low = None
+        for idx, val in swing_lows:
+            if idx > current_high_idx:
+                next_low = (idx, val)
+                break
+
+        if next_low is None:
+            break
+
+        low_idx, low_val = next_low
+        duration = low_idx - current_high_idx
+
+        # Skip contractions that are too short
+        if duration < min_contraction_days:
+            # Try to find a later swing low instead
+            found_valid = False
+            for idx, val in swing_lows:
+                if idx > current_high_idx and (idx - current_high_idx) >= min_contraction_days:
+                    next_low = (idx, val)
+                    low_idx, low_val = next_low
+                    duration = low_idx - current_high_idx
+                    found_valid = True
+                    break
+            if not found_valid:
+                break
+
+        depth_pct = (current_high_val - low_val) / current_high_val * 100 if current_high_val > 0 else 0
+
+        # Right-shoulder validation: subsequent highs within 5% of H1
+        if contractions:
+            pct_from_h1 = abs(current_high_val - h1_val) / h1_val * 100
+            if pct_from_h1 > 5:
+                break
+
+        contractions.append({
+            "label": f"T{len(contractions) + 1}",
+            "high_idx": current_high_idx,
+            "high_price": round(current_high_val, 2),
+            "high_date": dates[current_high_idx] if current_high_idx < len(dates) else "N/A",
+            "low_idx": low_idx,
+            "low_price": round(low_val, 2),
+            "low_date": dates[low_idx] if low_idx < len(dates) else "N/A",
+            "depth_pct": round(depth_pct, 2),
+            "duration_days": duration,
+        })
+
+        # Find next swing high after this low
         next_high = None
         for idx, val in swing_highs:
             if idx > low_idx:
