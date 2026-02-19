@@ -215,7 +215,7 @@ def _zone_volume_analysis(
     declining = False
     if len(contraction_avgs) >= 2:
         declining = all(
-            contraction_avgs[i] >= contraction_avgs[i + 1]
+            contraction_avgs[i] > contraction_avgs[i + 1]
             for i in range(len(contraction_avgs) - 1)
         )
 

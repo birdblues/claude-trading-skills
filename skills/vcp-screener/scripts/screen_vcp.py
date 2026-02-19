@@ -475,6 +475,10 @@ def main():
             r["rating"] = composite["rating"]
             r["rating_description"] = composite["rating_description"]
             r["guidance"] = composite["guidance"]
+            r["weakest_component"] = composite["weakest_component"]
+            r["weakest_score"] = composite["weakest_score"]
+            r["strongest_component"] = composite["strongest_component"]
+            r["strongest_score"] = composite["strongest_score"]
 
     # Compute entry_ready using CLI thresholds
     require_vcp = not args.no_require_valid_vcp
