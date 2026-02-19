@@ -173,7 +173,10 @@ def analyze_stock(
 
     # 4. Volume Pattern
     pivot_price = vcp_result.get("pivot_price")
-    vol_result = calculate_volume_pattern(historical, pivot_price=pivot_price)
+    vol_result = calculate_volume_pattern(
+        historical, pivot_price=pivot_price,
+        contractions=vcp_result.get("contractions"),
+    )
 
     # 5. Pivot Proximity
     last_low = None
