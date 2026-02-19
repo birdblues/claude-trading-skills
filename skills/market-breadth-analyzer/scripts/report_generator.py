@@ -113,7 +113,7 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         comp = composite.get("component_scores", {}).get(key, {})
         detail = components.get(key, {})
         signal = detail.get("signal", "N/A")
-        score_val = comp.get("score", 0)
+        score_val = int(round(comp.get("score", 0)))
         weight_pct = f"{comp.get('weight', 0) * 100:.0f}%"
         eff_weight = comp.get("effective_weight", comp.get("weight", 0))
         eff_weight_pct = f"{eff_weight * 100:.0f}%"
@@ -336,6 +336,16 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
     for action in composite.get("actions", []):
         lines.append(f"- {action}")
+    # Inject cautionary actions when 8MA is falling
+    c1_mod_act = components.get("breadth_level_trend", {}).get(
+        "direction_modifier", 0
+    )
+    c2_mod_act = components.get("ma_crossover", {}).get(
+        "direction_modifier", 0
+    )
+    if c1_mod_act < 0 or c2_mod_act < 0:
+        lines.append("- Reduce new position sizes until 8MA stabilizes")
+        lines.append("- Tighten stop-loss levels on existing positions")
     lines.append("")
 
     # Methodology
