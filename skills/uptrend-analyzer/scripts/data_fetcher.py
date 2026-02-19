@@ -13,15 +13,9 @@ Data Sources:
 import csv
 import io
 import sys
-import time
 from typing import Dict, List, Optional
 
-try:
-    import requests
-except ImportError:
-    print("ERROR: requests library not found. Install with: pip install requests",
-          file=sys.stderr)
-    sys.exit(1)
+import requests
 
 
 TIMESERIES_URL = (

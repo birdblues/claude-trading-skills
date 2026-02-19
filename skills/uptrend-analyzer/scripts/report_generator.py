@@ -6,13 +6,19 @@ Generates JSON and Markdown reports for uptrend breadth analysis.
 """
 
 import json
+import sys
 from typing import Dict
 
 
 def generate_json_report(analysis: Dict, output_file: str):
     """Save full analysis as JSON"""
-    with open(output_file, 'w') as f:
-        json.dump(analysis, f, indent=2, default=str)
+    try:
+        with open(output_file, 'w') as f:
+            json.dump(analysis, f, indent=2, default=str)
+    except OSError as e:
+        print(f"ERROR: Failed to write JSON report to {output_file}: {e}",
+              file=sys.stderr)
+        raise
     print(f"JSON report saved to: {output_file}")
 
 
@@ -25,6 +31,7 @@ def generate_markdown_report(analysis: Dict, output_file: str):
 
     score = composite.get("composite_score", 0)
     zone = composite.get("zone", "Unknown")
+    zone_detail = composite.get("zone_detail", zone)
     exposure = composite.get("exposure_guidance", "N/A")
 
     # Header
@@ -45,7 +52,27 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("|--------|-------|")
     lines.append(f"| **Composite Score** | **{score}/100** |")
     lines.append(f"| **Zone** | {zone_emoji} {zone} |")
+    lines.append(f"| **Zone Detail** | {zone_detail} |")
+
+    # Zone proximity
+    prox = composite.get("zone_proximity", {})
+    if prox.get("at_boundary"):
+        lines.append(f"| **Zone Proximity** | **{prox.get('label', '')}** |")
+
     lines.append(f"| **Exposure Guidance** | {exposure} |")
+
+    # Warning penalty
+    warning_penalty = composite.get("warning_penalty", 0)
+    if warning_penalty != 0:
+        raw_score = composite.get("composite_score_raw", score)
+        lines.append(f"| **Warning Penalty** | {warning_penalty} (raw: {raw_score}/100) |")
+
+    # Active warnings summary
+    active_warnings = composite.get("active_warnings", [])
+    if active_warnings:
+        warning_labels = [w.get("label", "") for w in active_warnings]
+        lines.append(f"| **Active Warnings** | {len(active_warnings)}: {', '.join(warning_labels)} |")
+
     lines.append(f"| **Strongest Component** | {composite.get('strongest_component', {}).get('label', 'N/A')} "
                  f"({composite.get('strongest_component', {}).get('score', 0)}/100) |")
     lines.append(f"| **Weakest Component** | {composite.get('weakest_component', {}).get('label', 'N/A')} "
@@ -53,11 +80,40 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     dq = composite.get("data_quality", {})
     if dq:
         lines.append(f"| **Data Quality** | {dq.get('label', 'N/A')} |")
+
+    # Historical confidence
+    historical = components.get("historical_context", {})
+    confidence = historical.get("confidence", {})
+    if confidence:
+        lines.append(f"| **Confidence** | {confidence.get('confidence_level', 'N/A')} "
+                     f"({confidence.get('sample_label', '')}, {confidence.get('regime_coverage', '')} regime coverage) |")
+
     lines.append("")
 
-    # Guidance
+    # Guidance blockquote
     lines.append(f"> **Guidance:** {composite.get('guidance', '')}")
+
+    # Bull + warning tension visualization
+    if active_warnings and zone in ("Strong Bull", "Bull"):
+        lines.append(f">")
+        lines.append(f"> Note: Score is in the {zone} zone, but {len(active_warnings)} warning(s) are active.")
+        lines.append(f"> Exposure guidance has been tightened. See Active Warnings below.")
+
     lines.append("")
+
+    # Active Warnings - promoted to independent H2 section, right after Overall Assessment
+    if active_warnings:
+        lines.append("---")
+        lines.append("")
+        lines.append("## Active Warnings")
+        lines.append("")
+        for warning in active_warnings:
+            lines.append(f"### {warning.get('label', 'WARNING')}")
+            lines.append(f"> {warning.get('description', '')}")
+            lines.append("")
+            for action in warning.get("actions", []):
+                lines.append(f"- {action}")
+            lines.append("")
 
     # Current Market Snapshot
     breadth = components.get("market_breadth", {})
@@ -152,6 +208,20 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         lines.append(f"- **Cyclical-Defensive Gap:** {rotation.get('difference_pct', 'N/A')}pp")
         if rotation.get("late_cycle_flag"):
             lines.append(f"- **Late Cycle Warning:** YES (commodity penalty: {rotation.get('commodity_penalty', 0)})")
+        if rotation.get("divergence_flag"):
+            lines.append(f"- **Divergence Warning:** YES (penalty: {rotation.get('divergence_penalty', 0)})")
+            for group_label, group_key in [("Cyclical", "cyclical_divergence"),
+                                            ("Defensive", "defensive_divergence")]:
+                div = rotation.get(group_key, {})
+                if div and div.get("flagged"):
+                    lines.append(f"  - **{group_label} Divergence:** "
+                                 f"std={div.get('std_dev', 'N/A')}, spread={div.get('spread', 'N/A')}")
+                    for outlier in div.get("outliers", []):
+                        lines.append(f"    - Outlier: {outlier['sector']} "
+                                     f"(deviation: {outlier['deviation']:+.4f})")
+                    for dissenter in div.get("trend_dissenters", []):
+                        lines.append(f"    - Trend dissenter: {dissenter['sector']} "
+                                     f"({dissenter['trend']} vs majority {dissenter['majority']})")
 
         # Group detail tables
         for group_name, group_key in [("Cyclical", "cyclical_details"),
@@ -178,9 +248,12 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("### 4. Momentum")
     lines.append("")
     if momentum.get("data_available"):
-        lines.append(f"- **Current Slope:** {_format_slope(momentum.get('slope'))} "
+        lines.append(f"- **Raw Slope:** {_format_slope(momentum.get('slope'))} ")
+        lines.append(f"- **Smoothed Slope ({momentum.get('slope_smoothing', 'EMA(3)')}):** "
+                     f"{_format_slope(momentum.get('slope_smoothed'))} "
                      f"(score: {momentum.get('slope_score', 0)}/100)")
-        lines.append(f"- **Acceleration:** {momentum.get('acceleration', 'N/A')} "
+        lines.append(f"- **Acceleration ({momentum.get('acceleration_window', '10v10')}):** "
+                     f"{momentum.get('acceleration', 'N/A')} "
                      f"({momentum.get('acceleration_label', 'N/A')}, "
                      f"score: {momentum.get('acceleration_score', 0)}/100)")
         lines.append(f"- **Sector Slope Breadth:** "
@@ -192,7 +265,6 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
 
     # 5. Historical Context
-    historical = components.get("historical_context", {})
     lines.append("### 5. Historical Context")
     lines.append("")
     if historical.get("data_available"):
@@ -206,6 +278,11 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         lines.append(f"- **90-Day Avg:** {historical.get('avg_90d_pct', 'N/A')}%")
         lines.append(f"- **Data Points:** {historical.get('data_points', 0)} "
                      f"({historical.get('date_range', 'N/A')})")
+        if confidence:
+            lines.append(f"- **Confidence:** {confidence.get('confidence_level', 'N/A')} "
+                         f"(sample: {confidence.get('sample_label', '')}, "
+                         f"regime: {confidence.get('regime_coverage', '')}, "
+                         f"recency: {confidence.get('recency_label', '')})")
     else:
         lines.append("- Data unavailable")
     lines.append("")
@@ -233,25 +310,12 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
     lines.append("## Recommended Actions")
     lines.append("")
-    lines.append(f"**Zone:** {zone}")
+    lines.append(f"**Zone:** {zone} ({zone_detail})")
     lines.append(f"**Exposure Guidance:** {exposure}")
     lines.append("")
     for action in composite.get("actions", []):
         lines.append(f"- {action}")
     lines.append("")
-
-    # Active Warnings (overlay adjustments)
-    active_warnings = composite.get("active_warnings", [])
-    if active_warnings:
-        lines.append("### Active Warnings")
-        lines.append("")
-        for warning in active_warnings:
-            lines.append(f"**{warning.get('label', 'WARNING')}**")
-            lines.append(f"> {warning.get('description', '')}")
-            lines.append("")
-            for action in warning.get("actions", []):
-                lines.append(f"- {action}")
-            lines.append("")
 
     # Methodology
     lines.append("---")
@@ -283,35 +347,40 @@ def generate_markdown_report(analysis: Dict, output_file: str):
                  "investment decisions.")
     lines.append("")
 
-    with open(output_file, 'w') as f:
-        f.write('\n'.join(lines))
+    try:
+        with open(output_file, 'w') as f:
+            f.write('\n'.join(lines))
+    except OSError as e:
+        print(f"ERROR: Failed to write Markdown report to {output_file}: {e}",
+              file=sys.stderr)
+        raise
 
     print(f"Markdown report saved to: {output_file}")
 
 
 def _zone_emoji(color: str) -> str:
     mapping = {
-        "green": "🟢",
-        "light_green": "🟢",
-        "yellow": "🟡",
-        "orange": "🟠",
-        "red": "🔴",
+        "green": "\U0001f7e2",
+        "light_green": "\U0001f7e2",
+        "yellow": "\U0001f7e1",
+        "orange": "\U0001f7e0",
+        "red": "\U0001f534",
     }
-    return mapping.get(color, "⚪")
+    return mapping.get(color, "\u26aa")
 
 
 def _score_bar(score: int) -> str:
     """Simple text bar for score visualization"""
     if score >= 80:
-        return "████"
+        return "\u2588\u2588\u2588\u2588"
     elif score >= 60:
-        return "███░"
+        return "\u2588\u2588\u2588\u2591"
     elif score >= 40:
-        return "██░░"
+        return "\u2588\u2588\u2591\u2591"
     elif score >= 20:
-        return "█░░░"
+        return "\u2588\u2591\u2591\u2591"
     else:
-        return "░░░░"
+        return "\u2591\u2591\u2591\u2591"
 
 
 def _format_slope(value) -> str:

@@ -22,6 +22,7 @@ Primary score: cyclical_avg - defensive_avg difference
 Commodity adjustment: if commodity_avg > both groups -> late cycle flag, penalty
 """
 
+import math
 import sys
 from typing import Dict, List, Optional
 
@@ -110,7 +111,11 @@ def calculate_sector_rotation(sector_summary: List[Dict],
             else:
                 commodity_penalty = -5
 
-    score = round(min(100, max(0, base_score + commodity_penalty)))
+    # Group divergence detection
+    divergence_result = _calculate_group_divergence(sector_map)
+    divergence_penalty = divergence_result.get("divergence_penalty", 0)
+
+    score = round(min(100, max(0, base_score + commodity_penalty + divergence_penalty)))
 
     signal = _build_signal(score, difference, late_cycle_flag)
 
@@ -133,6 +138,10 @@ def calculate_sector_rotation(sector_summary: List[Dict],
         "difference_pct": round(difference * 100, 1),
         "late_cycle_flag": late_cycle_flag,
         "commodity_penalty": commodity_penalty,
+        "divergence_flag": divergence_result.get("divergence_flag", False),
+        "divergence_penalty": divergence_penalty,
+        "cyclical_divergence": divergence_result.get("cyclical_divergence"),
+        "defensive_divergence": divergence_result.get("defensive_divergence"),
         "cyclical_details": cyclical_details,
         "defensive_details": defensive_details,
         "commodity_details": commodity_details,
@@ -191,6 +200,93 @@ def _build_signal(score: int, difference: float, late_cycle: bool) -> str:
         return f"DEFENSIVE TILT: Defensive leads by {abs(diff_pct)}pp{late_str}"
     else:
         return f"STRONG RISK-OFF: Defensive leads by {abs(diff_pct)}pp{late_str}"
+
+
+def _calculate_group_divergence(sector_map: Dict[str, Dict]) -> Dict:
+    """Detect intra-group divergence in Cyclical and Defensive groups.
+
+    Divergence flag triggers when any of:
+    - Group internal std_dev > 8pp (0.08)
+    - Group internal max-min > 20pp (0.20)
+    - A sector's trend opposes the majority trend within its group
+
+    Returns:
+        Dict with divergence_flag, divergence_penalty, cyclical_divergence,
+        defensive_divergence
+    """
+    cyclical_div = _analyze_group(sector_map, CYCLICAL_SECTORS)
+    defensive_div = _analyze_group(sector_map, DEFENSIVE_SECTORS)
+
+    flag = cyclical_div["flagged"] or defensive_div["flagged"]
+    penalty = -5 if flag else 0
+
+    return {
+        "divergence_flag": flag,
+        "divergence_penalty": penalty,
+        "cyclical_divergence": cyclical_div,
+        "defensive_divergence": defensive_div,
+    }
+
+
+def _analyze_group(sector_map: Dict[str, Dict],
+                   sector_names: List[str]) -> Dict:
+    """Analyze divergence within a sector group."""
+    ratios = []
+    trends = []
+    names_with_data = []
+
+    for name in sector_names:
+        sector = sector_map.get(name)
+        if sector and sector.get("Ratio") is not None:
+            ratios.append(sector["Ratio"])
+            trends.append(sector.get("Trend", "").lower())
+            names_with_data.append(name)
+
+    if len(ratios) < 2:
+        return {
+            "flagged": False,
+            "std_dev": None,
+            "spread": None,
+            "outliers": [],
+            "trend_dissenters": [],
+        }
+
+    mean = sum(ratios) / len(ratios)
+    variance = sum((r - mean) ** 2 for r in ratios) / len(ratios)
+    std_dev = math.sqrt(variance)
+    spread = max(ratios) - min(ratios)
+
+    # Outlier detection: sectors more than 1.5 * std_dev from mean
+    outliers = []
+    for i, (name, ratio) in enumerate(zip(names_with_data, ratios)):
+        if abs(ratio - mean) > 1.5 * std_dev and std_dev > 0:
+            outliers.append({"sector": name, "ratio": ratio, "deviation": round(ratio - mean, 4)})
+
+    # Trend dissenter detection: sectors opposing the majority
+    trend_dissenters = []
+    if trends:
+        up_count = sum(1 for t in trends if t == "up")
+        down_count = sum(1 for t in trends if t == "down")
+        majority = "up" if up_count >= down_count else "down"
+
+        for name, trend in zip(names_with_data, trends):
+            if trend and trend != majority:
+                trend_dissenters.append({"sector": name, "trend": trend, "majority": majority})
+
+    # Divergence flag conditions
+    flagged = (
+        std_dev > 0.08 or
+        spread > 0.20 or
+        len(trend_dissenters) > 0
+    )
+
+    return {
+        "flagged": flagged,
+        "std_dev": round(std_dev, 4),
+        "spread": round(spread, 4),
+        "outliers": outliers,
+        "trend_dissenters": trend_dissenters,
+    }
 
 
 def _build_group_details(sector_map: Dict[str, Dict],

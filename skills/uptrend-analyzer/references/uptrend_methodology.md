@@ -151,14 +151,28 @@ otherwise     -> "Normal"
 
 **Commodity Adjustment:** When commodity sectors outperform both cyclical and defensive groups, it may signal late-cycle dynamics. A penalty of -5 to -10 is applied.
 
+**Intra-Group Divergence Detection:** The system detects significant dispersion within Cyclical and Defensive groups. A divergence flag triggers when any of:
+- Group internal standard deviation > 8 percentage points
+- Group internal max-min spread > 20 percentage points
+- One or more sectors trend in the opposite direction from the group majority
+
+When divergence is detected, a -5 penalty is applied to the Component 3 score. This prevents group averages from masking important internal disagreements (e.g., Financial declining while other Cyclicals rise).
+
+> **Note (Dual-Layer Penalty):** Divergence triggers penalties at two levels:
+> (1) -5 to the Component 3 score (making the rotation score more truthful), and
+> (2) -3 to the composite score (triggering exposure guidance tightening, see Warning System below).
+> Net composite impact ≈ 5 × 0.15 (weight) + 3 = **3.75 points**.
+
 ### Component 4: Momentum - Weight: 20%
 
 **Rationale:** The direction and rate of change in breadth matters as much as the level. Improving breadth (positive slope, accelerating) suggests the environment is getting better; deteriorating breadth suggests caution.
 
 **Sub-scores:**
-- **Slope Score (50%):** Current slope mapped to 0-100 (typical range: -0.02 to +0.02)
-- **Acceleration (30%):** Recent 5-point slope average vs prior 5-point average
+- **Slope Score (50%):** Smoothed slope (EMA-3) mapped to 0-100 (typical range: -0.02 to +0.02). The raw 1-day slope (`ma_10.diff()`) is smoothed with a 3-period Exponential Moving Average to reduce daily noise.
+- **Acceleration (30%):** Recent 10-point smoothed slope average vs prior 10-point average (10v10 window). Falls back to 5v5 when fewer than 20 data points are available.
 - **Sector Slope Breadth (20%):** Count of sectors with positive slope
+
+**Momentum Smoothing:** The raw slope signal from Monty's dashboard is inherently noisy because it is a 1-day difference of a 10-day moving average. The EMA(3) smoothing filter reduces single-day volatility while preserving directional trends. Both raw and smoothed slope values are reported for transparency.
 
 ### Component 5: Historical Context - Weight: 10%
 
@@ -168,9 +182,23 @@ otherwise     -> "Normal"
 
 **Note:** The "all" dataset starts from 2023-08-11 (~650+ data points), while sector data starts from 2024-07-21 (~370+ data points each).
 
+**Confidence Assessment:** Because the historical dataset is limited (~650 data points), the system assesses and reports the confidence level of percentile analysis:
+
+| Factor | Criteria | Score |
+|--------|----------|-------|
+| **Sample Size** | >=1000: full (3), 500-999: moderate (2), 200-499: limited (1), <200: minimal (0) | 0-3 |
+| **Regime Coverage** | Has bear data (min<10%) AND bull data (max>40%): Both (2), one: Partial (1), neither: Narrow (0) | 0-2 |
+| **Recency Bias** | Recent 90 days cover >=30% of full range: balanced (1), otherwise: biased (0) | 0-1 |
+
+Total score 5-6 = High, 3-4 = Moderate, 1-2 = Low, 0 = Very Low confidence.
+
+When confidence is Low or Very Low, the signal text includes a `[confidence: Low]` caveat.
+
 ---
 
 ## Scoring Zones and Exposure Guidance
+
+### 5-Level Zones (backward-compatible)
 
 | Score | Zone | Exposure | Description |
 |-------|------|----------|-------------|
@@ -179,6 +207,55 @@ otherwise     -> "Normal"
 | 40-59 | Neutral | Reduced (60-80%) | Mixed signals. Participate selectively. |
 | 20-39 | Cautious | Defensive (30-60%) | Weak breadth. Prioritize capital preservation. |
 | 0-19 | Bear | Preservation (0-30%) | Severe deterioration. Maximum defense. |
+
+### 7-Level Zone Detail
+
+The `zone_detail` field provides finer granularity, splitting the Bull and Cautious zones:
+
+| Score | Zone (5-level) | Zone Detail (7-level) | Exposure Range |
+|-------|----------------|----------------------|----------------|
+| 80-100 | Strong Bull | Strong Bull | 100% |
+| 70-79 | Bull | Bull-Upper | 90-100% |
+| 60-69 | Bull | Bull-Lower | 80-90% |
+| 40-59 | Neutral | Neutral | 60-80% |
+| 30-39 | Cautious | Cautious-Upper | 45-60% |
+| 20-29 | Cautious | Cautious-Lower | 30-45% |
+| 0-19 | Bear | Bear | 0-30% |
+
+**Why:** The original Bull zone (60-79) was too wide. A score of 66 and 78 both showed "Bull" but warrant different exposure levels. Bull-Lower signals caution compared to Bull-Upper.
+
+### Zone Proximity Indicator
+
+When the composite score falls within 10 points of a zone boundary (20, 40, 60, 80), the `zone_proximity` field flags `at_boundary=True` with the distance and direction. This alerts users that a small score change could shift the zone classification.
+
+---
+
+## Warning System
+
+### Component-Level Warnings
+
+Warnings detect conditions where the composite score may overstate market health:
+
+| Warning | Trigger | Composite Penalty | Rationale |
+|---------|---------|-------------------|-----------|
+| **Late Cycle** | Commodity avg > both Cyclical and Defensive group averages | -5 | Commodity leadership often precedes broader market weakness |
+| **High Spread** | Max-min sector ratio spread > 40pp | -3 | Wide spread indicates narrowing leadership masked by averages |
+| **Divergence** | Intra-group std > 8pp, spread > 20pp, or trend dissenters | -3 | Group averages hide internal disagreement (also -5 to Component 3 score) |
+
+### Multi-Warning Discount
+
+When 2 or more warnings are active simultaneously, the total penalty is reduced by 1 point to account for correlation between warning conditions.
+
+**Example:** Late Cycle (-5) + High Spread (-3) = -8 + discount (+1) = **-7 total penalty**
+
+### Warning Impact on Guidance
+
+When warnings are active in Bull or Strong Bull zones:
+- Exposure guidance is tightened (e.g., "Normal Exposure, Lower End (80-90%)" instead of "Normal Exposure (80-100%)")
+- Guidance text notes the tension between score and warnings
+- Warning-specific actions are prepended to recommended actions
+
+The raw score (before penalty) is preserved as `composite_score_raw` for transparency.
 
 ---
 
@@ -196,10 +273,10 @@ otherwise     -> "Normal"
 
 ## Limitations
 
-1. **Data History:** "all" data starts from Aug 2023; sector data from Jul 2024. Long-term percentile analysis is limited.
+1. **Data History:** "all" data starts from Aug 2023; sector data from Jul 2024. Long-term percentile analysis is limited. The confidence indicator helps quantify this limitation.
 2. **Single Source:** Relies entirely on Monty's dashboard (Finviz Elite data); no cross-validation with other breadth measures.
 3. **No Volume Data:** Uptrend ratio is price-based only; no volume confirmation.
-4. **Lagging Indicator:** 10-day moving average and slope introduce inherent lag.
+4. **Lagging Indicator:** 10-day moving average and slope introduce inherent lag. EMA(3) smoothing adds marginal additional lag but reduces noise.
 5. **US Only:** Covers US stocks only; no international market breadth.
 6. **Sector Classification:** Uses fixed GICS sectors which may not capture all rotation dynamics.
 7. **Finviz Dependency:** Upstream data depends on Finviz Elite availability and screener accuracy.
