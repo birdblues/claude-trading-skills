@@ -25,19 +25,23 @@ Scoring:
 - 0 points: Institutional data unavailable or extreme ranges
 """
 
-from typing import Dict, List, Optional
-import sys
 import os
+import sys
+from typing import Optional
 
 # Optional: Import Finviz client for fallback data (requires finviz library)
 try:
     # Add parent directory to path to import finviz_stock_client
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
     from finviz_stock_client import FinvizStockClient
+
     FINVIZ_AVAILABLE = True
 except ImportError:
     FINVIZ_AVAILABLE = False
-    print("INFO: finviz library not available. Install with 'pip install finviz' for improved institutional data.", file=sys.stderr)
+    print(
+        "INFO: finviz library not available. Install with 'pip install finviz' for improved institutional data.",
+        file=sys.stderr,
+    )
 
 
 # List of superinvestors (legendary value investors whose presence signals quality)
@@ -51,16 +55,16 @@ SUPERINVESTORS = [
     "VIKING GLOBAL",
     "SCION ASSET MANAGEMENT",  # Michael Burry
     "BRIDGEWATER ASSOCIATES",  # Ray Dalio
-    "RENAISSANCE TECHNOLOGIES"
+    "RENAISSANCE TECHNOLOGIES",
 ]
 
 
 def calculate_institutional_sponsorship(
-    institutional_holders: List[Dict],
-    profile: Optional[Dict] = None,
+    institutional_holders: list[dict],
+    profile: Optional[dict] = None,
     symbol: Optional[str] = None,
-    use_finviz_fallback: bool = True
-) -> Dict:
+    use_finviz_fallback: bool = True,
+) -> dict:
     """
     Calculate institutional sponsorship score (Full Implementation with Finviz fallback)
 
@@ -101,7 +105,7 @@ def calculate_institutional_sponsorship(
             "superinvestors": [],
             "total_shares_held": None,
             "shares_outstanding": None,
-            "interpretation": "Data unavailable"
+            "interpretation": "Data unavailable",
         }
 
     # Count institutional holders
@@ -119,9 +123,7 @@ def calculate_institutional_sponsorship(
     superinvestor_present = len(superinvestors_found) > 0
 
     # Calculate total shares held by institutions
-    total_shares_held = sum(
-        holder.get("shares", 0) for holder in institutional_holders
-    )
+    total_shares_held = sum(holder.get("shares", 0) for holder in institutional_holders)
 
     # Calculate ownership percentage (requires shares outstanding from profile)
     ownership_pct = None
@@ -153,11 +155,14 @@ def calculate_institutional_sponsorship(
             finviz_client = FinvizStockClient(rate_limit_seconds=1.0)
             finviz_data = finviz_client.get_institutional_ownership(symbol)
 
-            if finviz_data and finviz_data.get('inst_own_pct') is not None:
-                ownership_pct = finviz_data['inst_own_pct']
+            if finviz_data and finviz_data.get("inst_own_pct") is not None:
+                ownership_pct = finviz_data["inst_own_pct"]
                 data_source = "Finviz"
                 quality_warning = f"Using Finviz institutional ownership data ({ownership_pct:.1f}%) - FMP shares outstanding unavailable."
-                print(f"✅ Using Finviz institutional ownership for {symbol}: {ownership_pct:.1f}%", file=sys.stderr)
+                print(
+                    f"✅ Using Finviz institutional ownership for {symbol}: {ownership_pct:.1f}%",
+                    file=sys.stderr,
+                )
             else:
                 quality_warning += " Finviz fallback also unavailable. Score reduced by 50%."
         except Exception as e:
@@ -191,7 +196,7 @@ def calculate_institutional_sponsorship(
         "shares_outstanding": shares_outstanding,
         "interpretation": interpretation,
         "quality_warning": quality_warning,
-        "data_source": data_source  # "FMP" or "Finviz"
+        "data_source": data_source,  # "FMP" or "Finviz"
     }
 
 
@@ -199,7 +204,7 @@ def score_institutional_sponsorship(
     num_holders: int,
     ownership_pct: Optional[float],
     superinvestor_present: bool,
-    quality_warning: Optional[str]
+    quality_warning: Optional[str],
 ) -> int:
     """
     Score institutional sponsorship based on O'Neil's criteria
@@ -242,12 +247,14 @@ def score_institutional_sponsorship(
     elif superinvestor_present and 30 <= num_holders <= 150:
         base_score = 90
     # Good ranges (slightly outside sweet spot)
-    elif (30 <= num_holders < 50 and 20 <= ownership_pct <= 40) or \
-         (100 < num_holders <= 150 and 40 <= ownership_pct <= 70):
+    elif (30 <= num_holders < 50 and 20 <= ownership_pct <= 40) or (
+        100 < num_holders <= 150 and 40 <= ownership_pct <= 70
+    ):
         base_score = 80
     # Acceptable ranges
-    elif (20 <= num_holders < 30 and 20 <= ownership_pct <= 50) or \
-         (50 <= num_holders <= 150 and 20 <= ownership_pct <= 70):
+    elif (20 <= num_holders < 30 and 20 <= ownership_pct <= 50) or (
+        50 <= num_holders <= 150 and 20 <= ownership_pct <= 70
+    ):
         base_score = 60
     # Extreme ownership (check narrower range first)
     elif ownership_pct < 10 or ownership_pct > 90:
@@ -269,7 +276,7 @@ def interpret_institutional_sponsorship(
     num_holders: int,
     ownership_pct: Optional[float],
     superinvestor_present: bool,
-    superinvestors: List[str]
+    superinvestors: list[str],
 ) -> str:
     """
     Generate human-readable interpretation
@@ -311,7 +318,7 @@ def interpret_institutional_sponsorship(
     if superinvestor_present:
         superinvestor_names = ", ".join(superinvestors[:2])  # Show first 2
         if len(superinvestors) > 2:
-            superinvestor_names += f" +{len(superinvestors)-2} more"
+            superinvestor_names += f" +{len(superinvestors) - 2} more"
         superinvestor_msg = f" ⭐ Superinvestors: {superinvestor_names}"
     else:
         superinvestor_msg = ""
@@ -323,18 +330,29 @@ def interpret_institutional_sponsorship(
 if __name__ == "__main__":
     # Test with sample data
     sample_holders = [
-        {"holder": "Vanguard Group Inc", "shares": 1000000000, "dateReported": "2024-09-30", "change": 5000000},
-        {"holder": "BERKSHIRE HATHAWAY INC", "shares": 500000000, "dateReported": "2024-09-30", "change": 0},
+        {
+            "holder": "Vanguard Group Inc",
+            "shares": 1000000000,
+            "dateReported": "2024-09-30",
+            "change": 5000000,
+        },
+        {
+            "holder": "BERKSHIRE HATHAWAY INC",
+            "shares": 500000000,
+            "dateReported": "2024-09-30",
+            "change": 0,
+        },
     ] + [
-        {"holder": f"Institution {i}", "shares": 10000000, "dateReported": "2024-09-30", "change": 0}
+        {
+            "holder": f"Institution {i}",
+            "shares": 10000000,
+            "dateReported": "2024-09-30",
+            "change": 0,
+        }
         for i in range(3, 75)  # Total 74 holders
     ]
 
-    sample_profile = {
-        "symbol": "TEST",
-        "sharesOutstanding": 5000000000,
-        "price": 150.0
-    }
+    sample_profile = {"symbol": "TEST", "sharesOutstanding": 5000000000, "price": 150.0}
 
     result = calculate_institutional_sponsorship(sample_holders, sample_profile)
 

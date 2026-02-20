@@ -136,11 +136,16 @@ class TestStalePrice:
         """Daily range < 1% for 10 days -> stale."""
         prices = []
         for i in range(20):
-            prices.append({
-                "date": f"2026-01-{20-i:02d}",
-                "open": 14.31, "high": 14.35, "low": 14.28,
-                "close": 14.31, "volume": 500000,
-            })
+            prices.append(
+                {
+                    "date": f"2026-01-{20 - i:02d}",
+                    "open": 14.31,
+                    "high": 14.35,
+                    "low": 14.28,
+                    "close": 14.31,
+                    "volume": 500000,
+                }
+            )
         assert is_stale_price(prices) is True
 
     def test_normal_price_action(self):
@@ -148,11 +153,16 @@ class TestStalePrice:
         prices = []
         for i in range(20):
             base = 100.0 + i * 0.5
-            prices.append({
-                "date": f"2026-01-{20-i:02d}",
-                "open": base, "high": base * 1.02, "low": base * 0.98,
-                "close": base + 0.3, "volume": 1000000,
-            })
+            prices.append(
+                {
+                    "date": f"2026-01-{20 - i:02d}",
+                    "open": base,
+                    "high": base * 1.02,
+                    "low": base * 0.98,
+                    "close": base + 0.3,
+                    "volume": 1000000,
+                }
+            )
         assert is_stale_price(prices) is False
 
     def test_insufficient_data(self):
@@ -344,32 +354,40 @@ class TestEntryReady:
     def test_entry_ready_ideal_candidate(self):
         """valid_vcp=True, distance=-1%, dry_up=0.5, risk=5% -> True."""
         result = self._make_result(
-            valid_vcp=True, distance_from_pivot_pct=-1.0,
-            dry_up_ratio=0.5, risk_pct=5.0,
+            valid_vcp=True,
+            distance_from_pivot_pct=-1.0,
+            dry_up_ratio=0.5,
+            risk_pct=5.0,
         )
         assert compute_entry_ready(result) is True
 
     def test_entry_ready_false_extended(self):
         """valid_vcp=True, distance=+15% -> False (too far above pivot)."""
         result = self._make_result(
-            valid_vcp=True, distance_from_pivot_pct=15.0,
-            dry_up_ratio=0.5, risk_pct=5.0,
+            valid_vcp=True,
+            distance_from_pivot_pct=15.0,
+            dry_up_ratio=0.5,
+            risk_pct=5.0,
         )
         assert compute_entry_ready(result) is False
 
     def test_entry_ready_false_invalid_vcp(self):
         """valid_vcp=False -> False regardless of distance."""
         result = self._make_result(
-            valid_vcp=False, distance_from_pivot_pct=-1.0,
-            dry_up_ratio=0.5, risk_pct=5.0,
+            valid_vcp=False,
+            distance_from_pivot_pct=-1.0,
+            dry_up_ratio=0.5,
+            risk_pct=5.0,
         )
         assert compute_entry_ready(result) is False
 
     def test_entry_ready_false_high_risk(self):
         """valid_vcp=True, distance=-1%, risk=20% -> False (risk too high)."""
         result = self._make_result(
-            valid_vcp=True, distance_from_pivot_pct=-1.0,
-            dry_up_ratio=0.5, risk_pct=20.0,
+            valid_vcp=True,
+            distance_from_pivot_pct=-1.0,
+            dry_up_ratio=0.5,
+            risk_pct=20.0,
         )
         assert compute_entry_ready(result) is False
 
@@ -609,9 +627,9 @@ class TestReportGenerator:
 
         summary = _generate_summary(results)
         assert summary["total"] == 4
-        assert summary["good"] == 1       # only GOOD1
+        assert summary["good"] == 1  # only GOOD1
         assert summary["developing"] == 2  # CAPPED + DEV1
-        assert summary["weak"] == 1       # WEAK1
+        assert summary["weak"] == 1  # WEAK1
         assert summary["textbook"] == 0
         assert summary["strong"] == 0
 
@@ -632,15 +650,17 @@ class TestSMA50ExtendedPenalty:
         """
         prices = []
         for i in range(n):
-            prices.append({
-                "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
-                "open": sma50_target,
-                "high": sma50_target * 1.005,
-                "low": sma50_target * 0.995,
-                "close": sma50_target,
-                "adjClose": sma50_target,
-                "volume": 1000000,
-            })
+            prices.append(
+                {
+                    "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
+                    "open": sma50_target,
+                    "high": sma50_target * 1.005,
+                    "low": sma50_target * 0.995,
+                    "close": sma50_target,
+                    "adjClose": sma50_target,
+                    "volume": 1000000,
+                }
+            )
         return prices
 
     def _run_tt(self, distance_pct, ext_threshold=8.0):
@@ -657,7 +677,10 @@ class TestSMA50ExtendedPenalty:
             "yearLow": sma50_target * 0.6,
         }
         return calculate_trend_template(
-            prices, quote, rs_rank=85, ext_threshold=ext_threshold,
+            prices,
+            quote,
+            rs_rank=85,
+            ext_threshold=ext_threshold,
         )
 
     # --- Penalty calculation ---
@@ -691,12 +714,17 @@ class TestSMA50ExtendedPenalty:
         prices = []
         for i in range(n):
             close = 80.0 if i < 50 else 120.0
-            prices.append({
-                "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
-                "open": close, "high": close * 1.005,
-                "low": close * 0.995, "close": close,
-                "adjClose": close, "volume": 1000000,
-            })
+            prices.append(
+                {
+                    "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
+                    "open": close,
+                    "high": close * 1.005,
+                    "low": close * 0.995,
+                    "close": close,
+                    "adjClose": close,
+                    "volume": 1000000,
+                }
+            )
         quote = {"price": 105.0, "yearHigh": 200.0, "yearLow": 100.0}
         result = calculate_trend_template(prices, quote, rs_rank=10)
         assert result["extended_penalty"] == -20
@@ -735,12 +763,17 @@ class TestSMA50ExtendedPenalty:
         for i in range(n):
             # index 0 = newest (highest), index 249 = oldest (lowest)
             base = 120 - 40 * i / (n - 1)  # 120 → 80
-            prices.append({
-                "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
-                "open": base, "high": base * 1.005,
-                "low": base * 0.995, "close": base,
-                "adjClose": base, "volume": 1000000,
-            })
+            prices.append(
+                {
+                    "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
+                    "open": base,
+                    "high": base * 1.005,
+                    "low": base * 0.995,
+                    "close": base,
+                    "adjClose": base,
+                    "volume": 1000000,
+                }
+            )
         # SMA50 ≈ avg of newest 50 prices (120 down to ~112)
         sma50_approx = sum(p["close"] for p in prices[:50]) / 50
         price = sma50_approx * 1.20  # 20% above SMA50
@@ -800,15 +833,17 @@ class TestExtThresholdE2E:
         n = 250
         prices = []
         for i in range(n):
-            prices.append({
-                "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
-                "open": sma50_target,
-                "high": sma50_target * 1.005,
-                "low": sma50_target * 0.995,
-                "close": sma50_target,
-                "adjClose": sma50_target,
-                "volume": 1000000,
-            })
+            prices.append(
+                {
+                    "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
+                    "open": sma50_target,
+                    "high": sma50_target * 1.005,
+                    "low": sma50_target * 0.995,
+                    "close": sma50_target,
+                    "adjClose": sma50_target,
+                    "volume": 1000000,
+                }
+            )
         # Price is 12% above SMA50
         price = sma50_target * 1.12
         quote = {
@@ -820,14 +855,24 @@ class TestExtThresholdE2E:
 
         # Default threshold=8 -> 12% distance -> penalty=-10
         result_default = analyze_stock(
-            "TEST", prices, quote, sp500, "Tech", "Test Corp",
+            "TEST",
+            prices,
+            quote,
+            sp500,
+            "Tech",
+            "Test Corp",
         )
         tt_default = result_default["trend_template"]
         assert tt_default["extended_penalty"] == -10
 
         # Custom threshold=15 -> 12% distance -> no penalty
         result_custom = analyze_stock(
-            "TEST", prices, quote, sp500, "Tech", "Test Corp",
+            "TEST",
+            prices,
+            quote,
+            sp500,
+            "Tech",
+            "Test Corp",
             ext_threshold=15.0,
         )
         tt_custom = result_custom["trend_template"]
@@ -910,8 +955,7 @@ class TestSectorDistribution:
         }
         with tempfile.TemporaryDirectory() as tmpdir:
             md_file = os.path.join(tmpdir, "test.md")
-            generate_markdown_report(top_results, metadata, md_file,
-                                     all_results=all_results)
+            generate_markdown_report(top_results, metadata, md_file, all_results=all_results)
             with open(md_file) as f:
                 content = f.read()
             # Should contain Healthcare and Financials from all_results
@@ -930,8 +974,7 @@ class TestSectorDistribution:
         }
         with tempfile.TemporaryDirectory() as tmpdir:
             md_file = os.path.join(tmpdir, "test.md")
-            generate_markdown_report(top_results, metadata, md_file,
-                                     all_results=all_results)
+            generate_markdown_report(top_results, metadata, md_file, all_results=all_results)
             with open(md_file) as f:
                 content = f.read()
             assert "Showing top 3 of 10 candidates" in content
@@ -947,8 +990,7 @@ class TestSectorDistribution:
         }
         with tempfile.TemporaryDirectory() as tmpdir:
             md_file = os.path.join(tmpdir, "test.md")
-            generate_markdown_report(results, metadata, md_file,
-                                     all_results=results)
+            generate_markdown_report(results, metadata, md_file, all_results=results)
             with open(md_file) as f:
                 content = f.read()
             assert "Showing top" not in content
@@ -984,8 +1026,7 @@ class TestSectorDistribution:
         }
         with tempfile.TemporaryDirectory() as tmpdir:
             json_file = os.path.join(tmpdir, "test.json")
-            generate_json_report(all_results[:1], metadata, json_file,
-                                 all_results=all_results)
+            generate_json_report(all_results[:1], metadata, json_file, all_results=all_results)
             with open(json_file) as f:
                 data = json.load(f)
             assert "sector_distribution" in data
@@ -1025,6 +1066,7 @@ class TestRSPercentileRanking:
     def test_rank_ordering(self):
         """Higher weighted_rs gets higher percentile."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         rs_map = {
             "AAPL": {"score": 80, "weighted_rs": 30.0},
             "MSFT": {"score": 70, "weighted_rs": 20.0},
@@ -1038,6 +1080,7 @@ class TestRSPercentileRanking:
     def test_score_mapping(self):
         """Top percentile gets top score."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         rs_map = {f"S{i}": {"score": 50, "weighted_rs": float(i)} for i in range(100)}
         ranked = rank_relative_strength_universe(rs_map)
         # S99 has highest weighted_rs -> highest percentile -> highest score
@@ -1048,6 +1091,7 @@ class TestRSPercentileRanking:
     def test_single_stock(self):
         """Single stock capped by small-population rule (n=1 -> max score 70)."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         rs_map = {"ONLY": {"score": 50, "weighted_rs": 10.0}}
         ranked = rank_relative_strength_universe(rs_map)
         # With n=1, percentile and score are both capped
@@ -1057,6 +1101,7 @@ class TestRSPercentileRanking:
     def test_handles_none_weighted_rs(self):
         """Stocks with None weighted_rs get score=0 and percentile=0."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         rs_map = {
             "GOOD": {"score": 80, "weighted_rs": 20.0},
             "BAD": {"score": 0, "weighted_rs": None},
@@ -1069,12 +1114,14 @@ class TestRSPercentileRanking:
     def test_empty_dict(self):
         """Empty input returns empty dict."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         ranked = rank_relative_strength_universe({})
         assert ranked == {}
 
     def test_tied_values(self):
         """Tied weighted_rs values should get same percentile."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         rs_map = {
             "A": {"score": 50, "weighted_rs": 10.0},
             "B": {"score": 50, "weighted_rs": 10.0},
@@ -1104,18 +1151,24 @@ class TestRSPercentileRanking:
             "entry_ready": False,
             "trend_template": {"score": 100, "criteria_passed": 7},
             "vcp_pattern": {
-                "score": 70, "num_contractions": 2, "contractions": [],
+                "score": 70,
+                "num_contractions": 2,
+                "contractions": [],
                 "pivot_price": 145.0,
             },
             "volume_pattern": {"score": 40, "dry_up_ratio": 0.8},
             "pivot_proximity": {
-                "score": 75, "distance_from_pivot_pct": -3.0,
-                "stop_loss_price": 140.0, "risk_pct": 7.0,
+                "score": 75,
+                "distance_from_pivot_pct": -3.0,
+                "stop_loss_price": 140.0,
+                "risk_pct": 7.0,
                 "trade_status": "NEAR PIVOT",
             },
             "relative_strength": {
-                "score": 85, "rs_rank_estimate": 80,
-                "weighted_rs": 15.0, "rs_percentile": 92,
+                "score": 85,
+                "rs_rank_estimate": 80,
+                "weighted_rs": 15.0,
+                "rs_percentile": 92,
             },
         }
         metadata = {
@@ -1143,6 +1196,7 @@ class TestATRCalculation:
     def test_atr_basic(self):
         """ATR for constant range bars should equal the range."""
         from calculators.vcp_pattern_calculator import _calculate_atr
+
         n = 20
         highs = [105.0] * n
         lows = [95.0] * n
@@ -1153,6 +1207,7 @@ class TestATRCalculation:
     def test_atr_insufficient_data(self):
         """ATR with < period+1 data returns 0."""
         from calculators.vcp_pattern_calculator import _calculate_atr
+
         highs = [105.0] * 5
         lows = [95.0] * 5
         closes = [100.0] * 5
@@ -1166,6 +1221,7 @@ class TestZigZagSwingDetection:
     def test_zigzag_finds_known_pattern(self):
         """A clear up-down-up-down pattern should find swing points."""
         from calculators.vcp_pattern_calculator import _zigzag_swing_points
+
         # Build: 20 bars up, 20 bars down, 20 bars up, 20 bars down
         n = 80
         highs, lows, closes, dates = [], [], [], []
@@ -1191,6 +1247,7 @@ class TestZigZagSwingDetection:
     def test_smooth_uptrend_fewer_swings(self):
         """Smooth uptrend should produce fewer swings than choppy market."""
         from calculators.vcp_pattern_calculator import _zigzag_swing_points
+
         n = 100
         # Smooth uptrend
         smooth_highs = [100 + i * 0.5 + 1 for i in range(n)]
@@ -1204,6 +1261,7 @@ class TestZigZagSwingDetection:
     def test_atr_multiplier_sensitivity(self):
         """Higher multiplier = fewer swing points detected."""
         from calculators.vcp_pattern_calculator import _zigzag_swing_points
+
         n = 80
         highs, lows, closes, dates = [], [], [], []
         for i in range(n):
@@ -1219,18 +1277,15 @@ class TestZigZagSwingDetection:
             lows.append(base - 1)
             closes.append(float(base))
             dates.append(f"day-{i}")
-        sh_low, sl_low = _zigzag_swing_points(
-            highs, lows, closes, dates, atr_multiplier=0.5
-        )
-        sh_high, sl_high = _zigzag_swing_points(
-            highs, lows, closes, dates, atr_multiplier=3.0
-        )
+        sh_low, sl_low = _zigzag_swing_points(highs, lows, closes, dates, atr_multiplier=0.5)
+        sh_high, sl_high = _zigzag_swing_points(highs, lows, closes, dates, atr_multiplier=3.0)
         # Lower multiplier should find at least as many swings
         assert len(sh_low) + len(sl_low) >= len(sh_high) + len(sl_high)
 
     def test_insufficient_data(self):
         """< 15 bars of data should return empty."""
         from calculators.vcp_pattern_calculator import _zigzag_swing_points
+
         highs = [105.0] * 10
         lows = [95.0] * 10
         closes = [100.0] * 10
@@ -1275,14 +1330,16 @@ class TestVCPPatternEnhanced:
                 # Recovery to ~117, consolidation near pivot
                 progress = (i - 85) / (n - 85)
                 base = 110 + 7 * progress
-            chrono.append({
-                "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
-                "open": round(base, 2),
-                "high": round(base * 1.01, 2),
-                "low": round(base * 0.99, 2),
-                "close": round(base, 2),
-                "volume": 1000000,
-            })
+            chrono.append(
+                {
+                    "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
+                    "open": round(base, 2),
+                    "high": round(base * 1.01, 2),
+                    "low": round(base * 0.99, 2),
+                    "close": round(base, 2),
+                    "volume": 1000000,
+                }
+            )
         # Return most-recent-first
         return list(reversed(chrono))
 
@@ -1329,6 +1386,7 @@ class TestVCPPatternEnhanced:
     def test_min_contraction_days_filters_short(self):
         """Contractions shorter than min_contraction_days should be excluded."""
         from calculators.vcp_pattern_calculator import calculate_vcp_pattern
+
         prices = self._make_vcp_prices()
         # Very high min_contraction_days should reduce or eliminate contractions
         result = calculate_vcp_pattern(prices, min_contraction_days=50)
@@ -1351,14 +1409,16 @@ class TestVolumeZoneAnalysis:
             vol = base_vol
             if i < 10:  # Recent bars: dry-up zone
                 vol = dry_up_vol
-            prices.append({
-                "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
-                "open": 100.0,
-                "high": 101.0,
-                "low": 99.0,
-                "close": 100.0,
-                "volume": vol,
-            })
+            prices.append(
+                {
+                    "date": f"2025-{(i // 22) + 1:02d}-{(i % 22) + 1:02d}",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.0,
+                    "volume": vol,
+                }
+            )
         return prices
 
     def test_backward_compatible_without_contractions(self):
@@ -1375,9 +1435,7 @@ class TestVolumeZoneAnalysis:
             {"high_idx": 30, "low_idx": 40, "label": "T1"},
             {"high_idx": 20, "low_idx": 25, "label": "T2"},
         ]
-        result = calculate_volume_pattern(
-            prices, pivot_price=101.0, contractions=contractions
-        )
+        result = calculate_volume_pattern(prices, pivot_price=101.0, contractions=contractions)
         assert "zone_analysis" in result
 
     def test_zone_b_dry_up(self):
@@ -1388,18 +1446,21 @@ class TestVolumeZoneAnalysis:
             vol = 1000000
             if i < 10:  # Most recent: very dry
                 vol = 100000
-            prices.append({
-                "date": f"day-{i}",
-                "open": 100.0, "high": 101.0, "low": 99.0,
-                "close": 100.0, "volume": vol,
-            })
+            prices.append(
+                {
+                    "date": f"day-{i}",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.0,
+                    "volume": vol,
+                }
+            )
         contractions = [
             {"high_idx": 30, "low_idx": 40, "label": "T1"},
             {"high_idx": 15, "low_idx": 20, "label": "T2"},
         ]
-        result = calculate_volume_pattern(
-            prices, pivot_price=101.0, contractions=contractions
-        )
+        result = calculate_volume_pattern(prices, pivot_price=101.0, contractions=contractions)
         assert result["dry_up_ratio"] < 0.5
 
     def test_contraction_volume_declining_bonus(self):
@@ -1415,27 +1476,28 @@ class TestVolumeZoneAnalysis:
             # T2: chronological 35-45, reversed = 14-24
             elif 14 <= i <= 24:
                 vol = 500000
-            prices.append({
-                "date": f"day-{i}",
-                "open": 100.0, "high": 101.0, "low": 99.0,
-                "close": 100.0, "volume": vol,
-            })
+            prices.append(
+                {
+                    "date": f"day-{i}",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": 100.0,
+                    "volume": vol,
+                }
+            )
         contractions = [
             {"high_idx": 10, "low_idx": 20, "label": "T1"},
             {"high_idx": 35, "low_idx": 45, "label": "T2"},
         ]
-        result = calculate_volume_pattern(
-            prices, pivot_price=101.0, contractions=contractions
-        )
+        result = calculate_volume_pattern(prices, pivot_price=101.0, contractions=contractions)
         assert "contraction_volume_trend" in result
         assert result["contraction_volume_trend"]["declining"] is True
 
     def test_empty_contractions_fallback(self):
         """Empty contractions list should use old behavior."""
         prices = self._make_volume_prices()
-        result = calculate_volume_pattern(
-            prices, pivot_price=101.0, contractions=[]
-        )
+        result = calculate_volume_pattern(prices, pivot_price=101.0, contractions=[])
         # Should still work with old logic
         assert "dry_up_ratio" in result
         assert result["score"] > 0
@@ -1450,19 +1512,21 @@ class TestVolumeZoneAnalysis:
                 # Breakout bar: high volume, price above pivot
                 vol = 2000000
                 close = 102.0
-            prices.append({
-                "date": f"day-{i}",
-                "open": close - 1, "high": close + 0.5,
-                "low": close - 1.5,
-                "close": close, "volume": vol,
-            })
+            prices.append(
+                {
+                    "date": f"day-{i}",
+                    "open": close - 1,
+                    "high": close + 0.5,
+                    "low": close - 1.5,
+                    "close": close,
+                    "volume": vol,
+                }
+            )
         contractions = [
             {"high_idx": 30, "low_idx": 40, "label": "T1"},
             {"high_idx": 15, "low_idx": 20, "label": "T2"},
         ]
-        result = calculate_volume_pattern(
-            prices, pivot_price=101.0, contractions=contractions
-        )
+        result = calculate_volume_pattern(prices, pivot_price=101.0, contractions=contractions)
         assert result["breakout_volume_detected"] is True
 
 
@@ -1478,6 +1542,7 @@ class TestRSNoneHandling:
     def test_all_none_get_score_zero(self):
         """All-None universe: every stock should get score=0, not score=100."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         rs_map = {
             "A": {"score": 0, "weighted_rs": None, "error": "No SPY data"},
             "B": {"score": 0, "weighted_rs": None, "error": "No SPY data"},
@@ -1491,10 +1556,11 @@ class TestRSNoneHandling:
     def test_mixed_none_excludes_none_from_percentile(self):
         """None stocks excluded from percentile; valid stocks ranked among themselves."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         rs_map = {
             "GOOD1": {"score": 80, "weighted_rs": 30.0},
             "GOOD2": {"score": 70, "weighted_rs": 10.0},
-            "BAD":   {"score": 0, "weighted_rs": None, "error": "No data"},
+            "BAD": {"score": 0, "weighted_rs": None, "error": "No data"},
         }
         ranked = rank_relative_strength_universe(rs_map)
         # BAD should get score=0
@@ -1507,6 +1573,7 @@ class TestRSNoneHandling:
     def test_none_stock_preserves_error(self):
         """None-weighted_rs stock should preserve its original error field."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         rs_map = {
             "OK": {"score": 50, "weighted_rs": 10.0},
             "ERR": {"score": 0, "weighted_rs": None, "error": "SPY fetch failed"},
@@ -1521,6 +1588,7 @@ class TestRSSmallPopulation:
     def test_small_population_caps_score(self):
         """With fewer than 10 valid stocks, scores should be capped."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
+
         # 3 stocks: highest should NOT get score=100
         rs_map = {
             "A": {"score": 50, "weighted_rs": 20.0},
@@ -1534,9 +1602,10 @@ class TestRSSmallPopulation:
     def test_small_population_caps_percentile_consistently(self):
         """rs_percentile must be capped consistently with score."""
         from calculators.relative_strength_calculator import (
-            rank_relative_strength_universe,
             _percentile_to_score,
+            rank_relative_strength_universe,
         )
+
         # 3 stocks: raw percentile would be 100 for top stock
         rs_map = {
             "A": {"score": 50, "weighted_rs": 20.0},
@@ -1553,9 +1622,8 @@ class TestRSSmallPopulation:
     def test_large_population_no_cap(self):
         """With 20+ valid stocks, no cap is applied."""
         from calculators.relative_strength_calculator import rank_relative_strength_universe
-        rs_map = {
-            f"S{i}": {"score": 50, "weighted_rs": float(i)} for i in range(20)
-        }
+
+        rs_map = {f"S{i}": {"score": 50, "weighted_rs": float(i)} for i in range(20)}
         ranked = rank_relative_strength_universe(rs_map)
         assert ranked["S19"]["score"] >= 90
         # Percentile should also be uncapped
@@ -1603,16 +1671,26 @@ class TestFixedTautologicalTests:
         for i in range(60):
             close = 100.0
             vol_base = 1000000
-            prices_declining.append({
-                "date": f"day-{i}",
-                "open": 100.0, "high": 101.0, "low": 99.0,
-                "close": close, "volume": vol_base,
-            })
-            prices_flat.append({
-                "date": f"day-{i}",
-                "open": 100.0, "high": 101.0, "low": 99.0,
-                "close": close, "volume": vol_base,
-            })
+            prices_declining.append(
+                {
+                    "date": f"day-{i}",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": close,
+                    "volume": vol_base,
+                }
+            )
+            prices_flat.append(
+                {
+                    "date": f"day-{i}",
+                    "open": 100.0,
+                    "high": 101.0,
+                    "low": 99.0,
+                    "close": close,
+                    "volume": vol_base,
+                }
+            )
 
         # Contractions where T1 zone has higher volume than T2 zone
         # (chronological indices: T1 is earlier, T2 is later)
@@ -1621,7 +1699,7 @@ class TestFixedTautologicalTests:
         # T2: indices 35-45 (chronological), reversed = 14-24
         # For declining: T1 zone gets high volume, T2 zone gets low volume
         for i in range(n):
-            rev_idx = n - 1 - i
+            n - 1 - i
             # T1 chronological 10-20 -> reversed 39-49
             if 39 <= i <= 49:
                 prices_declining[i]["volume"] = 2000000

@@ -18,15 +18,17 @@ Max per index: ~75 points (not all conditions fire at once in early stages)
 Final: average of both indices, scaled to 0-100
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 from calculators.math_utils import calc_ema
 
 
-def calculate_index_technical(sp500_history: List[Dict],
-                              nasdaq_history: List[Dict],
-                              sp500_quote: Optional[Dict] = None,
-                              nasdaq_quote: Optional[Dict] = None) -> Dict:
+def calculate_index_technical(
+    sp500_history: list[dict],
+    nasdaq_history: list[dict],
+    sp500_quote: Optional[dict] = None,
+    nasdaq_quote: Optional[dict] = None,
+) -> dict:
     """
     Calculate index technical condition score.
 
@@ -83,16 +85,14 @@ def calculate_index_technical(sp500_history: List[Dict],
     }
 
 
-def _evaluate_index(name: str, history: List[Dict],
-                    quote: Optional[Dict] = None) -> Dict:
+def _evaluate_index(name: str, history: list[dict], quote: Optional[dict] = None) -> dict:
     """Evaluate a single index's technical condition"""
     if not history or len(history) < 21:
-        return {"raw_score": 0, "flags": ["Insufficient data"], "mas": {},
-                "data_available": False}
+        return {"raw_score": 0, "flags": ["Insufficient data"], "mas": {}, "data_available": False}
 
     closes = [d.get("close", d.get("adjClose", 0)) for d in history]
     highs = [d.get("high", d.get("close", 0)) for d in history]
-    lows = [d.get("low", d.get("close", 0)) for d in history]
+    [d.get("low", d.get("close", 0)) for d in history]
     volumes = [d.get("volume", 0) for d in history]
 
     # Current price (from quote or most recent close)
@@ -168,8 +168,7 @@ def _evaluate_index(name: str, history: List[Dict],
     }
 
 
-def _detect_failed_rally(closes: List[float], volumes: List[int],
-                         lookback: int = 15) -> bool:
+def _detect_failed_rally(closes: list[float], volumes: list[int], lookback: int = 15) -> bool:
     """
     Detect failed rally: price bounces then fails to make new high
     within recent lookback period.
@@ -190,7 +189,7 @@ def _detect_failed_rally(closes: List[float], volumes: List[int],
     return False
 
 
-def _detect_lower_highs(highs: List[float], lookback: int = 20) -> bool:
+def _detect_lower_highs(highs: list[float], lookback: int = 20) -> bool:
     """Detect lower highs pattern in price action"""
     if len(highs) < lookback:
         return False
@@ -200,7 +199,7 @@ def _detect_lower_highs(highs: List[float], lookback: int = 20) -> bool:
     # Find swing highs (local maxima)
     swing_highs = []
     for i in range(1, len(recent_highs) - 1):
-        if recent_highs[i] > recent_highs[i-1] and recent_highs[i] > recent_highs[i+1]:
+        if recent_highs[i] > recent_highs[i - 1] and recent_highs[i] > recent_highs[i + 1]:
             swing_highs.append(recent_highs[i])
 
     if len(swing_highs) < 2:
@@ -210,7 +209,7 @@ def _detect_lower_highs(highs: List[float], lookback: int = 20) -> bool:
     return swing_highs[0] < swing_highs[1]
 
 
-def _detect_gap_down(history: List[Dict], lookback: int = 5) -> bool:
+def _detect_gap_down(history: list[dict], lookback: int = 5) -> bool:
     """Detect gap down on increased volume in recent sessions"""
     if len(history) < lookback + 1:
         return False

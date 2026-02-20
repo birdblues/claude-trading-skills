@@ -10,12 +10,12 @@ Outputs:
 """
 
 import json
-from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 
-def generate_json_report(results: List[Dict], metadata: Dict, output_file: str,
-                         all_results: Optional[List[Dict]] = None):
+def generate_json_report(
+    results: list[dict], metadata: dict, output_file: str, all_results: Optional[list[dict]] = None
+):
     """Generate JSON report with screening results.
 
     Args:
@@ -37,14 +37,15 @@ def generate_json_report(results: List[Dict], metadata: Dict, output_file: str,
         "sector_distribution": sector_counts,
     }
 
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(report, f, indent=2, default=str)
 
     print(f"  JSON report saved to: {output_file}")
 
 
-def generate_markdown_report(results: List[Dict], metadata: Dict, output_file: str,
-                             all_results: Optional[List[Dict]] = None):
+def generate_markdown_report(
+    results: list[dict], metadata: dict, output_file: str, all_results: Optional[list[dict]] = None
+):
     """Generate Markdown report with VCP screening results.
 
     Args:
@@ -67,8 +68,8 @@ def generate_markdown_report(results: List[Dict], metadata: Dict, output_file: s
     funnel = metadata.get("funnel", {})
     lines.append("## Screening Funnel")
     lines.append("")
-    lines.append(f"| Stage | Count |")
-    lines.append(f"|-------|-------|")
+    lines.append("| Stage | Count |")
+    lines.append("|-------|-------|")
     lines.append(f"| Universe | {funnel.get('universe', 'N/A')} |")
     lines.append(f"| Pre-filter passed | {funnel.get('pre_filter_passed', 'N/A')} |")
     lines.append(f"| Trend Template passed | {funnel.get('trend_template_passed', 'N/A')} |")
@@ -79,7 +80,9 @@ def generate_markdown_report(results: List[Dict], metadata: Dict, output_file: s
     total_candidates = len(all_results) if all_results is not None else len(results)
     showing_count = len(results)
     if showing_count < total_candidates:
-        lines.append(f"**Showing top {showing_count} of {total_candidates} candidates** (sorted by composite score)")
+        lines.append(
+            f"**Showing top {showing_count} of {total_candidates} candidates** (sorted by composite score)"
+        )
         lines.append("")
 
     lines.append("---")
@@ -156,29 +159,35 @@ def generate_markdown_report(results: List[Dict], metadata: Dict, output_file: s
     lines.append("This screener implements Mark Minervini's Volatility Contraction Pattern (VCP):")
     lines.append("")
     lines.append("1. **Trend Template** (25%) - 7-point Stage 2 uptrend filter")
-    lines.append("2. **Contraction Quality** (25%) - VCP pattern with successive tighter corrections")
+    lines.append(
+        "2. **Contraction Quality** (25%) - VCP pattern with successive tighter corrections"
+    )
     lines.append("3. **Volume Pattern** (20%) - Volume dry-up near pivot point")
     lines.append("4. **Pivot Proximity** (15%) - Distance from breakout level")
     lines.append("5. **Relative Strength** (15%) - Minervini-weighted RS vs S&P 500")
     lines.append("")
-    lines.append("For detailed methodology, see the VCP methodology reference in the vcp-screener skill directory.")
+    lines.append(
+        "For detailed methodology, see the VCP methodology reference in the vcp-screener skill directory."
+    )
     lines.append("")
 
     # Disclaimer
     lines.append("---")
     lines.append("")
-    lines.append("**Disclaimer:** This screener is for educational and informational purposes only. "
-                "Not investment advice. Always conduct your own research and consult a financial "
-                "advisor before making investment decisions. Past patterns do not guarantee future results.")
+    lines.append(
+        "**Disclaimer:** This screener is for educational and informational purposes only. "
+        "Not investment advice. Always conduct your own research and consult a financial "
+        "advisor before making investment decisions. Past patterns do not guarantee future results."
+    )
     lines.append("")
 
-    with open(output_file, 'w') as f:
-        f.write('\n'.join(lines))
+    with open(output_file, "w") as f:
+        f.write("\n".join(lines))
 
     print(f"  Markdown report saved to: {output_file}")
 
 
-def _format_stock_entry(rank: int, stock: Dict) -> List[str]:
+def _format_stock_entry(rank: int, stock: dict) -> list[str]:
     """Format a single stock entry for the Markdown report."""
     lines = []
 
@@ -191,9 +200,13 @@ def _format_stock_entry(rank: int, stock: Dict) -> List[str]:
     # Basic info
     price = stock.get("price", 0) or 0
     mcap = stock.get("market_cap", 0) or 0
-    mcap_str = f"${mcap/1e9:.1f}B" if mcap >= 1e9 else (f"${mcap/1e6:.0f}M" if mcap > 0 else "N/A")
-    lines.append(f"**Price:** ${price:.2f} | **Market Cap:** {mcap_str} | "
-                f"**Sector:** {stock.get('sector', 'N/A')}")
+    mcap_str = (
+        f"${mcap / 1e9:.1f}B" if mcap >= 1e9 else (f"${mcap / 1e6:.0f}M" if mcap > 0 else "N/A")
+    )
+    lines.append(
+        f"**Price:** ${price:.2f} | **Market Cap:** {mcap_str} | "
+        f"**Sector:** {stock.get('sector', 'N/A')}"
+    )
 
     # Composite score
     lines.append(f"**VCP Score:** {stock.get('composite_score', 0):.1f}/100 ({rating})")
@@ -262,11 +275,16 @@ def _format_stock_entry(rank: int, stock: Dict) -> List[str]:
 
     if dist is not None and dist > 10:
         # Overextended: trade missed
-        lines.append(f"- Original pivot: ${pivot_price:.2f} (current price is +{dist:.1f}% above)"
-                      if pivot_price else "- Pivot: N/A")
+        lines.append(
+            f"- Original pivot: ${pivot_price:.2f} (current price is +{dist:.1f}% above)"
+            if pivot_price
+            else "- Pivot: N/A"
+        )
         if risk_pct is not None:
-            lines.append(f"- TRADE MISSED: Entry at current level requires {risk_pct:.1f}% "
-                          "stop distance — not a valid setup.")
+            lines.append(
+                f"- TRADE MISSED: Entry at current level requires {risk_pct:.1f}% "
+                "stop distance — not a valid setup."
+            )
         else:
             lines.append("- TRADE MISSED: Too far above pivot for a valid entry.")
         lines.append("- Action: Wait for new base formation and a new pivot point.")
@@ -274,22 +292,27 @@ def _format_stock_entry(rank: int, stock: Dict) -> List[str]:
         # Chase warning zone
         lines.append(f"- Pivot: ${pivot_price:.2f}" if pivot_price else "- Pivot: N/A")
         lines.append(f"- Stop-loss: ${stop_loss:.2f}" if stop_loss else "- Stop-loss: N/A")
-        lines.append(f"- Risk from current price: {risk_pct:.1f}%"
-                      if risk_pct is not None else "- Risk: N/A")
-        lines.append(f"- WARNING: +{dist:.1f}% above pivot — consider waiting for pullback to pivot.")
+        lines.append(
+            f"- Risk from current price: {risk_pct:.1f}%" if risk_pct is not None else "- Risk: N/A"
+        )
+        lines.append(
+            f"- WARNING: +{dist:.1f}% above pivot — consider waiting for pullback to pivot."
+        )
     else:
         # Normal range (-8% to +5%) or below
         lines.append(f"- Pivot: ${pivot_price:.2f}" if pivot_price else "- Pivot: N/A")
         lines.append(f"- Stop-loss: ${stop_loss:.2f}" if stop_loss else "- Stop-loss: N/A")
         lines.append(f"- Risk: {risk_pct:.1f}%" if risk_pct is not None else "- Risk: N/A")
 
-    guidance = stock.get('guidance', 'N/A')
+    guidance = stock.get("guidance", "N/A")
     trade_status = piv.get("trade_status", "")
 
     if "EXTENDED" in trade_status or "OVEREXTENDED" in trade_status:
         dist_val = piv.get("distance_from_pivot_pct", 0)
-        guidance += (f" | WARNING: Stock is +{dist_val:.1f}% above pivot - "
-                     "Minervini advises against chasing >5% above pivot")
+        guidance += (
+            f" | WARNING: Stock is +{dist_val:.1f}% above pivot - "
+            "Minervini advises against chasing >5% above pivot"
+        )
 
     lines.append(f"- Guidance: {guidance}")
     lines.append("")
@@ -315,7 +338,7 @@ def _rating_indicator(score: float, valid_vcp: bool = True) -> str:
         return ""
 
 
-def _generate_summary(results: List[Dict]) -> Dict:
+def _generate_summary(results: list[dict]) -> dict:
     """Generate summary statistics based on rating (not raw composite_score).
 
     Uses the ``rating`` field so that valid_vcp-capped stocks are counted
@@ -327,8 +350,7 @@ def _generate_summary(results: List[Dict]) -> Dict:
     strong = sum(1 for s in results if s.get("rating") == "Strong VCP")
     good = sum(1 for s in results if s.get("rating") == "Good VCP")
     developing = sum(1 for s in results if s.get("rating") == "Developing VCP")
-    weak = sum(1 for s in results
-               if s.get("rating") in ("Weak VCP", "No VCP"))
+    weak = sum(1 for s in results if s.get("rating") in ("Weak VCP", "No VCP"))
 
     return {
         "total": total,

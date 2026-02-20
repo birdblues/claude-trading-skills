@@ -9,17 +9,16 @@ The Markdown output structure follows the specification defined in:
 """
 
 import json
-from typing import Dict
 
 
-def generate_json_report(analysis: Dict, output_file: str):
+def generate_json_report(analysis: dict, output_file: str):
     """Save full analysis as JSON."""
     with open(output_file, "w") as f:
         json.dump(analysis, f, indent=2, default=str)
     print(f"JSON report saved to: {output_file}")
 
 
-def generate_markdown_report(analysis: Dict, output_file: str):
+def generate_markdown_report(analysis: dict, output_file: str):
     """Generate comprehensive Markdown report."""
     lines = []
     metadata = analysis.get("metadata", {})
@@ -40,9 +39,11 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("# Druckenmiller Strategy Synthesizer Report")
     lines.append("")
     lines.append(f"**Generated:** {metadata.get('generated_at', 'N/A')}")
-    lines.append(f"**Input Skills:** {metadata.get('skills_loaded', 0)} loaded "
-                 f"({metadata.get('required_count', 0)} required + "
-                 f"{metadata.get('optional_count', 0)} optional)")
+    lines.append(
+        f"**Input Skills:** {metadata.get('skills_loaded', 0)} loaded "
+        f"({metadata.get('required_count', 0)} required + "
+        f"{metadata.get('optional_count', 0)} optional)"
+    )
     lines.append("")
 
     # ================================================================
@@ -62,8 +63,12 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append(f"| **Recommended Exposure** | {conviction.get('exposure_range', 'N/A')} |")
     strongest = conviction.get("strongest_component", {})
     weakest = conviction.get("weakest_component", {})
-    lines.append(f"| **Strongest Component** | {strongest.get('label', 'N/A')} ({strongest.get('score', 0)}) |")
-    lines.append(f"| **Weakest Component** | {weakest.get('label', 'N/A')} ({weakest.get('score', 0)}) |")
+    lines.append(
+        f"| **Strongest Component** | {strongest.get('label', 'N/A')} ({strongest.get('score', 0)}) |"
+    )
+    lines.append(
+        f"| **Weakest Component** | {weakest.get('label', 'N/A')} ({weakest.get('score', 0)}) |"
+    )
     lines.append("")
 
     lines.append(f"> **Guidance:** {conviction.get('guidance', '')}")
@@ -123,7 +128,9 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         if not available:
             label = f"{label} (N/A)"
         bar = _score_bar(comp_score)
-        lines.append(f"| {i} | {label} | {weight*100:.0f}% | {eff_weight*100:.1f}% | {bar} {comp_score} | {weighted} |")
+        lines.append(
+            f"| {i} | {label} | {weight * 100:.0f}% | {eff_weight * 100:.1f}% | {bar} {comp_score} | {weighted} |"
+        )
 
     lines.append(f"| | **TOTAL** | **100%** | **100%** | | **{score}** |")
     lines.append("")
@@ -136,8 +143,13 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("## 4. Input Skills Summary")
     lines.append("")
 
-    required_keys = ["market_breadth", "uptrend_analysis", "market_top",
-                     "macro_regime", "ftd_detector"]
+    required_keys = [
+        "market_breadth",
+        "uptrend_analysis",
+        "market_top",
+        "macro_regime",
+        "ftd_detector",
+    ]
     optional_keys = ["vcp_screener", "theme_detector", "canslim_screener"]
 
     lines.append("### Required Skills")
@@ -149,7 +161,9 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         sig_score = sig.get("composite_score", sig.get("quality_score", "N/A"))
         zone_or_state = sig.get("zone", sig.get("state", "N/A"))
         key_signal = _format_key_signal(key, sig)
-        lines.append(f"| {key.replace('_', ' ').title()} | {sig_score} | {zone_or_state} | {key_signal} |")
+        lines.append(
+            f"| {key.replace('_', ' ').title()} | {sig_score} | {zone_or_state} | {key_signal} |"
+        )
     lines.append("")
 
     lines.append("### Optional Skills")
@@ -207,9 +221,9 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
 
     principle = _select_principle(zone, pattern.get("pattern", ""))
-    lines.append(f"> *\"{principle['quote']}\"*")
-    lines.append(f">")
-    lines.append(f"> — Stanley Druckenmiller")
+    lines.append(f'> *"{principle["quote"]}"*')
+    lines.append(">")
+    lines.append("> — Stanley Druckenmiller")
     lines.append("")
     lines.append(f"**Application:** {principle['application']}")
     lines.append("")
@@ -221,9 +235,11 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
     lines.append("## Methodology")
     lines.append("")
-    lines.append("This report synthesizes outputs from 8 upstream analysis skills "
-                 "(5 required + 3 optional) into a single conviction score using "
-                 "Stanley Druckenmiller's investment philosophy.")
+    lines.append(
+        "This report synthesizes outputs from 8 upstream analysis skills "
+        "(5 required + 3 optional) into a single conviction score using "
+        "Stanley Druckenmiller's investment philosophy."
+    )
     lines.append("")
     lines.append("**7 Components** (weighted 0-100):")
     lines.append("")
@@ -235,17 +251,21 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("6. Setup Availability (10%): VCP + CANSLIM setups")
     lines.append("7. Signal Convergence (12%): Cross-skill agreement")
     lines.append("")
-    lines.append("**4 Patterns:** Policy Pivot Anticipation, Unsustainable Distortion, "
-                 "Extreme Sentiment Contrarian, Wait & Observe")
+    lines.append(
+        "**4 Patterns:** Policy Pivot Anticipation, Unsustainable Distortion, "
+        "Extreme Sentiment Contrarian, Wait & Observe"
+    )
     lines.append("")
 
     # Disclaimer
     lines.append("---")
     lines.append("")
-    lines.append("**Disclaimer:** This analysis is for educational and informational purposes only. "
-                 "Not investment advice. Past performance does not guarantee future results. "
-                 "Conduct your own research and consult a financial advisor before making "
-                 "investment decisions.")
+    lines.append(
+        "**Disclaimer:** This analysis is for educational and informational purposes only. "
+        "Not investment advice. Past performance does not guarantee future results. "
+        "Conduct your own research and consult a financial advisor before making "
+        "investment decisions."
+    )
     lines.append("")
 
     with open(output_file, "w") as f:
@@ -257,6 +277,7 @@ def generate_markdown_report(analysis: Dict, output_file: str):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _zone_emoji(color: str) -> str:
     mapping = {
@@ -288,7 +309,7 @@ def _alloc_bar(pct: float) -> str:
     return "█" * filled + "░" * empty
 
 
-def _format_key_signal(skill: str, sig: Dict) -> str:
+def _format_key_signal(skill: str, sig: dict) -> str:
     """Format a one-line key signal per skill."""
     if skill == "market_breadth":
         return f"Zone: {sig.get('zone', 'N/A')}"
@@ -305,55 +326,57 @@ def _format_key_signal(skill: str, sig: Dict) -> str:
     elif skill == "theme_detector":
         return f"Hot: {sig.get('hot_count', 0)}, Exhausting: {sig.get('exhaustion_count', 0)}"
     elif skill == "canslim_screener":
-        return f"M Score: {sig.get('m_score', 'N/A')}, Exceptional: {sig.get('exceptional_count', 0)}"
+        return (
+            f"M Score: {sig.get('m_score', 'N/A')}, Exceptional: {sig.get('exceptional_count', 0)}"
+        )
     return "N/A"
 
 
-def _select_principle(zone: str, pattern: str) -> Dict:
+def _select_principle(zone: str, pattern: str) -> dict:
     """Select a relevant Druckenmiller quote for the current situation."""
     if zone == "Maximum Conviction":
         return {
             "quote": "The way to build long-term returns is through preservation of "
-                     "capital and home runs. When you have tremendous conviction on a "
-                     "trade, you have to go for the jugular.",
+            "capital and home runs. When you have tremendous conviction on a "
+            "trade, you have to go for the jugular.",
             "application": "All signals aligned. This is the moment to concentrate "
-                          "positions and size up aggressively.",
+            "positions and size up aggressively.",
         }
     elif pattern == "extreme_sentiment_contrarian":
         return {
             "quote": "I've made most of my money in bear markets. The biggest "
-                     "opportunities come when everyone is running for the exits.",
+            "opportunities come when everyone is running for the exits.",
             "application": "FTD confirmed after extreme pessimism. Consider aggressive "
-                          "re-entry as the bottom forms.",
+            "re-entry as the bottom forms.",
         }
     elif pattern == "unsustainable_distortion":
         return {
             "quote": "It's not whether you're right or wrong that's important, "
-                     "but how much money you make when you're right and how much "
-                     "you lose when you're wrong.",
+            "but how much money you make when you're right and how much "
+            "you lose when you're wrong.",
             "application": "Distribution signals mounting. Reduce exposure, tighten "
-                          "stops, and preserve capital for the next opportunity.",
+            "stops, and preserve capital for the next opportunity.",
         }
     elif zone == "Capital Preservation":
         return {
             "quote": "The first thing I heard when I got in the business was bulls "
-                     "make money, bears make money, and pigs get slaughtered. "
-                     "I'm here to tell you I was a pig.",
+            "make money, bears make money, and pigs get slaughtered. "
+            "I'm here to tell you I was a pig.",
             "application": "Conditions are hostile. Sit on the sidelines and wait. "
-                          "The best trade is sometimes no trade.",
+            "The best trade is sometimes no trade.",
         }
     elif pattern == "policy_pivot_anticipation":
         return {
             "quote": "Earnings don't move the overall market; it's the Federal "
-                     "Reserve Board... focus on the central banks, and focus on "
-                     "the movement of liquidity.",
+            "Reserve Board... focus on the central banks, and focus on "
+            "the movement of liquidity.",
             "application": "Macro regime is transitioning. Position ahead of the "
-                          "policy pivot for asymmetric upside.",
+            "policy pivot for asymmetric upside.",
         }
     else:
         return {
             "quote": "Don't invest in the present; invest in what you think the "
-                     "world will look like in 18 months.",
+            "world will look like in 18 months.",
             "application": "Signals are mixed. Maintain discipline, stay patient, "
-                          "and wait for a clearer setup.",
+            "and wait for a clearer setup.",
         }

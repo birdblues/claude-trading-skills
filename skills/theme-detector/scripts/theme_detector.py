@@ -20,36 +20,35 @@ import os
 import sys
 import time
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 # Ensure scripts directory is on the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from calculators.industry_ranker import rank_industries, get_top_bottom_industries
-from calculators.theme_classifier import classify_themes
 from calculators.heat_calculator import (
-    momentum_strength_score,
-    volume_intensity_score,
-    uptrend_signal_score,
     breadth_signal_score,
     calculate_theme_heat,
+    momentum_strength_score,
+    uptrend_signal_score,
+    volume_intensity_score,
 )
+from calculators.industry_ranker import get_top_bottom_industries, rank_industries
 from calculators.lifecycle_calculator import (
+    calculate_lifecycle_maturity,
+    classify_stage,
     estimate_duration_score,
+    etf_proliferation_score,
     extremity_clustering_score,
     price_extreme_saturation_score,
     valuation_premium_score,
-    etf_proliferation_score,
-    classify_stage,
-    calculate_lifecycle_maturity,
-    has_sufficient_lifecycle_data,
 )
+from calculators.theme_classifier import classify_themes
+from report_generator import generate_json_report, generate_markdown_report, save_reports
 from scorer import (
-    score_theme,
     calculate_confidence,
     determine_data_mode,
+    score_theme,
 )
-from report_generator import generate_json_report, generate_markdown_report, save_reports
 
 # Heavy-dependency modules (pandas/numpy/yfinance/finvizfinance) are imported
 # lazily inside main() to allow lightweight helpers like _get_representative_stocks
@@ -59,7 +58,7 @@ from report_generator import generate_json_report, generate_markdown_report, sav
 # ---------------------------------------------------------------------------
 # Industry-to-sector mapping (FINVIZ industry names -> sector)
 # ---------------------------------------------------------------------------
-INDUSTRY_TO_SECTOR: Dict[str, str] = {
+INDUSTRY_TO_SECTOR: dict[str, str] = {
     # Technology
     "Semiconductors": "Technology",
     "Semiconductor Equipment & Materials": "Technology",
@@ -299,7 +298,7 @@ def parse_args() -> argparse.Namespace:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _add_sector_info(industries: List[Dict]) -> List[Dict]:
+def _add_sector_info(industries: list[dict]) -> list[dict]:
     """Add sector field to each industry dict from INDUSTRY_TO_SECTOR mapping."""
     for ind in industries:
         name = ind.get("name", "")
@@ -307,7 +306,7 @@ def _add_sector_info(industries: List[Dict]) -> List[Dict]:
     return industries
 
 
-def _convert_perf_to_pct(industries: List[Dict]) -> List[Dict]:
+def _convert_perf_to_pct(industries: list[dict]) -> list[dict]:
     """Convert FINVIZ decimal performance values to percentage.
 
     finvizfinance returns 0.05 for 5%. Our calculators expect 5.0.
@@ -322,10 +321,10 @@ def _convert_perf_to_pct(industries: List[Dict]) -> List[Dict]:
 
 
 def _get_representative_stocks(
-    theme: Dict,
+    theme: dict,
     selector,  # Optional[RepresentativeStockSelector]
     max_stocks: int,
-) -> Tuple[List[str], List[Dict]]:
+) -> tuple[list[str], list[dict]]:
     """Get representative stocks and metadata for a theme.
 
     When selector is provided (--dynamic-stocks), uses FINVIZ/FMP fallback chain.
@@ -358,7 +357,7 @@ def _get_representative_stocks(
     return static, details
 
 
-def _calculate_breadth_ratio(theme: Dict) -> Optional[float]:
+def _calculate_breadth_ratio(theme: dict) -> Optional[float]:
     """Estimate breadth ratio from theme's matching industries.
 
     For bullish: ratio of industries with positive weighted_return.
@@ -377,9 +376,7 @@ def _calculate_breadth_ratio(theme: Dict) -> Optional[float]:
     return count / len(industries)
 
 
-def _get_theme_uptrend_data(
-    theme: Dict, sector_uptrend: Dict
-) -> List[Dict]:
+def _get_theme_uptrend_data(theme: dict, sector_uptrend: dict) -> list[dict]:
     """Build sector_data for uptrend_signal_score from theme's sector weights.
 
     Maps theme sectors to uptrend data with weights.
@@ -392,18 +389,20 @@ def _get_theme_uptrend_data(
     for sector_name, weight in sector_weights.items():
         uptrend_entry = sector_uptrend.get(sector_name)
         if uptrend_entry and uptrend_entry.get("ratio") is not None:
-            sector_data.append({
-                "sector": sector_name,
-                "ratio": uptrend_entry["ratio"],
-                "ma_10": uptrend_entry.get("ma_10") or 0,
-                "slope": uptrend_entry.get("slope") or 0,
-                "weight": weight,
-            })
+            sector_data.append(
+                {
+                    "sector": sector_name,
+                    "ratio": uptrend_entry["ratio"],
+                    "ma_10": uptrend_entry.get("ma_10") or 0,
+                    "slope": uptrend_entry.get("slope") or 0,
+                    "weight": weight,
+                }
+            )
 
     return sector_data
 
 
-def _get_theme_weighted_return(theme: Dict) -> float:
+def _get_theme_weighted_return(theme: dict) -> float:
     """Calculate aggregate weighted return for a theme from its industries."""
     industries = theme.get("matching_industries", [])
     if not industries:
@@ -419,11 +418,11 @@ def _get_theme_weighted_return(theme: Dict) -> float:
 def main():
     # Lazy imports: these modules depend on pandas/numpy/yfinance/finvizfinance
     # and are only needed at runtime, not when importing helpers for testing.
-    from finviz_performance_client import get_industry_performance, cap_outlier_performances
-    from etf_scanner import ETFScanner
-    from uptrend_client import fetch_sector_uptrend_data, is_data_stale
+    from calculators.theme_classifier import deduplicate_themes, enrich_vertical_themes
     from config_loader import load_themes_config
-    from calculators.theme_classifier import enrich_vertical_themes, deduplicate_themes
+    from etf_scanner import ETFScanner
+    from finviz_performance_client import cap_outlier_performances, get_industry_performance
+    from uptrend_client import fetch_sector_uptrend_data, is_data_stale
 
     args = parse_args()
 
@@ -443,8 +442,7 @@ def main():
     print("Theme Detector starting...", file=sys.stderr)
     print(f"  Data mode: {data_mode}", file=sys.stderr)
     print(f"  FINVIZ mode: {finviz_mode}", file=sys.stderr)
-    print(f"  FMP API: {'available' if fmp_available else 'not available'}",
-          file=sys.stderr)
+    print(f"  FMP API: {'available' if fmp_available else 'not available'}", file=sys.stderr)
     print(f"  Max themes: {args.max_themes}", file=sys.stderr)
     print(f"  Max stocks/theme: {args.max_stocks_per_theme}", file=sys.stderr)
 
@@ -481,8 +479,10 @@ def main():
     print("Ranking industries by momentum...", file=sys.stderr)
     ranked = rank_industries(industries)
     industry_rankings = get_top_bottom_industries(ranked, n=15)
-    print(f"  Top: {ranked[0]['name']} ({ranked[0]['momentum_score']})" if ranked else "",
-          file=sys.stderr)
+    print(
+        f"  Top: {ranked[0]['name']} ({ranked[0]['momentum_score']})" if ranked else "",
+        file=sys.stderr,
+    )
 
     # -----------------------------------------------------------------------
     # Step 3: Classify themes
@@ -492,8 +492,7 @@ def main():
     print(f"  Detected {len(themes)} themes (seed + vertical)", file=sys.stderr)
 
     if not themes:
-        print("WARNING: No themes detected. Generating empty report.",
-              file=sys.stderr)
+        print("WARNING: No themes detected. Generating empty report.", file=sys.stderr)
 
     # Step 3.3: Enrich vertical themes with ETFs + deduplicate
     enrich_vertical_themes(themes)
@@ -504,6 +503,7 @@ def main():
     if args.discover_themes:
         from calculators.theme_classifier import get_matched_industry_names
         from calculators.theme_discoverer import discover_themes
+
         matched_names = get_matched_industry_names(themes)
         discovered = discover_themes(ranked, matched_names, themes, top_n=30)
         themes.extend(discovered)
@@ -514,15 +514,13 @@ def main():
     def _theme_priority(t):
         inds = t.get("matching_industries", [])
         n_industries = len(inds)
-        avg_strength = (
-            sum(abs(ind.get("weighted_return", 0)) for ind in inds) / max(len(inds), 1)
-        )
+        avg_strength = sum(abs(ind.get("weighted_return", 0)) for ind in inds) / max(len(inds), 1)
         size_norm = min(n_industries / 10.0, 1.0)
         strength_norm = min(avg_strength / 30.0, 1.0)
         return size_norm * 0.5 + strength_norm * 0.5
 
     themes.sort(key=_theme_priority, reverse=True)
-    themes = themes[:args.max_themes]
+    themes = themes[: args.max_themes]
 
     # -----------------------------------------------------------------------
     # Step 4: Collect all stock symbols for batch download
@@ -533,6 +531,7 @@ def main():
     selector = None
     if args.dynamic_stocks:
         from representative_stock_selector import RepresentativeStockSelector
+
         selector = RepresentativeStockSelector(
             finviz_elite_key=args.finviz_api_key,
             fmp_api_key=args.fmp_api_key,
@@ -545,8 +544,8 @@ def main():
     # Use index-based keys to avoid collisions when multiple themes share
     # the same name (e.g. two "{Sector} Sector Concentration" themes for
     # top and bottom, or duplicate auto-names from the discoverer).
-    theme_stocks: Dict[int, List[str]] = {}
-    theme_stock_details: Dict[int, List[Dict]] = {}
+    theme_stocks: dict[int, list[str]] = {}
+    theme_stock_details: dict[int, list[dict]] = {}
     all_symbols = set()
 
     for idx, theme in enumerate(themes):
@@ -575,7 +574,7 @@ def main():
     # -----------------------------------------------------------------------
     # Step 5: Batch fetch stock metrics (yfinance)
     # -----------------------------------------------------------------------
-    stock_metrics_map: Dict[str, Dict] = {}
+    stock_metrics_map: dict[str, dict] = {}
     scanner = ETFScanner(fmp_api_key=args.fmp_api_key)
 
     if all_symbols_list:
@@ -591,7 +590,7 @@ def main():
     # Step 6: Fetch ETF volume ratios for each theme's proxy ETFs
     # -----------------------------------------------------------------------
     print("Fetching ETF volume data...", file=sys.stderr)
-    etf_volume_map: Dict[str, Dict] = {}
+    etf_volume_map: dict[str, dict] = {}
     all_etfs = set()
     for theme in themes:
         for etf in theme.get("proxy_etfs", []):
@@ -606,16 +605,20 @@ def main():
     metadata["data_sources"]["scanner_backend"] = scanner_stats
     stock_s = scanner_stats.get("stock", {})
     etf_s = scanner_stats.get("etf", {})
-    print(f"  Scanner (stock): FMP {stock_s.get('fmp_calls', 0)} calls "
-          f"({stock_s.get('fmp_failures', 0)} failures), "
-          f"yfinance: {stock_s.get('yf_calls', 0)} calls "
-          f"({stock_s.get('yf_fallbacks', 0)} fallbacks)",
-          file=sys.stderr)
-    print(f"  Scanner (ETF):   FMP {etf_s.get('fmp_calls', 0)} calls "
-          f"({etf_s.get('fmp_failures', 0)} failures), "
-          f"yfinance: {etf_s.get('yf_calls', 0)} calls "
-          f"({etf_s.get('yf_fallbacks', 0)} fallbacks)",
-          file=sys.stderr)
+    print(
+        f"  Scanner (stock): FMP {stock_s.get('fmp_calls', 0)} calls "
+        f"({stock_s.get('fmp_failures', 0)} failures), "
+        f"yfinance: {stock_s.get('yf_calls', 0)} calls "
+        f"({stock_s.get('yf_fallbacks', 0)} fallbacks)",
+        file=sys.stderr,
+    )
+    print(
+        f"  Scanner (ETF):   FMP {etf_s.get('fmp_calls', 0)} calls "
+        f"({etf_s.get('fmp_failures', 0)} failures), "
+        f"yfinance: {etf_s.get('yf_calls', 0)} calls "
+        f"({etf_s.get('yf_fallbacks', 0)} fallbacks)",
+        file=sys.stderr,
+    )
 
     # -----------------------------------------------------------------------
     # Step 7: Fetch uptrend-dashboard data
@@ -630,8 +633,7 @@ def main():
         latest_date = any_sector.get("latest_date", "")
         stale_data = is_data_stale(latest_date, threshold_bdays=2)
         if stale_data:
-            print(f"  WARNING: Uptrend data is stale (latest: {latest_date})",
-                  file=sys.stderr)
+            print(f"  WARNING: Uptrend data is stale (latest: {latest_date})", file=sys.stderr)
         metadata["data_sources"]["uptrend_sectors"] = len(sector_uptrend)
         metadata["data_sources"]["uptrend_stale"] = stale_data
     else:
@@ -692,9 +694,7 @@ def main():
 
         # --- Lifecycle Maturity ---
         # Get stock-level metrics for this theme
-        theme_stock_metrics = [
-            stock_metrics_map[s] for s in stocks if s in stock_metrics_map
-        ]
+        theme_stock_metrics = [stock_metrics_map[s] for s in stocks if s in stock_metrics_map]
 
         # Remap keys: rsi_14 -> rsi (lifecycle_calculator expects "rsi")
         for sm in theme_stock_metrics:
@@ -756,9 +756,7 @@ def main():
         )
 
         # Lifecycle data quality flag
-        lifecycle_quality = (
-            "sufficient" if theme_stock_metrics else "insufficient"
-        )
+        lifecycle_quality = "sufficient" if theme_stock_metrics else "insufficient"
 
         # Build full theme result
         scored_theme = {
@@ -775,8 +773,7 @@ def main():
             "representative_stocks": stocks,
             "stock_details": theme_stock_details.get(idx, []),
             "proxy_etfs": theme.get("proxy_etfs", []),
-            "industries": [ind.get("name", "") for ind in
-                          theme.get("matching_industries", [])],
+            "industries": [ind.get("name", "") for ind in theme.get("matching_industries", [])],
             "sector_weights": theme.get("sector_weights", {}),
             "stock_data": "available" if theme_stock_metrics else "unavailable",
             "data_mode": data_mode,
@@ -794,18 +791,16 @@ def main():
     # -----------------------------------------------------------------------
     print("Generating reports...", file=sys.stderr)
 
-    json_report = generate_json_report(
-        scored_themes, industry_rankings, sector_uptrend, metadata
-    )
+    json_report = generate_json_report(scored_themes, industry_rankings, sector_uptrend, metadata)
     md_report = generate_markdown_report(json_report, top_n_detail=args.top)
 
     # Resolve output directory relative to repo root if relative
     output_dir = args.output_dir
     if not os.path.isabs(output_dir):
         # Look for reports/ relative to repo root
-        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(
-            os.path.dirname(os.path.abspath(__file__))
-        )))
+        repo_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
         output_dir = os.path.join(repo_root, output_dir)
 
     paths = save_reports(json_report, md_report, output_dir)
@@ -820,7 +815,7 @@ def main():
     print(json.dumps(json_report, indent=2, default=str))
 
 
-def _average_industry_perfs(industries: List[Dict]) -> Dict:
+def _average_industry_perfs(industries: list[dict]) -> dict:
     """Average performance across theme's matching industries."""
     if not industries:
         return {}

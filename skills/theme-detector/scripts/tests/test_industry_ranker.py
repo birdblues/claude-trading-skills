@@ -6,8 +6,6 @@ Covers momentum_strength_score sigmoid, weighted return calculation,
 ranking, direction classification, and top/bottom extraction.
 """
 
-import math
-
 from calculators.industry_ranker import (
     TIMEFRAME_WEIGHTS,
     get_top_bottom_industries,
@@ -211,8 +209,7 @@ class TestGetTopBottomIndustries:
     def test_top_and_bottom_n(self):
         """Returns correct top N and bottom N."""
         industries = [
-            _make_industry(f"Ind{i}", perf_3m=20 - i * 2, perf_6m=15 - i)
-            for i in range(10)
+            _make_industry(f"Ind{i}", perf_3m=20 - i * 2, perf_6m=15 - i) for i in range(10)
         ]
         ranked = rank_industries(industries)
         result = get_top_bottom_industries(ranked, n=3)

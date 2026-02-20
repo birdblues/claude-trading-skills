@@ -9,8 +9,8 @@ sector weight calculation, and edge cases.
 from calculators.industry_ranker import rank_industries
 from calculators.theme_classifier import (
     classify_themes,
-    get_theme_sector_weights,
     get_matched_industry_names,
+    get_theme_sector_weights,
 )
 
 # ---------------------------------------------------------------------------
@@ -79,7 +79,9 @@ class TestCrossSectorThemes:
         ranked = [
             _make_ranked_industry("Semiconductor", 15.0, 82.0, "bullish", 1, "Technology"),
             _make_ranked_industry("Software - Application", 12.0, 75.0, "bullish", 2, "Technology"),
-            _make_ranked_industry("Banks - Regional", 8.0, 65.0, "bullish", 3, "Financial Services"),
+            _make_ranked_industry(
+                "Banks - Regional", 8.0, 65.0, "bullish", 3, "Financial Services"
+            ),
         ]
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
         theme_names = [t["theme_name"] for t in themes]
@@ -89,7 +91,9 @@ class TestCrossSectorThemes:
         """Only one matching industry -> theme NOT detected."""
         ranked = [
             _make_ranked_industry("Semiconductor", 15.0, 82.0, "bullish", 1, "Technology"),
-            _make_ranked_industry("Banks - Regional", 8.0, 65.0, "bullish", 2, "Financial Services"),
+            _make_ranked_industry(
+                "Banks - Regional", 8.0, 65.0, "bullish", 2, "Financial Services"
+            ),
             _make_ranked_industry("Oil & Gas E&P", 5.0, 55.0, "bullish", 3, "Energy"),
         ]
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
@@ -121,7 +125,9 @@ class TestCrossSectorThemes:
         """Theme direction is bearish when matching industries are bearish."""
         ranked = [
             _make_ranked_industry("Semiconductor", -15.0, 82.0, "bearish", 1, "Technology"),
-            _make_ranked_industry("Software - Application", -12.0, 75.0, "bearish", 2, "Technology"),
+            _make_ranked_industry(
+                "Software - Application", -12.0, 75.0, "bearish", 2, "Technology"
+            ),
         ]
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
         ai_theme = [t for t in themes if t["theme_name"] == "AI & Automation"][0]
@@ -156,7 +162,9 @@ class TestCrossSectorThemes:
             _make_ranked_industry("Semiconductor", 15.0, 82.0, "bullish", 1, "Technology"),
             _make_ranked_industry("Software - Application", 12.0, 75.0, "bullish", 2, "Technology"),
             _make_ranked_industry("Solar", 18.0, 85.0, "bullish", 3, "Energy"),
-            _make_ranked_industry("Auto Manufacturers", 10.0, 70.0, "bullish", 4, "Consumer Cyclical"),
+            _make_ranked_industry(
+                "Auto Manufacturers", 10.0, 70.0, "bullish", 4, "Consumer Cyclical"
+            ),
         ]
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
         theme_names = [t["theme_name"] for t in themes]
@@ -178,7 +186,9 @@ class TestVerticalThemes:
             _make_ranked_industry("Semiconductor", 20.0, 90.0, "bullish", 1, "Technology"),
             _make_ranked_industry("Software - Application", 18.0, 85.0, "bullish", 2, "Technology"),
             _make_ranked_industry("IT Services", 15.0, 82.0, "bullish", 3, "Technology"),
-            _make_ranked_industry("Banks - Regional", 12.0, 75.0, "bullish", 4, "Financial Services"),
+            _make_ranked_industry(
+                "Banks - Regional", 12.0, 75.0, "bullish", 4, "Financial Services"
+            ),
             _make_ranked_industry("Oil & Gas E&P", 10.0, 70.0, "bullish", 5, "Energy"),
         ]
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
@@ -190,7 +200,9 @@ class TestVerticalThemes:
         ranked = [
             _make_ranked_industry("Semiconductor", 20.0, 90.0, "bullish", 1, "Technology"),
             _make_ranked_industry("Software - Application", 18.0, 85.0, "bullish", 2, "Technology"),
-            _make_ranked_industry("Banks - Regional", 12.0, 75.0, "bullish", 3, "Financial Services"),
+            _make_ranked_industry(
+                "Banks - Regional", 12.0, 75.0, "bullish", 3, "Financial Services"
+            ),
             _make_ranked_industry("Oil & Gas E&P", 10.0, 70.0, "bullish", 4, "Energy"),
             _make_ranked_industry("Gold", 8.0, 65.0, "bullish", 5, "Basic Materials"),
         ]
@@ -201,11 +213,15 @@ class TestVerticalThemes:
     def test_vertical_bearish_bottom_sector(self):
         """3+ same-sector industries at bottom -> bearish vertical theme."""
         ranked = [
-            _make_ranked_industry("Banks - Regional", 12.0, 75.0, "bullish", 1, "Financial Services"),
+            _make_ranked_industry(
+                "Banks - Regional", 12.0, 75.0, "bullish", 1, "Financial Services"
+            ),
             _make_ranked_industry("Oil & Gas E&P", 10.0, 70.0, "bullish", 2, "Energy"),
             # Bottom 3 are all Technology bearish
             _make_ranked_industry("IT Services", -10.0, 70.0, "bearish", 3, "Technology"),
-            _make_ranked_industry("Software - Application", -15.0, 82.0, "bearish", 4, "Technology"),
+            _make_ranked_industry(
+                "Software - Application", -15.0, 82.0, "bearish", 4, "Technology"
+            ),
             _make_ranked_industry("Semiconductor", -20.0, 90.0, "bearish", 5, "Technology"),
         ]
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
@@ -342,9 +358,30 @@ class TestClassifyThemesEdgeCases:
     def test_integration_with_rank_industries(self):
         """Test full pipeline: raw industries -> ranked -> classified."""
         raw_industries = [
-            {"name": "Semiconductor", "perf_1w": 5, "perf_1m": 10, "perf_3m": 20, "perf_6m": 25, "sector": "Technology"},
-            {"name": "Software - Application", "perf_1w": 4, "perf_1m": 8, "perf_3m": 15, "perf_6m": 20, "sector": "Technology"},
-            {"name": "Banks - Regional", "perf_1w": 2, "perf_1m": 5, "perf_3m": 8, "perf_6m": 10, "sector": "Financial Services"},
+            {
+                "name": "Semiconductor",
+                "perf_1w": 5,
+                "perf_1m": 10,
+                "perf_3m": 20,
+                "perf_6m": 25,
+                "sector": "Technology",
+            },
+            {
+                "name": "Software - Application",
+                "perf_1w": 4,
+                "perf_1m": 8,
+                "perf_3m": 15,
+                "perf_6m": 20,
+                "sector": "Technology",
+            },
+            {
+                "name": "Banks - Regional",
+                "perf_1w": 2,
+                "perf_1m": 5,
+                "perf_3m": 8,
+                "perf_6m": 10,
+                "sector": "Financial Services",
+            },
         ]
         ranked = rank_industries(raw_industries)
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG)
@@ -368,42 +405,58 @@ class TestTopNFiltering:
 
         # Top 5 (highest momentum)
         ranked.append(
-            _make_ranked_industry("Semiconductor", 20.0, 95.0, "bullish", 1, "Technology"))
+            _make_ranked_industry("Semiconductor", 20.0, 95.0, "bullish", 1, "Technology")
+        )
         ranked.append(
-            _make_ranked_industry("Software - Application", 18.0, 90.0, "bullish", 2, "Technology"))
+            _make_ranked_industry("Software - Application", 18.0, 90.0, "bullish", 2, "Technology")
+        )
+        ranked.append(_make_ranked_industry("IT Services", 16.0, 88.0, "bullish", 3, "Technology"))
         ranked.append(
-            _make_ranked_industry("IT Services", 16.0, 88.0, "bullish", 3, "Technology"))
-        ranked.append(
-            _make_ranked_industry("Banks - Diversified", 15.0, 85.0, "bullish", 4, "Financial"))
-        ranked.append(
-            _make_ranked_industry("Gold", 14.0, 82.0, "bullish", 5, "Basic Materials"))
+            _make_ranked_industry("Banks - Diversified", 15.0, 85.0, "bullish", 4, "Financial")
+        )
+        ranked.append(_make_ranked_industry("Gold", 14.0, 82.0, "bullish", 5, "Basic Materials"))
 
         # Middle 90: include Building Materials and Steel (Infrastructure keywords)
         for i in range(6, 96):
             if i == 50:
                 ranked.append(
-                    _make_ranked_industry("Building Materials", 0.0, 50.0, "bullish", i, "Industrials"))
+                    _make_ranked_industry(
+                        "Building Materials", 0.0, 50.0, "bullish", i, "Industrials"
+                    )
+                )
             elif i == 51:
                 ranked.append(
-                    _make_ranked_industry("Steel", -0.1, 49.0, "bearish", i, "Basic Materials"))
+                    _make_ranked_industry("Steel", -0.1, 49.0, "bearish", i, "Basic Materials")
+                )
             elif i == 52:
                 ranked.append(
-                    _make_ranked_industry("Engineering & Construction", 0.1, 50.5, "bullish", i, "Industrials"))
+                    _make_ranked_industry(
+                        "Engineering & Construction", 0.1, 50.5, "bullish", i, "Industrials"
+                    )
+                )
             else:
                 ranked.append(
-                    _make_ranked_industry(f"Industry_{i}", 10.0 - i * 0.2, 80.0 - i * 0.3, "bullish", i, "Other"))
+                    _make_ranked_industry(
+                        f"Industry_{i}", 10.0 - i * 0.2, 80.0 - i * 0.3, "bullish", i, "Other"
+                    )
+                )
 
         # Bottom 5 (lowest momentum)
+        ranked.append(_make_ranked_industry("Solar", -18.0, 10.0, "bearish", 96, "Energy"))
         ranked.append(
-            _make_ranked_industry("Solar", -18.0, 10.0, "bearish", 96, "Energy"))
+            _make_ranked_industry(
+                "Auto Manufacturers", -19.0, 8.0, "bearish", 97, "Consumer Cyclical"
+            )
+        )
         ranked.append(
-            _make_ranked_industry("Auto Manufacturers", -19.0, 8.0, "bearish", 97, "Consumer Cyclical"))
+            _make_ranked_industry("Utilities - Renewable", -20.0, 5.0, "bearish", 98, "Utilities")
+        )
         ranked.append(
-            _make_ranked_industry("Utilities - Renewable", -20.0, 5.0, "bearish", 98, "Utilities"))
+            _make_ranked_industry("Retail_A", -21.0, 4.0, "bearish", 99, "Consumer Cyclical")
+        )
         ranked.append(
-            _make_ranked_industry("Retail_A", -21.0, 4.0, "bearish", 99, "Consumer Cyclical"))
-        ranked.append(
-            _make_ranked_industry("Retail_B", -22.0, 3.0, "bearish", 100, "Consumer Cyclical"))
+            _make_ranked_industry("Retail_B", -22.0, 3.0, "bearish", 100, "Consumer Cyclical")
+        )
 
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG, top_n=5)
         theme_names = [t["theme_name"] for t in themes]
@@ -432,25 +485,24 @@ class TestTopNFiltering:
         """Vertical themes only detected from top/bottom N, not middle."""
         ranked = []
         # Top 3: mixed sectors
+        ranked.append(_make_ranked_industry("Gold", 20.0, 95.0, "bullish", 1, "Basic Materials"))
         ranked.append(
-            _make_ranked_industry("Gold", 20.0, 95.0, "bullish", 1, "Basic Materials"))
-        ranked.append(
-            _make_ranked_industry("Banks - Regional", 18.0, 90.0, "bullish", 2, "Financial"))
-        ranked.append(
-            _make_ranked_industry("Solar", 16.0, 88.0, "bullish", 3, "Energy"))
+            _make_ranked_industry("Banks - Regional", 18.0, 90.0, "bullish", 2, "Financial")
+        )
+        ranked.append(_make_ranked_industry("Solar", 16.0, 88.0, "bullish", 3, "Energy"))
 
         # Middle: 3 Technology industries (would trigger vertical if not filtered)
         for i, name in enumerate(["Semiconductor", "Software - Application", "IT Services"], 4):
-            ranked.append(
-                _make_ranked_industry(name, 5.0, 50.0, "bullish", i, "Technology"))
+            ranked.append(_make_ranked_industry(name, 5.0, 50.0, "bullish", i, "Technology"))
 
         # Bottom 3: mixed sectors
+        ranked.append(_make_ranked_industry("Oil & Gas E&P", -15.0, 10.0, "bearish", 7, "Energy"))
         ranked.append(
-            _make_ranked_industry("Oil & Gas E&P", -15.0, 10.0, "bearish", 7, "Energy"))
+            _make_ranked_industry("Retail_A", -18.0, 8.0, "bearish", 8, "Consumer Cyclical")
+        )
         ranked.append(
-            _make_ranked_industry("Retail_A", -18.0, 8.0, "bearish", 8, "Consumer Cyclical"))
-        ranked.append(
-            _make_ranked_industry("Retail_B", -20.0, 5.0, "bearish", 9, "Consumer Cyclical"))
+            _make_ranked_industry("Retail_B", -20.0, 5.0, "bearish", 9, "Consumer Cyclical")
+        )
 
         themes = classify_themes(ranked, SAMPLE_THEMES_CONFIG, top_n=3)
         vertical_names = [t["theme_name"] for t in themes if "Sector" in t["theme_name"]]

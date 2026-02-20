@@ -56,7 +56,10 @@ class TestDirectionModifier:
     def test_score_clamped_0_100(self, make_row):
         """Score should remain in 0-100 after modifier."""
         rows = _make_direction_rows(
-            make_row, 6, ma8_5d_ago=0.10, ma8_latest=0.15,
+            make_row,
+            6,
+            ma8_5d_ago=0.10,
+            ma8_latest=0.15,
             Breadth_200MA_Trend=-1,
         )
         result = calculate_breadth_level_trend(rows)
@@ -65,15 +68,15 @@ class TestDirectionModifier:
     def test_modifier_affects_final_score(self, make_row):
         """Direction modifier should change the final score."""
         # Flat -> no modifier
-        flat_rows = [
-            make_row(Breadth_Index_8MA=0.65, Breadth_200MA_Trend=1)
-            for _ in range(6)
-        ]
+        flat_rows = [make_row(Breadth_Index_8MA=0.65, Breadth_200MA_Trend=1) for _ in range(6)]
         result_flat = calculate_breadth_level_trend(flat_rows)
 
         # Falling from high -> -10
         falling_rows = _make_direction_rows(
-            make_row, 6, ma8_5d_ago=0.70, ma8_latest=0.65,
+            make_row,
+            6,
+            ma8_5d_ago=0.70,
+            ma8_latest=0.65,
             Breadth_200MA_Trend=1,
         )
         result_falling = calculate_breadth_level_trend(falling_rows)

@@ -1,18 +1,16 @@
 """Tests for data_fetcher helper functions and UptrendDataFetcher (mocked HTTP)."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import requests
 from data_fetcher import (
+    UptrendDataFetcher,
+    _parse_sector_summary_row,
+    _parse_timeseries_row,
     _safe_float,
     _safe_int,
-    _parse_timeseries_row,
-    _parse_sector_summary_row,
     build_summary_from_timeseries,
-    UptrendDataFetcher,
 )
-import requests
-
 
 # --- _safe_float ---
 
@@ -207,7 +205,8 @@ class TestUptrendDataFetcherMocked:
     def test_timeout_returns_empty_list(self):
         fetcher = UptrendDataFetcher()
         with patch.object(
-            fetcher.session, "get",
+            fetcher.session,
+            "get",
             side_effect=requests.exceptions.Timeout("timeout"),
         ):
             rows = fetcher.fetch_timeseries()

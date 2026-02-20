@@ -9,9 +9,6 @@ Verifies end-to-end behavior of the screening pipeline including:
 - Report generation
 """
 
-import os
-import pytest
-from unittest.mock import patch, MagicMock
 from track_institutional_flow import InstitutionalFlowTracker
 
 
@@ -25,8 +22,15 @@ def _make_holder(holder, shares, change, date="2025-12-31"):
     }
 
 
-def _make_screener_stock(symbol, company_name="Test Corp", market_cap=5_000_000_000,
-                         is_etf=False, is_fund=False, is_active=True, sector="Technology"):
+def _make_screener_stock(
+    symbol,
+    company_name="Test Corp",
+    market_cap=5_000_000_000,
+    is_etf=False,
+    is_fund=False,
+    is_active=True,
+    sector="Technology",
+):
     """Create a screener result matching FMP stock-screener schema."""
     return {
         "symbol": symbol,
@@ -72,10 +76,14 @@ class TestGradeCFiltering:
     def test_grade_c_stock_excluded(self, monkeypatch):
         tracker = InstitutionalFlowTracker("fake_key")
 
-        monkeypatch.setattr(tracker, "get_stock_screener", lambda **kw: [
-            _make_screener_stock("GOOD"),
-            _make_screener_stock("BAD"),
-        ])
+        monkeypatch.setattr(
+            tracker,
+            "get_stock_screener",
+            lambda **kw: [
+                _make_screener_stock("GOOD"),
+                _make_screener_stock("BAD"),
+            ],
+        )
 
         def mock_holders(symbol):
             if symbol == "GOOD":
@@ -103,11 +111,15 @@ class TestETFFiltering:
     def test_etf_excluded_from_screening(self, monkeypatch):
         tracker = InstitutionalFlowTracker("fake_key")
 
-        monkeypatch.setattr(tracker, "get_stock_screener", lambda **kw: [
-            _make_screener_stock("AAPL", is_etf=False),
-            _make_screener_stock("SPY", company_name="SPDR S&P 500", is_etf=True),
-            _make_screener_stock("VFINX", company_name="Vanguard Fund", is_fund=True),
-        ])
+        monkeypatch.setattr(
+            tracker,
+            "get_stock_screener",
+            lambda **kw: [
+                _make_screener_stock("AAPL", is_etf=False),
+                _make_screener_stock("SPY", company_name="SPDR S&P 500", is_etf=True),
+                _make_screener_stock("VFINX", company_name="Vanguard Fund", is_fund=True),
+            ],
+        )
 
         call_symbols = []
 
@@ -132,11 +144,16 @@ class TestScreenerMissingFields:
         tracker = InstitutionalFlowTracker("fake_key")
 
         # Screener result with NO isEtf/isFund/isActivelyTrading fields
-        monkeypatch.setattr(tracker, "get_stock_screener", lambda **kw: [
-            {"symbol": "NEWCO", "companyName": "New Corp", "marketCap": 5_000_000_000},
-        ])
-        monkeypatch.setattr(tracker, "get_institutional_holders",
-                            lambda sym: _make_grade_a_holders(sym))
+        monkeypatch.setattr(
+            tracker,
+            "get_stock_screener",
+            lambda **kw: [
+                {"symbol": "NEWCO", "companyName": "New Corp", "marketCap": 5_000_000_000},
+            ],
+        )
+        monkeypatch.setattr(
+            tracker, "get_institutional_holders", lambda sym: _make_grade_a_holders(sym)
+        )
 
         results = tracker.screen_stocks(
             min_change_percent=0.1,
@@ -155,13 +172,18 @@ class TestDeduplicationIntegration:
     def test_brk_deduplicated_in_pipeline(self, monkeypatch):
         tracker = InstitutionalFlowTracker("fake_key")
 
-        monkeypatch.setattr(tracker, "get_stock_screener", lambda **kw: [
-            _make_screener_stock("BRK-A", market_cap=800_000_000_000),
-            _make_screener_stock("BRK-B", market_cap=800_000_000_000),
-            _make_screener_stock("AAPL", market_cap=3_000_000_000_000),
-        ])
-        monkeypatch.setattr(tracker, "get_institutional_holders",
-                            lambda sym: _make_grade_a_holders(sym))
+        monkeypatch.setattr(
+            tracker,
+            "get_stock_screener",
+            lambda **kw: [
+                _make_screener_stock("BRK-A", market_cap=800_000_000_000),
+                _make_screener_stock("BRK-B", market_cap=800_000_000_000),
+                _make_screener_stock("AAPL", market_cap=3_000_000_000_000),
+            ],
+        )
+        monkeypatch.setattr(
+            tracker, "get_institutional_holders", lambda sym: _make_grade_a_holders(sym)
+        )
 
         results = tracker.screen_stocks(
             min_change_percent=0.1,
@@ -181,11 +203,16 @@ class TestOutputFieldsClean:
     def test_no_value_change_in_output(self, monkeypatch):
         tracker = InstitutionalFlowTracker("fake_key")
 
-        monkeypatch.setattr(tracker, "get_stock_screener", lambda **kw: [
-            _make_screener_stock("AAPL"),
-        ])
-        monkeypatch.setattr(tracker, "get_institutional_holders",
-                            lambda sym: _make_grade_a_holders(sym))
+        monkeypatch.setattr(
+            tracker,
+            "get_stock_screener",
+            lambda **kw: [
+                _make_screener_stock("AAPL"),
+            ],
+        )
+        monkeypatch.setattr(
+            tracker, "get_institutional_holders", lambda sym: _make_grade_a_holders(sym)
+        )
 
         results = tracker.screen_stocks(
             min_change_percent=0.1,
@@ -202,11 +229,16 @@ class TestOutputFieldsClean:
     def test_required_fields_present(self, monkeypatch):
         tracker = InstitutionalFlowTracker("fake_key")
 
-        monkeypatch.setattr(tracker, "get_stock_screener", lambda **kw: [
-            _make_screener_stock("MSFT"),
-        ])
-        monkeypatch.setattr(tracker, "get_institutional_holders",
-                            lambda sym: _make_grade_a_holders(sym))
+        monkeypatch.setattr(
+            tracker,
+            "get_stock_screener",
+            lambda **kw: [
+                _make_screener_stock("MSFT"),
+            ],
+        )
+        monkeypatch.setattr(
+            tracker, "get_institutional_holders", lambda sym: _make_grade_a_holders(sym)
+        )
 
         results = tracker.screen_stocks(
             min_change_percent=0.1,
@@ -216,9 +248,17 @@ class TestOutputFieldsClean:
 
         assert len(results) >= 1
         required_fields = [
-            "symbol", "company_name", "market_cap", "current_quarter",
-            "percent_change", "current_institution_count", "buyers",
-            "sellers", "reliability_grade", "genuine_ratio", "top_holders",
+            "symbol",
+            "company_name",
+            "market_cap",
+            "current_quarter",
+            "percent_change",
+            "current_institution_count",
+            "buyers",
+            "sellers",
+            "reliability_grade",
+            "genuine_ratio",
+            "top_holders",
         ]
         for r in results:
             for field in required_fields:

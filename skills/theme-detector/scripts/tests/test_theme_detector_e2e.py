@@ -6,28 +6,24 @@ without network calls (all I/O is mocked).
 
 import json
 
-import pytest
-
-# Import the pieces of the pipeline
-from calculators.industry_ranker import rank_industries, get_top_bottom_industries
-from calculators.theme_classifier import classify_themes, get_matched_industry_names
-from calculators.theme_discoverer import discover_themes
 from calculators.heat_calculator import (
-    momentum_strength_score,
-    volume_intensity_score,
-    uptrend_signal_score,
     breadth_signal_score,
     calculate_theme_heat,
+    momentum_strength_score,
 )
-from calculators.lifecycle_calculator import (
-    estimate_duration_score,
-    classify_stage,
-    calculate_lifecycle_maturity,
-)
-from scorer import score_theme, get_heat_label, calculate_confidence, determine_data_mode
-from report_generator import generate_json_report, generate_markdown_report
-from config_loader import load_themes_config
 
+# Import the pieces of the pipeline
+from calculators.industry_ranker import get_top_bottom_industries, rank_industries
+from calculators.lifecycle_calculator import (
+    calculate_lifecycle_maturity,
+    classify_stage,
+    estimate_duration_score,
+)
+from calculators.theme_classifier import classify_themes, get_matched_industry_names
+from calculators.theme_discoverer import discover_themes
+from config_loader import load_themes_config
+from report_generator import generate_json_report, generate_markdown_report
+from scorer import calculate_confidence, determine_data_mode, score_theme
 
 # Minimal themes config for E2E
 E2E_THEMES_CONFIG = {
@@ -95,9 +91,9 @@ class TestThemeDetectorE2E:
 
         # Step 4: Score (simplified - just for AI theme)
         theme = ai_theme[0]
-        theme_wr = sum(
-            ind.get("weighted_return", 0) for ind in theme["matching_industries"]
-        ) / len(theme["matching_industries"])
+        theme_wr = sum(ind.get("weighted_return", 0) for ind in theme["matching_industries"]) / len(
+            theme["matching_industries"]
+        )
 
         momentum = momentum_strength_score(theme_wr)
         volume = None  # no ETF data in E2E
@@ -128,8 +124,7 @@ class TestThemeDetectorE2E:
             "maturity_breakdown": {"duration_estimate": round(duration, 2)},
             "representative_stocks": ["NVDA", "AVGO", "AMD"],
             "proxy_etfs": ["SMH", "SOXX"],
-            "industries": ["Semiconductors", "Software - Application",
-                           "Software - Infrastructure"],
+            "industries": ["Semiconductors", "Software - Application", "Software - Infrastructure"],
             "sector_weights": {"Technology": 1.0},
         }
 
@@ -139,9 +134,7 @@ class TestThemeDetectorE2E:
             "data_mode": data_mode,
             "data_sources": {},
         }
-        json_report = generate_json_report(
-            [scored_theme], industry_rankings, {}, metadata
-        )
+        json_report = generate_json_report([scored_theme], industry_rankings, {}, metadata)
 
         # Verify JSON structure
         assert json_report["report_type"] == "theme_detector"
@@ -170,6 +163,7 @@ class TestThemeDetectorE2E:
     def test_dynamic_stocks_with_mock_selector(self):
         """Dynamic stock selection produces stock_details in scored_theme."""
         from unittest.mock import MagicMock
+
         from theme_detector import _get_representative_stocks
 
         # Mock selector
@@ -252,7 +246,9 @@ class TestThemeDetectorE2E:
             # Unmatched industries that should cluster
             _make_raw_industry("Gold", "Basic Materials", 8.0, 15.0, 30.0),
             _make_raw_industry("Silver", "Basic Materials", 7.5, 14.0, 28.0),
-            _make_raw_industry("Other Precious Metals & Mining", "Basic Materials", 7.0, 13.0, 27.0),
+            _make_raw_industry(
+                "Other Precious Metals & Mining", "Basic Materials", 7.0, 13.0, 27.0
+            ),
             # Filler for bottom
             _make_raw_industry("Department Stores", "Consumer Cyclical", -4.0, -10.0, -15.0),
             _make_raw_industry("Specialty Retail", "Consumer Cyclical", -3.5, -9.0, -14.0),
@@ -267,7 +263,8 @@ class TestThemeDetectorE2E:
                 {
                     "theme_name": "AI & Semiconductors",
                     "matching_keywords": [
-                        "Semiconductors", "Software - Application",
+                        "Semiconductors",
+                        "Software - Application",
                     ],
                     "proxy_etfs": ["SMH"],
                     "static_stocks": ["NVDA"],
@@ -335,9 +332,9 @@ class TestThemeDetectorE2E:
         ranked = rank_industries(raw)
         themes = classify_themes(ranked, E2E_THEMES_CONFIG, top_n=30)
         theme = themes[0]
-        theme_wr = sum(
-            ind.get("weighted_return", 0) for ind in theme["matching_industries"]
-        ) / len(theme["matching_industries"])
+        theme_wr = sum(ind.get("weighted_return", 0) for ind in theme["matching_industries"]) / len(
+            theme["matching_industries"]
+        )
 
         momentum = momentum_strength_score(theme_wr)
         breadth = breadth_signal_score(1.0)
@@ -352,14 +349,22 @@ class TestThemeDetectorE2E:
         )
 
         stock_details = [
-            {"symbol": "NVDA", "source": "finviz_public",
-             "market_cap": 2_800_000_000_000,
-             "matched_industries": ["Semiconductors"],
-             "reasons": ["Public screener"], "composite_score": 0.95},
-            {"symbol": "AVGO", "source": "finviz_public",
-             "market_cap": 500_000_000_000,
-             "matched_industries": ["Semiconductors"],
-             "reasons": ["Public screener"], "composite_score": 0.80},
+            {
+                "symbol": "NVDA",
+                "source": "finviz_public",
+                "market_cap": 2_800_000_000_000,
+                "matched_industries": ["Semiconductors"],
+                "reasons": ["Public screener"],
+                "composite_score": 0.95,
+            },
+            {
+                "symbol": "AVGO",
+                "source": "finviz_public",
+                "market_cap": 500_000_000_000,
+                "matched_industries": ["Semiconductors"],
+                "reasons": ["Public screener"],
+                "composite_score": 0.80,
+            },
         ]
 
         scored_theme = {
@@ -375,8 +380,7 @@ class TestThemeDetectorE2E:
             "representative_stocks": ["NVDA", "AVGO"],
             "stock_details": stock_details,
             "proxy_etfs": ["SMH", "SOXX"],
-            "industries": ["Semiconductors", "Software - Application",
-                           "Software - Infrastructure"],
+            "industries": ["Semiconductors", "Software - Application", "Software - Infrastructure"],
             "sector_weights": {"Technology": 1.0},
         }
 
@@ -385,9 +389,7 @@ class TestThemeDetectorE2E:
             "data_mode": data_mode,
             "data_sources": {},
         }
-        json_report = generate_json_report(
-            [scored_theme], {"top": [], "bottom": []}, {}, metadata
-        )
+        json_report = generate_json_report([scored_theme], {"top": [], "bottom": []}, {}, metadata)
 
         # Verify stock_details in JSON
         theme_in_report = json_report["themes"]["bullish"][0]
@@ -406,6 +408,7 @@ class TestE2EFMPPath:
     def test_scanner_receives_fmp_key(self):
         """ETFScanner constructed with fmp_api_key stores it."""
         from etf_scanner import ETFScanner
+
         scanner = ETFScanner(fmp_api_key="test_key_123")
         assert scanner._fmp_api_key == "test_key_123"
         scanner_no_key = ETFScanner()
@@ -413,7 +416,8 @@ class TestE2EFMPPath:
 
     def test_metadata_contains_scanner_stats(self):
         """After batch_stock_metrics, backend_stats is populated."""
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
+
         from etf_scanner import ETFScanner
 
         scanner = ETFScanner(fmp_api_key="test_key", rate_limit_sec=0)
@@ -422,16 +426,16 @@ class TestE2EFMPPath:
             quote_resp = MagicMock()
             quote_resp.status_code = 200
             quote_resp.json.return_value = [
-                {"symbol": "NVDA", "pe": 60, "price": 800,
-                 "yearHigh": 950, "yearLow": 400},
+                {"symbol": "NVDA", "pe": 60, "price": 800, "yearHigh": 950, "yearLow": 400},
             ]
             hist_resp = MagicMock()
             hist_resp.status_code = 200
             hist_resp.json.return_value = {
                 "historicalStockList": [
-                    {"symbol": "NVDA", "historical": [
-                        {"close": float(800 - i)} for i in range(20)
-                    ]},
+                    {
+                        "symbol": "NVDA",
+                        "historical": [{"close": float(800 - i)} for i in range(20)],
+                    },
                 ]
             }
             mock_req.get.side_effect = [quote_resp, hist_resp]

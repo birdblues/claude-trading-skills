@@ -13,14 +13,12 @@ Data sources:
 import csv
 import io
 import sys
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Optional
 
 import requests
 
-DEFAULT_DETAIL_URL = (
-    "https://tradermonty.github.io/market-breadth-analysis/market_breadth_data.csv"
-)
+DEFAULT_DETAIL_URL = "https://tradermonty.github.io/market-breadth-analysis/market_breadth_data.csv"
 DEFAULT_SUMMARY_URL = (
     "https://tradermonty.github.io/market-breadth-analysis/market_breadth_summary.csv"
 )
@@ -41,7 +39,7 @@ DETAIL_COLUMNS = {
 TIMEOUT = 30
 
 
-def fetch_detail_csv(url: str = DEFAULT_DETAIL_URL) -> List[Dict]:
+def fetch_detail_csv(url: str = DEFAULT_DETAIL_URL) -> list[dict]:
     """
     Fetch and parse the detail CSV (market_breadth_data.csv).
 
@@ -79,7 +77,7 @@ def fetch_detail_csv(url: str = DEFAULT_DETAIL_URL) -> List[Dict]:
     return rows
 
 
-def fetch_summary_csv(url: str = DEFAULT_SUMMARY_URL) -> Dict[str, str]:
+def fetch_summary_csv(url: str = DEFAULT_SUMMARY_URL) -> dict[str, str]:
     """
     Fetch and parse the summary CSV (market_breadth_summary.csv).
 
@@ -106,8 +104,9 @@ def fetch_summary_csv(url: str = DEFAULT_SUMMARY_URL) -> Dict[str, str]:
     return summary
 
 
-def check_data_freshness(rows: List[Dict], max_stale_days: int = 5,
-                         detail_url: str = DEFAULT_DETAIL_URL) -> Dict:
+def check_data_freshness(
+    rows: list[dict], max_stale_days: int = 5, detail_url: str = DEFAULT_DETAIL_URL
+) -> dict:
     """
     Check whether the latest data is reasonably fresh.
     Uses both CSV date and HTTP Last-Modified header for accuracy.
@@ -171,6 +170,7 @@ def _check_last_modified(url: str) -> Optional[str]:
         lm = resp.headers.get("Last-Modified")
         if lm:
             from email.utils import parsedate_to_datetime
+
             dt = parsedate_to_datetime(lm)
             return dt.strftime("%Y-%m-%d %H:%M UTC")
     except Exception:
@@ -178,12 +178,12 @@ def _check_last_modified(url: str) -> Optional[str]:
     return None
 
 
-def get_latest_n_rows(rows: List[Dict], n: int) -> List[Dict]:
+def get_latest_n_rows(rows: list[dict], n: int) -> list[dict]:
     """Return the last n rows (most recent)."""
     return rows[-n:] if len(rows) >= n else rows[:]
 
 
-def _parse_detail_row(raw: Dict) -> Dict:
+def _parse_detail_row(raw: dict) -> dict:
     """Convert a raw CSV row dict to properly typed values."""
     row = {}
     row["Date"] = raw["Date"].strip()

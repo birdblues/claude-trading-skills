@@ -12,8 +12,7 @@ avoiding ceiling effects that compress most themes into 80+.
 """
 
 import math
-from typing import List, Dict, Optional
-
+from typing import Optional
 
 HEAT_WEIGHTS = {
     "momentum": 0.35,
@@ -44,8 +43,7 @@ def momentum_strength_score(weighted_return_pct: float) -> float:
     return 100.0 / (1.0 + math.exp(-2.0 * (log_x - log_mid)))
 
 
-def volume_intensity_score(vol_20d: Optional[float],
-                           vol_60d: Optional[float]) -> float:
+def volume_intensity_score(vol_20d: Optional[float], vol_60d: Optional[float]) -> float:
     """Score based on short-term vs long-term volume ratio using sqrt scaling.
 
     Formula: min(100, sqrt(max(0, ratio - 0.8)) / sqrt(1.2) * 100)
@@ -67,8 +65,7 @@ def volume_intensity_score(vol_20d: Optional[float],
     return min(100.0, math.sqrt(raw) / math.sqrt(1.2) * 100.0)
 
 
-def uptrend_signal_score(sector_data: List[Dict],
-                         is_bearish: bool) -> float:
+def uptrend_signal_score(sector_data: list[dict], is_bearish: bool) -> float:
     """Continuous score from sector uptrend data.
 
     Each sector entry: {"sector", "ratio", "ma_10", "slope", "weight"}
@@ -113,8 +110,7 @@ def uptrend_signal_score(sector_data: List[Dict],
     return result
 
 
-def breadth_signal_score(positive_ratio: Optional[float],
-                         industry_count: int = 0) -> float:
+def breadth_signal_score(positive_ratio: Optional[float], industry_count: int = 0) -> float:
     """Score based on breadth ratio (0-1) with power curve and industry count bonus.
 
     Formula: min(100, ratio^2.5 * 80 + count_bonus)
@@ -138,10 +134,12 @@ def breadth_signal_score(positive_ratio: Optional[float],
     return min(100.0, max(0.0, raw))
 
 
-def calculate_theme_heat(momentum: Optional[float],
-                         volume: Optional[float],
-                         uptrend: Optional[float],
-                         breadth: Optional[float]) -> float:
+def calculate_theme_heat(
+    momentum: Optional[float],
+    volume: Optional[float],
+    uptrend: Optional[float],
+    breadth: Optional[float],
+) -> float:
     """Weighted sum of sub-scores, clamped 0-100.
 
     Any None input defaults to 50.0.
@@ -151,9 +149,11 @@ def calculate_theme_heat(momentum: Optional[float],
     u = uptrend if uptrend is not None else 50.0
     b = breadth if breadth is not None else 50.0
 
-    raw = (m * HEAT_WEIGHTS["momentum"]
-           + v * HEAT_WEIGHTS["volume"]
-           + u * HEAT_WEIGHTS["uptrend"]
-           + b * HEAT_WEIGHTS["breadth"])
+    raw = (
+        m * HEAT_WEIGHTS["momentum"]
+        + v * HEAT_WEIGHTS["volume"]
+        + u * HEAT_WEIGHTS["uptrend"]
+        + b * HEAT_WEIGHTS["breadth"]
+    )
 
     return float(min(100.0, max(0.0, raw)))

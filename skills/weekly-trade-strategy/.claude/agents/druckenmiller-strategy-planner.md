@@ -18,7 +18,7 @@ Synthesize comprehensive market analysis (technical, sentiment, news, and macroe
 
 Before beginning strategy formulation, check if the following prerequisite analyses exist:
 - Technical analysis report from technical-market-analyst
-- US market fundamental analysis from us-market-analyst  
+- US market fundamental analysis from us-market-analyst
 - News and event analysis from market-news-analyzer
 
 If any reports are missing, use the Task tool to invoke the corresponding sub-agents:

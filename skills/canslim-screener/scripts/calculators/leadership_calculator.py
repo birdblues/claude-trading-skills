@@ -30,14 +30,14 @@ Scoring:
 - 0 points: Relative underperformance > -20% (avoid)
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 def calculate_leadership(
-    historical_prices: List[Dict],
-    sp500_historical: Optional[List[Dict]] = None,
-    sp500_performance: Optional[float] = None
-) -> Dict:
+    historical_prices: list[dict],
+    sp500_historical: Optional[list[dict]] = None,
+    sp500_performance: Optional[float] = None,
+) -> dict:
     """
     Calculate Leadership/Relative Strength score (L component)
 
@@ -73,7 +73,7 @@ def calculate_leadership(
             "sp500_52w_performance": None,
             "relative_performance": None,
             "rs_rank_estimate": None,
-            "interpretation": "Data unavailable"
+            "interpretation": "Data unavailable",
         }
 
     # Calculate stock's 52-week (or available period) performance
@@ -97,7 +97,7 @@ def calculate_leadership(
                 "sp500_52w_performance": None,
                 "relative_performance": None,
                 "rs_rank_estimate": None,
-                "interpretation": "Data quality issue"
+                "interpretation": "Data quality issue",
             }
 
         stock_performance = ((end_price - start_price) / start_price) * 100
@@ -111,7 +111,7 @@ def calculate_leadership(
             "sp500_52w_performance": None,
             "relative_performance": None,
             "rs_rank_estimate": None,
-            "interpretation": "Calculation error"
+            "interpretation": "Calculation error",
         }
 
     # Calculate S&P 500 performance for comparison
@@ -164,7 +164,7 @@ def calculate_leadership(
         "days_analyzed": days_analyzed,
         "interpretation": interpretation,
         "quality_warning": quality_warning,
-        "error": None
+        "error": None,
     }
 
 
@@ -224,7 +224,7 @@ def interpret_leadership(
     stock_performance: float,
     sp500_performance: Optional[float],
     relative_performance: float,
-    days_analyzed: int
+    days_analyzed: int,
 ) -> str:
     """
     Generate human-readable interpretation
@@ -288,9 +288,8 @@ def interpret_leadership(
 
 
 def calculate_sector_relative_strength(
-    stock_performance: float,
-    sector_stocks_performance: List[float]
-) -> Dict:
+    stock_performance: float, sector_stocks_performance: list[float]
+) -> dict:
     """
     Calculate relative strength within sector (optional enhancement)
 
@@ -309,7 +308,7 @@ def calculate_sector_relative_strength(
             "sector_rank": None,
             "sector_percentile": None,
             "is_sector_leader": False,
-            "error": "No sector data available"
+            "error": "No sector data available",
         }
 
     # Add stock to list and sort (descending)
@@ -325,7 +324,7 @@ def calculate_sector_relative_strength(
         "sector_rank": rank,
         "sector_total": total,
         "sector_percentile": round(percentile, 1),
-        "is_sector_leader": percentile >= 80
+        "is_sector_leader": percentile >= 80,
     }
 
 
@@ -338,12 +337,12 @@ if __name__ == "__main__":
     sample_prices = [
         {"date": "2024-01-01", "close": 100.0},
         {"date": "2024-06-01", "close": 120.0},
-        {"date": "2025-01-01", "close": 180.0}  # +80% YoY
+        {"date": "2025-01-01", "close": 180.0},  # +80% YoY
     ]
     sample_sp500 = [
         {"date": "2024-01-01", "close": 4500.0},
         {"date": "2024-06-01", "close": 4700.0},
-        {"date": "2025-01-01", "close": 5400.0}  # +20% YoY
+        {"date": "2025-01-01", "close": 5400.0},  # +20% YoY
     ]
 
     result = calculate_leadership(sample_prices, sample_sp500)
@@ -359,7 +358,7 @@ if __name__ == "__main__":
     # Test 2: Underperformer
     sample_prices_weak = [
         {"date": "2024-01-01", "close": 100.0},
-        {"date": "2025-01-01", "close": 90.0}  # -10% YoY
+        {"date": "2025-01-01", "close": 90.0},  # -10% YoY
     ]
 
     result2 = calculate_leadership(sample_prices_weak, sample_sp500)

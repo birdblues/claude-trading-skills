@@ -18,14 +18,13 @@ import argparse
 import os
 import sys
 from datetime import datetime
-from typing import Dict
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fmp_client import FMPClient
-from rally_tracker import get_market_state
 from post_ftd_monitor import assess_post_ftd_health
+from rally_tracker import get_market_state
 from report_generator import generate_json_report, generate_markdown_report
 
 
@@ -34,12 +33,12 @@ def parse_arguments():
         description="FTD Detector - Follow-Through Day Bottom Confirmation"
     )
     parser.add_argument(
-        "--api-key",
-        help="FMP API key (defaults to FMP_API_KEY environment variable)"
+        "--api-key", help="FMP API key (defaults to FMP_API_KEY environment variable)"
     )
     parser.add_argument(
-        "--output-dir", default=".",
-        help="Output directory for reports (default: current directory)"
+        "--output-dir",
+        default=".",
+        help="Output directory for reports (default: current directory)",
     )
     return parser.parse_args()
 
@@ -125,17 +124,17 @@ def main():
     print(f"  Combined:      {combined}")
 
     # Print swing low info if found
-    for label, idx_data in [("S&P 500", market_state["sp500"]),
-                            ("NASDAQ", market_state["nasdaq"])]:
+    for label, idx_data in [("S&P 500", market_state["sp500"]), ("NASDAQ", market_state["nasdaq"])]:
         swing = idx_data.get("swing_low")
         if swing:
-            print(f"  {label} Swing Low: {swing['swing_low_date']} "
-                  f"(${swing['swing_low_price']:.2f}, "
-                  f"{swing['decline_pct']:.1f}% decline)")
+            print(
+                f"  {label} Swing Low: {swing['swing_low_date']} "
+                f"(${swing['swing_low_price']:.2f}, "
+                f"{swing['decline_pct']:.1f}% decline)"
+            )
         rally = idx_data.get("rally_attempt")
         if rally and rally.get("day1_date"):
-            print(f"  {label} Rally Day 1: {rally['day1_date']} "
-                  f"(Day {rally['current_day_count']})")
+            print(f"  {label} Rally Day 1: {rally['day1_date']} (Day {rally['current_day_count']})")
 
     print()
 
@@ -160,20 +159,26 @@ def main():
     # Power trend
     pt = market_state.get("power_trend", {})
     if pt:
-        print(f"  Power Trend: {'YES' if pt.get('power_trend') else 'No'} "
-              f"({pt.get('conditions_met', 0)}/3 conditions)")
+        print(
+            f"  Power Trend: {'YES' if pt.get('power_trend') else 'No'} "
+            f"({pt.get('conditions_met', 0)}/3 conditions)"
+        )
 
     # Post-FTD distribution
     dist = market_state.get("post_ftd_distribution", {})
     if dist:
-        print(f"  Post-FTD Distribution Days: {dist.get('distribution_count', 0)} "
-              f"(monitored {dist.get('days_monitored', 0)} days)")
+        print(
+            f"  Post-FTD Distribution Days: {dist.get('distribution_count', 0)} "
+            f"(monitored {dist.get('days_monitored', 0)} days)"
+        )
 
     # Invalidation
     inv = market_state.get("ftd_invalidation", {})
     if inv and inv.get("invalidated"):
-        print(f"  FTD INVALIDATED on {inv.get('invalidation_date')} "
-              f"({inv.get('days_after_ftd')} days after FTD)")
+        print(
+            f"  FTD INVALIDATED on {inv.get('invalidation_date')} "
+            f"({inv.get('days_after_ftd')} days after FTD)"
+        )
 
     print()
 
@@ -188,12 +193,12 @@ def main():
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "api_calls": client.get_api_stats(),
             "index_prices": {
-                "sp500": sp500_quote.get("price", 0) if sp500_quote else (
-                    sp500_history[0].get("close", 0) if sp500_history else None
-                ),
-                "qqq": qqq_quote.get("price", 0) if qqq_quote else (
-                    qqq_history[0].get("close", 0) if qqq_history else None
-                ),
+                "sp500": sp500_quote.get("price", 0)
+                if sp500_quote
+                else (sp500_history[0].get("close", 0) if sp500_history else None),
+                "qqq": qqq_quote.get("price", 0)
+                if qqq_quote
+                else (qqq_history[0].get("close", 0) if qqq_history else None),
             },
         },
         "market_state": {
@@ -227,13 +232,13 @@ def main():
     print()
 
     stats = client.get_api_stats()
-    print(f"API Usage:")
+    print("API Usage:")
     print(f"  API calls made: {stats['api_calls_made']}")
     print(f"  Cache entries: {stats['cache_entries']}")
     print()
 
 
-def _serialize_index(idx_data: Dict) -> Dict:
+def _serialize_index(idx_data: dict) -> dict:
     """Serialize index analysis for JSON output, removing large rally_days lists."""
     result = {
         "state": idx_data.get("state"),

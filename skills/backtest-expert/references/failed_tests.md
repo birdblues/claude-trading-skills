@@ -133,7 +133,7 @@ Use this framework when a backtest fails:
   - Average win/loss
   - Max drawdown
   - Annual returns by year
-  
+
 - **Parameter sensitivity**:
   - How results changed with parameter variations
   - Whether "plateau" of stable performance existed

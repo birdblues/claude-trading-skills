@@ -4,10 +4,10 @@ Tests FMP backend, symbol normalization, caching, batching,
 per-symbol retry, symbol-level fallback, and backend stats.
 """
 
-from unittest.mock import patch, MagicMock
-import pandas as pd
-import numpy as np
+from unittest.mock import MagicMock, patch
 
+import numpy as np
+import pandas as pd
 from etf_scanner import ETFScanner
 
 
@@ -20,12 +20,30 @@ class TestCalculateRSI:
     def test_known_sequence_rsi(self):
         """RSI of a known oscillating sequence returns a value in (0, 100)."""
         # 20 data points with alternating gains and losses
-        prices = pd.Series([
-            44.0, 44.34, 44.09, 44.15, 43.61,
-            44.33, 44.83, 45.10, 45.42, 45.84,
-            46.08, 45.89, 46.03, 45.61, 46.28,
-            46.28, 46.00, 46.03, 46.41, 46.22,
-        ])
+        prices = pd.Series(
+            [
+                44.0,
+                44.34,
+                44.09,
+                44.15,
+                43.61,
+                44.33,
+                44.83,
+                45.10,
+                45.42,
+                45.84,
+                46.08,
+                45.89,
+                46.03,
+                45.61,
+                46.28,
+                46.28,
+                46.00,
+                46.03,
+                46.41,
+                46.22,
+            ]
+        )
         rsi = ETFScanner._calculate_rsi(prices, period=14)
         assert rsi is not None
         assert 0 < rsi < 100
@@ -285,13 +303,19 @@ class TestFMPHistoricalFetch:
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
             "historicalStockList": [
-                {"symbol": "AAPL", "historical": [
-                    {"date": "2026-02-14", "close": 150},
-                    {"date": "2026-02-13", "close": 148},
-                ]},
-                {"symbol": "MSFT", "historical": [
-                    {"date": "2026-02-14", "close": 400},
-                ]},
+                {
+                    "symbol": "AAPL",
+                    "historical": [
+                        {"date": "2026-02-14", "close": 150},
+                        {"date": "2026-02-13", "close": 148},
+                    ],
+                },
+                {
+                    "symbol": "MSFT",
+                    "historical": [
+                        {"date": "2026-02-14", "close": 400},
+                    ],
+                },
             ]
         }
         mock_requests.get.return_value = mock_resp
@@ -311,7 +335,7 @@ class TestFMPHistoricalFetch:
             "symbol": "AAPL",
             "historical": [
                 {"date": "2026-02-14", "close": 150},
-            ]
+            ],
         }
         mock_requests.get.return_value = mock_resp
 
@@ -388,9 +412,11 @@ class TestFMPHistoricalFetch:
             "historical": [{"close": 400}],
         }
         mock_requests.get.side_effect = [
-            fail_resp, fail_resp,  # batch stable+v3
-            fail_resp, fail_resp,  # per-symbol BRK.B stable+v3
-            retry_resp,            # per-symbol BRK-B stable succeeds
+            fail_resp,
+            fail_resp,  # batch stable+v3
+            fail_resp,
+            fail_resp,  # per-symbol BRK.B stable+v3
+            retry_resp,  # per-symbol BRK-B stable succeeds
         ]
 
         result = scanner._fetch_fmp_historical(["BRK-B"], timeseries=20)
@@ -417,17 +443,14 @@ class TestBatchStockMetricsFMP:
         quote_resp = MagicMock()
         quote_resp.status_code = 200
         quote_resp.json.return_value = [
-            {"symbol": "AAPL", "pe": 30.5, "price": 150,
-             "yearHigh": 180, "yearLow": 120},
+            {"symbol": "AAPL", "pe": 30.5, "price": 150, "yearHigh": 180, "yearLow": 120},
         ]
         # Historical response for RSI
         hist_resp = MagicMock()
         hist_resp.status_code = 200
         hist_resp.json.return_value = {
             "historicalStockList": [
-                {"symbol": "AAPL", "historical": [
-                    {"close": 150 - i * 0.5} for i in range(20)
-                ]},
+                {"symbol": "AAPL", "historical": [{"close": 150 - i * 0.5} for i in range(20)]},
             ]
         }
         mock_requests.get.side_effect = [quote_resp, hist_resp]
@@ -444,8 +467,7 @@ class TestBatchStockMetricsFMP:
         quote_resp = MagicMock()
         quote_resp.status_code = 200
         quote_resp.json.return_value = [
-            {"symbol": "AAPL", "pe": 30, "price": 150,
-             "yearHigh": 200, "yearLow": 100},
+            {"symbol": "AAPL", "pe": 30, "price": 150, "yearHigh": 200, "yearLow": 100},
         ]
         hist_resp = MagicMock()
         hist_resp.status_code = 200
@@ -464,8 +486,7 @@ class TestBatchStockMetricsFMP:
         quote_resp = MagicMock()
         quote_resp.status_code = 200
         quote_resp.json.return_value = [
-            {"symbol": "AAPL", "pe": 30, "price": 150,
-             "yearHigh": 180, "yearLow": 120},
+            {"symbol": "AAPL", "pe": 30, "price": 150, "yearHigh": 180, "yearLow": 120},
         ]
         # FMP returns newest-first; code reverses to oldest-first for RSI.
         # Decreasing close here -> reversed = increasing -> RSI=100
@@ -473,9 +494,7 @@ class TestBatchStockMetricsFMP:
         hist_resp.status_code = 200
         hist_resp.json.return_value = {
             "historicalStockList": [
-                {"symbol": "AAPL", "historical": [
-                    {"close": float(150 - i)} for i in range(20)
-                ]},
+                {"symbol": "AAPL", "historical": [{"close": float(150 - i)} for i in range(20)]},
             ]
         }
         mock_requests.get.side_effect = [quote_resp, hist_resp]
@@ -528,8 +547,10 @@ class TestETFVolumeRatioFMP:
 
         # 60 days of volume data
         hist_data = [
-            {"date": f"2026-02-{14-i:02d}" if i < 14 else f"2026-01-{31-(i-14):02d}",
-             "volume": 1_000_000 + i * 10_000}
+            {
+                "date": f"2026-02-{14 - i:02d}" if i < 14 else f"2026-01-{31 - (i - 14):02d}",
+                "volume": 1_000_000 + i * 10_000,
+            }
             for i in range(60)
         ]
         mock_resp = MagicMock()
@@ -556,9 +577,12 @@ class TestETFVolumeRatioFMP:
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
             "historicalStockList": [
-                {"symbol": "XLK", "historical": [
-                    {"date": "2026-02-14", "volume": 1000000},
-                ]},
+                {
+                    "symbol": "XLK",
+                    "historical": [
+                        {"date": "2026-02-14", "volume": 1000000},
+                    ],
+                },
             ]
         }
         mock_requests.get.return_value = mock_resp
@@ -602,9 +626,7 @@ class TestSymbolLevelFallback:
 
     @patch("etf_scanner._requests_lib")
     @patch("etf_scanner.yf")
-    def test_partial_fmp_success_fills_missing_from_yfinance(
-        self, mock_yf, mock_requests
-    ):
+    def test_partial_fmp_success_fills_missing_from_yfinance(self, mock_yf, mock_requests):
         """Partial FMP success -> missing symbols fall back to yfinance."""
         scanner = ETFScanner(fmp_api_key="test_key", rate_limit_sec=0)
 
@@ -612,32 +634,33 @@ class TestSymbolLevelFallback:
         quote_resp = MagicMock()
         quote_resp.status_code = 200
         quote_resp.json.return_value = [
-            {"symbol": "AAPL", "pe": 30, "price": 150,
-             "yearHigh": 180, "yearLow": 120},
+            {"symbol": "AAPL", "pe": 30, "price": 150, "yearHigh": 180, "yearLow": 120},
         ]
         hist_resp = MagicMock()
         hist_resp.status_code = 200
         # Historical with enough data for RSI (newest-first from FMP)
         hist_resp.json.return_value = {
             "historicalStockList": [
-                {"symbol": "AAPL", "historical": [
-                    {"close": float(150 - i)} for i in range(20)
-                ]},
+                {"symbol": "AAPL", "historical": [{"close": float(150 - i)} for i in range(20)]},
             ]
         }
         mock_requests.get.side_effect = [
-            quote_resp, hist_resp,
+            quote_resp,
+            hist_resp,
             # Per-symbol retry for MSFT (fails)
-            MagicMock(status_code=500), MagicMock(status_code=500),
+            MagicMock(status_code=500),
+            MagicMock(status_code=500),
         ]
 
         # yfinance fallback: download for MSFT
-        mock_df = pd.DataFrame({
-            "Close": np.linspace(300, 400, 20),
-            "High": np.linspace(305, 405, 20),
-            "Low": np.linspace(295, 395, 20),
-            "Volume": [1_000_000] * 20,
-        })
+        mock_df = pd.DataFrame(
+            {
+                "Close": np.linspace(300, 400, 20),
+                "High": np.linspace(305, 405, 20),
+                "Low": np.linspace(295, 395, 20),
+                "Volume": [1_000_000] * 20,
+            }
+        )
         mock_yf.download.return_value = mock_df
         mock_ticker = MagicMock()
         mock_ticker.info = {"trailingPE": 35.0}
@@ -662,16 +685,13 @@ class TestSymbolLevelFallback:
         quote_resp = MagicMock()
         quote_resp.status_code = 200
         quote_resp.json.return_value = [
-            {"symbol": "AAPL", "pe": 30, "price": 150,
-             "yearHigh": 180, "yearLow": 120},
+            {"symbol": "AAPL", "pe": 30, "price": 150, "yearHigh": 180, "yearLow": 120},
         ]
         hist_resp = MagicMock()
         hist_resp.status_code = 200
         hist_resp.json.return_value = {
             "historicalStockList": [
-                {"symbol": "AAPL", "historical": [
-                    {"close": float(150 - i)} for i in range(20)
-                ]},
+                {"symbol": "AAPL", "historical": [{"close": float(150 - i)} for i in range(20)]},
             ]
         }
         mock_requests.get.side_effect = [quote_resp, hist_resp]
@@ -688,12 +708,14 @@ class TestSymbolLevelFallback:
         """Without requests library, falls back entirely to yfinance."""
         scanner = ETFScanner(fmp_api_key="test_key", rate_limit_sec=0)
 
-        mock_df = pd.DataFrame({
-            "Close": np.linspace(100, 150, 20),
-            "High": np.linspace(105, 155, 20),
-            "Low": np.linspace(95, 145, 20),
-            "Volume": [1_000_000] * 20,
-        })
+        mock_df = pd.DataFrame(
+            {
+                "Close": np.linspace(100, 150, 20),
+                "High": np.linspace(105, 155, 20),
+                "Low": np.linspace(95, 145, 20),
+                "Volume": [1_000_000] * 20,
+            }
+        )
         mock_yf.download.return_value = mock_df
         mock_ticker = MagicMock()
         mock_ticker.info = {"trailingPE": 25.0}
@@ -726,8 +748,7 @@ class TestBackendStats:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = [
-            {"symbol": "AAPL", "pe": 30, "price": 150,
-             "yearHigh": 180, "yearLow": 120},
+            {"symbol": "AAPL", "pe": 30, "price": 150, "yearHigh": 180, "yearLow": 120},
         ]
         mock_requests.get.return_value = mock_resp
 
@@ -748,12 +769,14 @@ class TestBackendStats:
         mock_requests.get.return_value = fail_resp
 
         # yfinance works
-        mock_df = pd.DataFrame({
-            "Close": np.linspace(100, 150, 20),
-            "High": np.linspace(105, 155, 20),
-            "Low": np.linspace(95, 145, 20),
-            "Volume": [1_000_000] * 20,
-        })
+        mock_df = pd.DataFrame(
+            {
+                "Close": np.linspace(100, 150, 20),
+                "High": np.linspace(105, 155, 20),
+                "Low": np.linspace(95, 145, 20),
+                "Volume": [1_000_000] * 20,
+            }
+        )
         mock_yf.download.return_value = mock_df
         mock_ticker = MagicMock()
         mock_ticker.info = {"trailingPE": 25.0}
@@ -775,30 +798,31 @@ class TestBackendStats:
         quote_resp = MagicMock()
         quote_resp.status_code = 200
         quote_resp.json.return_value = [
-            {"symbol": "AAPL", "pe": 30, "price": 150,
-             "yearHigh": 180, "yearLow": 120},
+            {"symbol": "AAPL", "pe": 30, "price": 150, "yearHigh": 180, "yearLow": 120},
         ]
         hist_resp = MagicMock()
         hist_resp.status_code = 200
         hist_resp.json.return_value = {
             "historicalStockList": [
-                {"symbol": "AAPL", "historical": [
-                    {"close": float(150 - i)} for i in range(20)
-                ]},
+                {"symbol": "AAPL", "historical": [{"close": float(150 - i)} for i in range(20)]},
             ]
         }
         mock_requests.get.side_effect = [
-            quote_resp, hist_resp,
+            quote_resp,
+            hist_resp,
             # Per-symbol retry for MSFT fails
-            MagicMock(status_code=500), MagicMock(status_code=500),
+            MagicMock(status_code=500),
+            MagicMock(status_code=500),
         ]
 
-        mock_df = pd.DataFrame({
-            "Close": np.linspace(300, 400, 20),
-            "High": np.linspace(305, 405, 20),
-            "Low": np.linspace(295, 395, 20),
-            "Volume": [1_000_000] * 20,
-        })
+        mock_df = pd.DataFrame(
+            {
+                "Close": np.linspace(300, 400, 20),
+                "High": np.linspace(305, 405, 20),
+                "Low": np.linspace(295, 395, 20),
+                "Volume": [1_000_000] * 20,
+            }
+        )
         mock_yf.download.return_value = mock_df
         mock_ticker = MagicMock()
         mock_ticker.info = {"trailingPE": 35.0}

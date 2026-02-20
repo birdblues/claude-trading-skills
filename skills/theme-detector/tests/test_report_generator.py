@@ -1,6 +1,6 @@
 """Tests for report_generator data quality assessment and markdown generation."""
 
-from report_generator import _assess_data_quality, generate_markdown_report, generate_json_report
+from report_generator import _assess_data_quality, generate_json_report, generate_markdown_report
 
 
 class TestAssessDataQuality:
@@ -92,7 +92,9 @@ class TestLifecycleDataQualityInReport:
         """Insufficient lifecycle data quality should show note in markdown."""
         theme = self._make_theme("insufficient")
         json_data = generate_json_report(
-            [theme], {"top": [], "bottom": []}, {},
+            [theme],
+            {"top": [], "bottom": []},
+            {},
             {"generated_at": "2026-02-19", "data_sources": {}},
         )
         md = generate_markdown_report(json_data)
@@ -102,7 +104,9 @@ class TestLifecycleDataQualityInReport:
         """Sufficient lifecycle data quality should not show the note."""
         theme = self._make_theme("sufficient")
         json_data = generate_json_report(
-            [theme], {"top": [], "bottom": []}, {},
+            [theme],
+            {"top": [], "bottom": []},
+            {},
             {"generated_at": "2026-02-19", "data_sources": {}},
         )
         md = generate_markdown_report(json_data)

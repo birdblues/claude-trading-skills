@@ -4,8 +4,7 @@ Tests ETF exclusion, inactive stock exclusion, acquired stock exclusion,
 and share class deduplication.
 """
 
-import pytest
-from data_quality import is_tradable_stock, deduplicate_share_classes, _get_share_class_group
+from data_quality import _get_share_class_group, deduplicate_share_classes, is_tradable_stock
 
 
 class TestIsTradableStock:

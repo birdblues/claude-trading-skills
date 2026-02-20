@@ -72,7 +72,10 @@ def git_safe_check(project_root: Path) -> bool:
     try:
         status = subprocess.run(
             ["git", "status", "--porcelain"],
-            cwd=project_root, capture_output=True, text=True, check=True,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         if status.stdout.strip():
             logger.error("Working tree is dirty. Aborting.")
@@ -80,7 +83,10 @@ def git_safe_check(project_root: Path) -> bool:
 
         branch = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=project_root, capture_output=True, text=True, check=True,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         if branch.stdout.strip() != "main":
             logger.error("Not on main branch (on '%s'). Aborting.", branch.stdout.strip())
@@ -88,10 +94,15 @@ def git_safe_check(project_root: Path) -> bool:
 
         pull = subprocess.run(
             ["git", "pull", "--ff-only"],
-            cwd=project_root, capture_output=True, text=True, check=False,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if pull.returncode != 0:
-            logger.warning("git pull --ff-only failed; will retry next run. stderr: %s", pull.stderr.strip())
+            logger.warning(
+                "git pull --ff-only failed; will retry next run. stderr: %s", pull.stderr.strip()
+            )
             return False
 
     except FileNotFoundError:
@@ -164,9 +175,12 @@ def run_auto_score(
     """Run the auto reviewer and return its JSON report."""
     script = str(project_root / REVIEWER_SCRIPT)
     extra_args: list[str] = [
-        "--project-root", str(project_root),
-        "--skill", skill_name,
-        "--output-dir", "reports",
+        "--project-root",
+        str(project_root),
+        "--skill",
+        skill_name,
+        "--output-dir",
+        "reports",
     ]
     if skip_tests:
         extra_args.append("--skip-tests")
@@ -177,19 +191,25 @@ def run_auto_score(
 
     cmd = [*_build_reviewer_cmd(project_root), *extra_args]
 
-    result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, check=False, timeout=120)
+    result = subprocess.run(
+        cmd, cwd=project_root, capture_output=True, text=True, check=False, timeout=120
+    )
 
     # Fallback: if uv failed, retry with sys.executable
     if result.returncode != 0 and cmd[0] == "uv":
         logger.warning("uv run failed for %s; falling back to %s.", skill_name, sys.executable)
         cmd = [sys.executable, script, *extra_args]
-        result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, check=False, timeout=120)
+        result = subprocess.run(
+            cmd, cwd=project_root, capture_output=True, text=True, check=False, timeout=120
+        )
 
     if result.returncode != 0:
         logger.error("Auto score failed for %s: %s", skill_name, result.stderr.strip())
         return None
 
-    report_files = sorted((project_root / "reports").glob(f"skill_review_{skill_name}_*.json"), reverse=True)
+    report_files = sorted(
+        (project_root / "reports").glob(f"skill_review_{skill_name}_*.json"), reverse=True
+    )
     if not report_files:
         logger.error("No report JSON found for %s.", skill_name)
         return None
@@ -216,8 +236,12 @@ def run_llm_review(project_root: Path, skill_name: str, prompt_file: str) -> dic
         try:
             result = subprocess.run(
                 [
-                    "claude", "-p", "--output-format", "json",
-                    "--max-turns", "1",
+                    "claude",
+                    "-p",
+                    "--output-format",
+                    "json",
+                    "--max-turns",
+                    "1",
                     f"--max-budget-usd={CLAUDE_BUDGET_REVIEW}",
                 ],
                 input=prompt_text,
@@ -228,7 +252,9 @@ def run_llm_review(project_root: Path, skill_name: str, prompt_file: str) -> dic
                 timeout=CLAUDE_TIMEOUT,
             )
             if result.returncode != 0:
-                logger.warning("claude -p attempt %d failed: %s", attempt + 1, result.stderr.strip()[:200])
+                logger.warning(
+                    "claude -p attempt %d failed: %s", attempt + 1, result.stderr.strip()[:200]
+                )
                 continue
 
             # Parse claude output to extract the review JSON
@@ -285,7 +311,10 @@ def check_existing_pr(project_root: Path, branch_name: str) -> bool:
         return False
     result = subprocess.run(
         ["gh", "pr", "list", "--head", branch_name, "--state", "open", "--json", "number"],
-        cwd=project_root, capture_output=True, text=True, check=False,
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if result.returncode != 0:
         return False
@@ -307,7 +336,11 @@ def apply_improvement(
     Returns the post-improvement report dict on success, or None on failure/dry-run.
     """
     if dry_run:
-        logger.info("[dry-run] Would improve skill '%s' (score=%d).", skill_name, report["final_review"]["score"])
+        logger.info(
+            "[dry-run] Would improve skill '%s' (score=%d).",
+            skill_name,
+            report["final_review"]["score"],
+        )
         return None
 
     if not shutil.which("claude"):
@@ -330,13 +363,18 @@ def apply_improvement(
     # Delete existing branch if present (from a previous failed run)
     subprocess.run(
         ["git", "branch", "-D", branch_name],
-        cwd=project_root, capture_output=True, check=False,
+        cwd=project_root,
+        capture_output=True,
+        check=False,
     )
 
     # Create branch
     subprocess.run(
         ["git", "checkout", "-b", branch_name],
-        cwd=project_root, capture_output=True, text=True, check=True,
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=True,
     )
 
     try:
@@ -350,7 +388,10 @@ def apply_improvement(
 
         result = subprocess.run(
             [
-                "claude", "-p", "--allowedTools", "Read,Edit,Write,Glob,Grep",
+                "claude",
+                "-p",
+                "--allowedTools",
+                "Read,Edit,Write,Glob,Grep",
                 f"--max-budget-usd={CLAUDE_BUDGET_IMPROVE}",
             ],
             input=prompt,
@@ -376,7 +417,8 @@ def apply_improvement(
         if re_score <= pre_score:
             logger.warning(
                 "Re-score (%d) not better than pre-score (%d); rolling back.",
-                re_score, pre_score,
+                re_score,
+                pre_score,
             )
             _rollback(project_root, skill_name, branch_name)
             return None
@@ -384,18 +426,25 @@ def apply_improvement(
         # Commit, push, create PR
         subprocess.run(
             ["git", "add", f"skills/{skill_name}/"],
-            cwd=project_root, check=True, capture_output=True,
+            cwd=project_root,
+            check=True,
+            capture_output=True,
         )
 
         commit_msg = f"Improve {skill_name} skill (score {pre_score} -> {re_score})"
         subprocess.run(
             ["git", "commit", "-m", commit_msg],
-            cwd=project_root, check=True, capture_output=True,
+            cwd=project_root,
+            check=True,
+            capture_output=True,
         )
 
         push = subprocess.run(
             ["git", "push", "-u", "origin", branch_name],
-            cwd=project_root, capture_output=True, text=True, check=False,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if push.returncode != 0:
             logger.error("git push failed: %s", push.stderr.strip()[:200])
@@ -411,11 +460,18 @@ def apply_improvement(
         )
         pr = subprocess.run(
             [
-                "gh", "pr", "create",
-                "--title", f"Improve {skill_name} skill (score {pre_score} -> {re_score})",
-                "--body", pr_body,
+                "gh",
+                "pr",
+                "create",
+                "--title",
+                f"Improve {skill_name} skill (score {pre_score} -> {re_score})",
+                "--body",
+                pr_body,
             ],
-            cwd=project_root, capture_output=True, text=True, check=False,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if pr.returncode != 0:
             logger.error("gh pr create failed: %s", pr.stderr.strip()[:200])
@@ -431,7 +487,9 @@ def apply_improvement(
         # Return to main
         subprocess.run(
             ["git", "checkout", "main"],
-            cwd=project_root, capture_output=True, check=False,
+            cwd=project_root,
+            capture_output=True,
+            check=False,
         )
 
 
@@ -439,19 +497,27 @@ def _rollback(project_root: Path, skill_name: str, branch_name: str) -> None:
     """Roll back changes and return to main."""
     subprocess.run(
         ["git", "checkout", "--", f"skills/{skill_name}/"],
-        cwd=project_root, capture_output=True, check=False,
+        cwd=project_root,
+        capture_output=True,
+        check=False,
     )
     subprocess.run(
         ["git", "clean", "-fd", f"skills/{skill_name}/"],
-        cwd=project_root, capture_output=True, check=False,
+        cwd=project_root,
+        capture_output=True,
+        check=False,
     )
     subprocess.run(
         ["git", "checkout", "main"],
-        cwd=project_root, capture_output=True, check=False,
+        cwd=project_root,
+        capture_output=True,
+        check=False,
     )
     subprocess.run(
         ["git", "branch", "-D", branch_name],
-        cwd=project_root, capture_output=True, check=False,
+        cwd=project_root,
+        capture_output=True,
+        check=False,
     )
 
 
@@ -489,7 +555,10 @@ def cleanup_merged_branches(project_root: Path) -> None:
 
     result = subprocess.run(
         ["git", "branch", "--list", "skill-improvement/*"],
-        cwd=project_root, capture_output=True, text=True, check=False,
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if result.returncode != 0:
         return
@@ -500,7 +569,10 @@ def cleanup_merged_branches(project_root: Path) -> None:
             continue
         pr_state = subprocess.run(
             ["gh", "pr", "view", branch, "--json", "state"],
-            cwd=project_root, capture_output=True, text=True, check=False,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if pr_state.returncode != 0:
             continue
@@ -510,7 +582,9 @@ def cleanup_merged_branches(project_root: Path) -> None:
             if state in ("MERGED", "CLOSED"):
                 subprocess.run(
                     ["git", "branch", "-D", branch],
-                    cwd=project_root, capture_output=True, check=False,
+                    cwd=project_root,
+                    capture_output=True,
+                    check=False,
                 )
                 logger.info("Deleted merged/closed branch: %s", branch)
         except json.JSONDecodeError:
@@ -540,7 +614,9 @@ def rotate_logs(project_root: Path) -> None:
 def parse_args():
     parser = argparse.ArgumentParser(description="Skill self-improvement orchestration loop")
     parser.add_argument("--project-root", default=".", help="Project root directory")
-    parser.add_argument("--dry-run", action="store_true", help="Score only; skip improvement and PR creation")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Score only; skip improvement and PR creation"
+    )
     return parser.parse_args()
 
 
@@ -600,7 +676,9 @@ def run(project_root: Path, dry_run: bool = False) -> int:
                 logger.info("LLM review score: %d", llm_result.get("score", 0))
                 # Re-score with LLM review merged
                 merged_report = run_auto_score(
-                    project_root, skill_name, llm_review_json=str(llm_json_path),
+                    project_root,
+                    skill_name,
+                    llm_review_json=str(llm_json_path),
                 )
                 if merged_report:
                     report = merged_report
@@ -611,26 +689,36 @@ def run(project_root: Path, dry_run: bool = False) -> int:
         # Improvement
         improved = False
         if final_score < SCORE_THRESHOLD:
-            logger.info("Auto score %d below %d; attempting improvement.", final_score, SCORE_THRESHOLD)
-            improvement_result = apply_improvement(project_root, skill_name, report, dry_run=dry_run)
+            logger.info(
+                "Auto score %d below %d; attempting improvement.", final_score, SCORE_THRESHOLD
+            )
+            improvement_result = apply_improvement(
+                project_root, skill_name, report, dry_run=dry_run
+            )
             if isinstance(improvement_result, dict):
                 # Use post-improvement report for summary and state
                 report = improvement_result
                 final_score = report.get("auto_review", {}).get("score", final_score)
                 improved = True
         else:
-            logger.info("Auto score meets threshold (%d >= %d); no improvement needed.", final_score, SCORE_THRESHOLD)
+            logger.info(
+                "Auto score meets threshold (%d >= %d); no improvement needed.",
+                final_score,
+                SCORE_THRESHOLD,
+            )
 
         # Summary
         write_daily_summary(project_root, skill_name, report, improved)
 
         # State update
-        state["history"].append({
-            "skill": skill_name,
-            "score": final_score,
-            "improved": improved,
-            "timestamp": datetime.now().isoformat(),
-        })
+        state["history"].append(
+            {
+                "skill": skill_name,
+                "score": final_score,
+                "improved": improved,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
         save_state(project_root, state)
 
         # Cleanup

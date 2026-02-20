@@ -1,13 +1,12 @@
 """Tests for heat_calculator module."""
 
-import math
 from calculators.heat_calculator import (
-    momentum_strength_score,
-    volume_intensity_score,
-    uptrend_signal_score,
+    HEAT_WEIGHTS,
     breadth_signal_score,
     calculate_theme_heat,
-    HEAT_WEIGHTS,
+    momentum_strength_score,
+    uptrend_signal_score,
+    volume_intensity_score,
 )
 
 

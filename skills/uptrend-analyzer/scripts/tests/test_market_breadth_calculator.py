@@ -1,14 +1,13 @@
 """Tests for market_breadth_calculator.py"""
 
 import pytest
-
-from helpers import make_timeseries_row, make_all_timeseries
-from calculators.market_breadth_calculator import calculate_market_breadth, _ratio_to_score
-
+from calculators.market_breadth_calculator import _ratio_to_score, calculate_market_breadth
+from helpers import make_all_timeseries, make_timeseries_row
 
 # ---------------------------------------------------------------------------
 # _ratio_to_score: Crisis band (< 0.097)
 # ---------------------------------------------------------------------------
+
 
 def test_ratio_to_score_crisis_zero():
     """ratio=0 maps to score=0."""
@@ -24,6 +23,7 @@ def test_ratio_to_score_crisis_below_lower():
 # _ratio_to_score: Weak band boundary (0.097)
 # ---------------------------------------------------------------------------
 
+
 def test_ratio_to_score_at_lower_threshold():
     """ratio=0.097 maps to 10 (bottom of weak band)."""
     assert _ratio_to_score(0.097) == pytest.approx(10, abs=1)
@@ -33,6 +33,7 @@ def test_ratio_to_score_at_lower_threshold():
 # _ratio_to_score: Weak band (0.097-0.25)
 # ---------------------------------------------------------------------------
 
+
 def test_ratio_to_score_weak_midpoint():
     """ratio=0.17 maps to ~24 (mid-weak band)."""
     assert _ratio_to_score(0.17) == pytest.approx(23.8, abs=1)
@@ -41,6 +42,7 @@ def test_ratio_to_score_weak_midpoint():
 # ---------------------------------------------------------------------------
 # _ratio_to_score: Neutral band (0.25-0.37)
 # ---------------------------------------------------------------------------
+
 
 def test_ratio_to_score_at_025():
     """ratio=0.25 maps to 40 (bottom of neutral band)."""
@@ -56,6 +58,7 @@ def test_ratio_to_score_neutral_midpoint():
 # _ratio_to_score: Bullish band (0.37-0.50)
 # ---------------------------------------------------------------------------
 
+
 def test_ratio_to_score_at_upper_threshold():
     """ratio=0.37 maps to 70 (bottom of bullish band)."""
     assert _ratio_to_score(0.37) == pytest.approx(70, abs=1)
@@ -69,6 +72,7 @@ def test_ratio_to_score_bullish_midpoint():
 # ---------------------------------------------------------------------------
 # _ratio_to_score: Strong Bull band (>= 0.50)
 # ---------------------------------------------------------------------------
+
 
 def test_ratio_to_score_at_050():
     """ratio=0.50 maps to 90 (bottom of strong bull band)."""
@@ -88,6 +92,7 @@ def test_ratio_to_score_max_cap():
 # ---------------------------------------------------------------------------
 # Trend adjustment in calculate_market_breadth
 # ---------------------------------------------------------------------------
+
 
 def test_trend_adjustment_up():
     """trend='up' with positive slope adds +5."""
@@ -128,6 +133,7 @@ def test_trend_adjustment_mismatch():
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
 
 def test_no_data_returns_neutral():
     """None input returns neutral score 50."""

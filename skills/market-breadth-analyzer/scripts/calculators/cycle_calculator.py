@@ -24,10 +24,10 @@ Scoring (100 = healthy):
   No marker within 120 days -> 50 (neutral)
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 
-def calculate_cycle_position(rows: List[Dict]) -> Dict:
+def calculate_cycle_position(rows: list[dict]) -> dict:
     """
     Calculate peak/trough cycle position score.
 
@@ -85,7 +85,7 @@ def calculate_cycle_position(rows: List[Dict]) -> Dict:
     }
 
 
-def _find_latest_marker(recent: List[Dict]) -> Tuple[Optional[str], int, Optional[int]]:
+def _find_latest_marker(recent: list[dict]) -> tuple[Optional[str], int, Optional[int]]:
     """
     Find the most recent peak or trough marker.
 

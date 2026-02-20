@@ -72,7 +72,7 @@ This skill supports four types of analysis. Determine which type(s) the user nee
    - Revenue, earnings, cash flow (3-5 year trends)
    - Balance sheet metrics (debt, cash, working capital)
    - Profitability metrics (margins, ROE, ROIC)
-   
+
 2. **Read references/fundamental-analysis.md** for analytical framework
 
 3. **Read references/financial-metrics.md** for metric definitions and calculations
@@ -81,13 +81,13 @@ This skill supports four types of analysis. Determine which type(s) the user nee
    - Competitive advantages
    - Management track record
    - Industry position
-   
+
 5. **Perform valuation analysis:**
    - Calculate key ratios (P/E, PEG, P/B, EV/EBITDA)
    - Compare to historical averages
    - Compare to peer group
    - Estimate fair value range
-   
+
 6. **Identify risks:**
    - Company-specific risks
    - Market/macro risks
@@ -112,28 +112,28 @@ This skill supports four types of analysis. Determine which type(s) the user nee
    - Volume trends
    - Moving averages (20-day, 50-day, 200-day)
    - Technical indicators (RSI, MACD, Bollinger Bands)
-   
+
 2. **Read references/technical-analysis.md** for indicator definitions and patterns
 
 3. **Identify trend:**
    - Uptrend, downtrend, or sideways
    - Strength of trend
-   
+
 4. **Locate support and resistance levels:**
    - Recent highs and lows
    - Moving average levels
    - Round numbers
-   
+
 5. **Analyze indicators:**
    - RSI: Overbought (>70) or oversold (<30)
    - MACD: Crossovers and divergences
    - Volume: Confirmation or divergence
    - Bollinger Bands: Squeeze or expansion
-   
+
 6. **Identify chart patterns:**
    - Reversal patterns (head and shoulders, double top/bottom)
    - Continuation patterns (flags, triangles)
-   
+
 7. **Generate technical outlook:**
    - Current trend assessment
    - Key levels to watch
@@ -163,13 +163,13 @@ This skill supports four types of analysis. Determine which type(s) the user nee
    - Integrate fundamental and technical insights
    - Develop bull and bear cases
    - Assess risk/reward
-   
+
 6. **Generate recommendation:**
    - Buy/Hold/Sell rating
    - Target price with timeframe
    - Conviction level
    - Entry strategy
-   
+
 7. **Create formatted report** following template structure
 
 **Report Must Include:**
@@ -191,7 +191,7 @@ This skill supports four types of analysis. Determine which type(s) the user nee
 1. **Gather data for all stocks:**
    - Follow data gathering steps for each ticker
    - Ensure comparable timeframes
-   
+
 2. **Read references/fundamental-analysis.md** and references/financial-metrics.md
 
 3. **Create side-by-side comparison:**
@@ -201,16 +201,16 @@ This skill supports four types of analysis. Determine which type(s) the user nee
    - Growth rates comparison
    - Profitability comparison
    - Balance sheet strength
-   
+
 4. **Identify relative strengths:**
    - Where each company excels
    - Quantified advantages
-   
+
 5. **Technical comparison:**
    - Relative strength
    - Momentum comparison
    - Which is in better technical position
-   
+
 6. **Generate recommendation:**
    - Which stock is more attractive and why
    - Consider both fundamental and technical factors

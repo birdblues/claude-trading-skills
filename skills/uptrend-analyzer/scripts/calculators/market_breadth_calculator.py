@@ -21,15 +21,14 @@ Scoring Bands (linear interpolation within each band):
 Trend adjustment: trend="up" & slope>0 -> +5, trend="down" & slope<0 -> -5
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Monty's official dashboard thresholds
-UPPER_THRESHOLD = 0.37   # Overbought
+UPPER_THRESHOLD = 0.37  # Overbought
 LOWER_THRESHOLD = 0.097  # Oversold
 
 
-def calculate_market_breadth(latest_all: Optional[Dict],
-                             all_timeseries: List[Dict]) -> Dict:
+def calculate_market_breadth(latest_all: Optional[dict], all_timeseries: list[dict]) -> dict:
     """
     Calculate market breadth score from overall uptrend ratio.
 

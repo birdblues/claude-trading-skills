@@ -2,14 +2,10 @@
 
 import json
 import os
-import sys
 import tempfile
 from unittest import mock
 
-import pytest
-
 from helpers import make_all_timeseries, make_full_sector_summary
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -35,16 +31,18 @@ def _build_full_timeseries(all_rows, sector_summary):
     rows = list(all_rows)
     for sec_row in sector_summary:
         ws = WORKSHEET_MAP.get(sec_row["Sector"], sec_row["Sector"].lower())
-        rows.append({
-            "worksheet": ws,
-            "date": "2026-01-25",
-            "count": 100,
-            "total": 300,
-            "ratio": sec_row["Ratio"],
-            "ma_10": sec_row.get("10MA"),
-            "slope": sec_row.get("Slope"),
-            "trend": (sec_row.get("Trend") or "up").lower(),
-        })
+        rows.append(
+            {
+                "worksheet": ws,
+                "date": "2026-01-25",
+                "count": 100,
+                "total": 300,
+                "ratio": sec_row["Ratio"],
+                "ma_10": sec_row.get("10MA"),
+                "slope": sec_row.get("Slope"),
+                "trend": (sec_row.get("Trend") or "up").lower(),
+            }
+        )
     return rows
 
 
@@ -95,12 +93,14 @@ def _run_main(output_dir, sector_summary=None):
     with mock.patch("data_fetcher.UptrendDataFetcher", return_value=mock_instance):
         with mock.patch("sys.argv", ["uptrend_analyzer.py", "--output-dir", output_dir]):
             import uptrend_analyzer
+
             uptrend_analyzer.main()
 
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestMainGeneratesReports:
     """Test that main() produces both JSON and Markdown report files."""
@@ -156,6 +156,7 @@ class TestMainWithNoSectorSummary:
             with mock.patch("data_fetcher.UptrendDataFetcher", return_value=mock_instance):
                 with mock.patch("sys.argv", ["uptrend_analyzer.py", "--output-dir", tmpdir]):
                     import uptrend_analyzer
+
                     uptrend_analyzer.main()
 
             files = os.listdir(tmpdir)

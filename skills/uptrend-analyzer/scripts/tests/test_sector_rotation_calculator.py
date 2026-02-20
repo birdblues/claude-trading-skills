@@ -1,19 +1,19 @@
 """Tests for sector rotation calculator."""
 
 import pytest
-from helpers import make_sector_summary_row, make_full_sector_summary
 from calculators.sector_rotation_calculator import (
-    calculate_sector_rotation,
-    _get_group_ratios,
-    _avg,
-    _difference_to_score,
+    COMMODITY_SECTORS,
     CYCLICAL_SECTORS,
     DEFENSIVE_SECTORS,
-    COMMODITY_SECTORS,
+    _avg,
+    _difference_to_score,
+    _get_group_ratios,
+    calculate_sector_rotation,
 )
-
+from helpers import make_sector_summary_row
 
 # ── _get_group_ratios ───────────────────────────────────────────────
+
 
 class TestGetGroupRatios:
     def test_get_group_ratios_normal(self):
@@ -39,6 +39,7 @@ class TestGetGroupRatios:
 
 # ── _avg ────────────────────────────────────────────────────────────
 
+
 class TestAvg:
     def test_avg_simple(self):
         assert _avg([10, 20, 30]) == pytest.approx(20.0)
@@ -46,6 +47,7 @@ class TestAvg:
 
 
 # ── _difference_to_score ────────────────────────────────────────────
+
 
 class TestDifferenceToScore:
     def test_diff_strong_risk_on(self):
@@ -74,6 +76,7 @@ class TestDifferenceToScore:
 
 
 # ── Late cycle / commodity penalty ──────────────────────────────────
+
 
 class TestLateCycleAndCommodityPenalty:
     def _make_summary(self, cyclical_ratio, defensive_ratio, commodity_ratio):
@@ -126,6 +129,7 @@ class TestLateCycleAndCommodityPenalty:
 
 
 # ── Full calculation ────────────────────────────────────────────────
+
 
 class TestFullCalculation:
     def test_full_calculation_risk_on(self):

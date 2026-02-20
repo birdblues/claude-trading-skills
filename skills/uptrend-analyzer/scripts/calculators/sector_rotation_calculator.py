@@ -24,26 +24,32 @@ Commodity adjustment: if commodity_avg > both groups -> late cycle flag, penalty
 
 import math
 import sys
-from typing import Dict, List, Optional
 
 from data_fetcher import build_summary_from_timeseries
 
-
 # Sector classification
 CYCLICAL_SECTORS = [
-    "Technology", "Consumer Cyclical", "Communication Services",
-    "Financial", "Industrials",
+    "Technology",
+    "Consumer Cyclical",
+    "Communication Services",
+    "Financial",
+    "Industrials",
 ]
 DEFENSIVE_SECTORS = [
-    "Utilities", "Consumer Defensive", "Healthcare", "Real Estate",
+    "Utilities",
+    "Consumer Defensive",
+    "Healthcare",
+    "Real Estate",
 ]
 COMMODITY_SECTORS = [
-    "Energy", "Basic Materials",
+    "Energy",
+    "Basic Materials",
 ]
 
 
-def calculate_sector_rotation(sector_summary: List[Dict],
-                              sector_timeseries: Dict[str, List[Dict]]) -> Dict:
+def calculate_sector_rotation(
+    sector_summary: list[dict], sector_timeseries: dict[str, list[dict]]
+) -> dict:
     """
     Calculate sector rotation score.
 
@@ -57,8 +63,7 @@ def calculate_sector_rotation(sector_summary: List[Dict],
     if not sector_summary:
         if sector_timeseries:
             sector_summary = build_summary_from_timeseries(sector_timeseries)
-            print("  (fallback: built sector summary from timeseries data)",
-                  file=sys.stderr)
+            print("  (fallback: built sector summary from timeseries data)", file=sys.stderr)
         else:
             return {
                 "score": 50,
@@ -148,8 +153,7 @@ def calculate_sector_rotation(sector_summary: List[Dict],
     }
 
 
-def _get_group_ratios(sector_map: Dict[str, Dict],
-                      sector_names: List[str]) -> List[float]:
+def _get_group_ratios(sector_map: dict[str, dict], sector_names: list[str]) -> list[float]:
     """Extract ratios for a group of sectors."""
     ratios = []
     for name in sector_names:
@@ -159,7 +163,7 @@ def _get_group_ratios(sector_map: Dict[str, Dict],
     return ratios
 
 
-def _avg(values: List[float]) -> float:
+def _avg(values: list[float]) -> float:
     """Simple average."""
     return sum(values) / len(values)
 
@@ -202,7 +206,7 @@ def _build_signal(score: int, difference: float, late_cycle: bool) -> str:
         return f"STRONG RISK-OFF: Defensive leads by {abs(diff_pct)}pp{late_str}"
 
 
-def _calculate_group_divergence(sector_map: Dict[str, Dict]) -> Dict:
+def _calculate_group_divergence(sector_map: dict[str, dict]) -> dict:
     """Detect intra-group divergence in Cyclical and Defensive groups.
 
     Divergence flag triggers when any of:
@@ -228,8 +232,7 @@ def _calculate_group_divergence(sector_map: Dict[str, Dict]) -> Dict:
     }
 
 
-def _analyze_group(sector_map: Dict[str, Dict],
-                   sector_names: List[str]) -> Dict:
+def _analyze_group(sector_map: dict[str, dict], sector_names: list[str]) -> dict:
     """Analyze divergence within a sector group."""
     ratios = []
     trends = []
@@ -258,7 +261,7 @@ def _analyze_group(sector_map: Dict[str, Dict],
 
     # Outlier detection: sectors more than 1.5 * std_dev from mean
     outliers = []
-    for i, (name, ratio) in enumerate(zip(names_with_data, ratios)):
+    for _i, (name, ratio) in enumerate(zip(names_with_data, ratios)):
         if abs(ratio - mean) > 1.5 * std_dev and std_dev > 0:
             outliers.append({"sector": name, "ratio": ratio, "deviation": round(ratio - mean, 4)})
 
@@ -274,11 +277,7 @@ def _analyze_group(sector_map: Dict[str, Dict],
                 trend_dissenters.append({"sector": name, "trend": trend, "majority": majority})
 
     # Divergence flag conditions
-    flagged = (
-        std_dev > 0.08 or
-        spread > 0.20 or
-        len(trend_dissenters) > 0
-    )
+    flagged = std_dev > 0.08 or spread > 0.20 or len(trend_dissenters) > 0
 
     return {
         "flagged": flagged,
@@ -289,26 +288,31 @@ def _analyze_group(sector_map: Dict[str, Dict],
     }
 
 
-def _build_group_details(sector_map: Dict[str, Dict],
-                         sector_names: List[str]) -> List[Dict]:
+def _build_group_details(sector_map: dict[str, dict], sector_names: list[str]) -> list[dict]:
     """Build detail rows for a sector group."""
     details = []
     for name in sector_names:
         sector = sector_map.get(name)
         if sector:
-            details.append({
-                "sector": name,
-                "ratio": sector.get("Ratio"),
-                "ratio_pct": round(sector["Ratio"] * 100, 1) if sector.get("Ratio") is not None else None,
-                "trend": sector.get("Trend", ""),
-                "slope": sector.get("Slope"),
-            })
+            details.append(
+                {
+                    "sector": name,
+                    "ratio": sector.get("Ratio"),
+                    "ratio_pct": round(sector["Ratio"] * 100, 1)
+                    if sector.get("Ratio") is not None
+                    else None,
+                    "trend": sector.get("Trend", ""),
+                    "slope": sector.get("Slope"),
+                }
+            )
         else:
-            details.append({
-                "sector": name,
-                "ratio": None,
-                "ratio_pct": None,
-                "trend": "N/A",
-                "slope": None,
-            })
+            details.append(
+                {
+                    "sector": name,
+                    "ratio": None,
+                    "ratio_pct": None,
+                    "trend": "N/A",
+                    "slope": None,
+                }
+            )
     return details

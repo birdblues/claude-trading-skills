@@ -22,9 +22,9 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime
-from typing import List, Dict, Optional
 import time
+from datetime import datetime
+from typing import Optional
 
 try:
     import requests
@@ -36,11 +36,11 @@ except ImportError:
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from data_quality import (
     calculate_coverage_ratio,
-    calculate_match_ratio,
     calculate_filtered_metrics,
-    reliability_grade,
-    is_tradable_stock,
+    calculate_match_ratio,
     deduplicate_share_classes,
+    is_tradable_stock,
+    reliability_grade,
 )
 
 
@@ -51,18 +51,10 @@ class InstitutionalFlowTracker:
         self.api_key = api_key
         self.base_url = "https://financialmodelingprep.com/api/v3"
 
-    def get_stock_screener(
-        self,
-        market_cap_min: int = 1000000000,
-        limit: int = 100
-    ) -> List[Dict]:
+    def get_stock_screener(self, market_cap_min: int = 1000000000, limit: int = 100) -> list[dict]:
         """Get list of stocks meeting market cap criteria"""
         url = f"{self.base_url}/stock-screener"
-        params = {
-            "marketCapMoreThan": market_cap_min,
-            "limit": limit,
-            "apikey": self.api_key
-        }
+        params = {"marketCapMoreThan": market_cap_min, "limit": limit, "apikey": self.api_key}
 
         try:
             response = requests.get(url, params=params, timeout=30)
@@ -72,7 +64,7 @@ class InstitutionalFlowTracker:
             print(f"Error fetching stock screener: {e}")
             return []
 
-    def get_institutional_holders(self, symbol: str) -> List[Dict]:
+    def get_institutional_holders(self, symbol: str) -> list[dict]:
         """Get institutional holders for a specific stock"""
         url = f"{self.base_url}/institutional-holder/{symbol}"
         params = {"apikey": self.api_key}
@@ -87,11 +79,8 @@ class InstitutionalFlowTracker:
             return []
 
     def calculate_ownership_metrics(
-        self,
-        symbol: str,
-        company_name: str,
-        market_cap: float
-    ) -> Optional[Dict]:
+        self, symbol: str, company_name: str, market_cap: float
+    ) -> Optional[dict]:
         """Calculate institutional ownership metrics for a stock.
 
         Uses data_quality.calculate_filtered_metrics() to compute changes
@@ -105,7 +94,7 @@ class InstitutionalFlowTracker:
         # Group by date to get quarterly snapshots
         quarters = {}
         for holder in holders:
-            date = holder.get('dateReported', '')
+            date = holder.get("dateReported", "")
             if not date:
                 continue
             if date not in quarters:
@@ -141,7 +130,7 @@ class InstitutionalFlowTracker:
         pct_change = filtered["pct_change"]
 
         # Total shares (all holders, for display)
-        current_total_shares = sum(h.get('shares', 0) for h in current_holders)
+        current_total_shares = sum(h.get("shares", 0) for h in current_holders)
 
         # Count institutions with increases vs decreases (genuine only)
         buyers = filtered["buyers"]
@@ -154,40 +143,36 @@ class InstitutionalFlowTracker:
         institution_change = current_count - previous_count if previous_q else 0
 
         # Get top holders sorted by shares held
-        top_holders = sorted(
-            current_holders,
-            key=lambda x: x.get('shares', 0),
-            reverse=True
-        )[:10]
+        top_holders = sorted(current_holders, key=lambda x: x.get("shares", 0), reverse=True)[:10]
 
         top_holder_names = [
             {
-                'name': h.get('holder', 'Unknown'),
-                'shares': h.get('shares', 0),
-                'change': h.get('change', 0)
+                "name": h.get("holder", "Unknown"),
+                "shares": h.get("shares", 0),
+                "change": h.get("change", 0),
             }
             for h in top_holders
         ]
 
         return {
-            'symbol': symbol,
-            'company_name': company_name,
-            'market_cap': market_cap,
-            'current_quarter': current_q,
-            'previous_quarter': previous_q or 'N/A',
-            'current_total_shares': current_total_shares,
-            'previous_total_shares': total_shares_genuine - net_change,
-            'shares_change': net_change,
-            'percent_change': round(pct_change, 2),
-            'current_institution_count': current_count,
-            'previous_institution_count': previous_count,
-            'institution_count_change': institution_change,
-            'buyers': buyers,
-            'sellers': sellers,
-            'unchanged': unchanged,
-            'top_holders': top_holder_names,
-            'reliability_grade': grade,
-            'genuine_ratio': round(genuine_ratio, 4),
+            "symbol": symbol,
+            "company_name": company_name,
+            "market_cap": market_cap,
+            "current_quarter": current_q,
+            "previous_quarter": previous_q or "N/A",
+            "current_total_shares": current_total_shares,
+            "previous_total_shares": total_shares_genuine - net_change,
+            "shares_change": net_change,
+            "percent_change": round(pct_change, 2),
+            "current_institution_count": current_count,
+            "previous_institution_count": previous_count,
+            "institution_count_change": institution_change,
+            "buyers": buyers,
+            "sellers": sellers,
+            "unchanged": unchanged,
+            "top_holders": top_holder_names,
+            "reliability_grade": grade,
+            "genuine_ratio": round(genuine_ratio, 4),
         }
 
     def screen_stocks(
@@ -197,9 +182,9 @@ class InstitutionalFlowTracker:
         min_institutions: int = 10,
         sector: Optional[str] = None,
         top: int = 50,
-        sort_by: str = 'ownership_change',
+        sort_by: str = "ownership_change",
         limit: int = 100,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Screen for stocks with significant institutional changes"""
 
         print(f"Fetching stocks with market cap >= ${min_market_cap:,}...")
@@ -211,18 +196,18 @@ class InstitutionalFlowTracker:
 
         # Filter by sector if specified
         if sector:
-            stocks = [s for s in stocks if s.get('sector', '').lower() == sector.lower()]
+            stocks = [s for s in stocks if s.get("sector", "").lower() == sector.lower()]
             print(f"Filtered to {len(stocks)} stocks in {sector} sector")
 
         # Filter out ETFs and non-tradable stocks early (saves API calls)
         tradable_stocks = []
         for s in stocks:
             profile = {
-                'symbol': s.get('symbol', ''),
-                'companyName': s.get('companyName', ''),
-                'isEtf': s.get('isEtf', False),
-                'isFund': s.get('isFund', False),
-                'isActivelyTrading': s.get('isActivelyTrading', True),
+                "symbol": s.get("symbol", ""),
+                "companyName": s.get("companyName", ""),
+                "isEtf": s.get("isEtf", False),
+                "isFund": s.get("isFund", False),
+                "isActivelyTrading": s.get("isActivelyTrading", True),
             }
             if is_tradable_stock(profile):
                 tradable_stocks.append(s)
@@ -237,9 +222,9 @@ class InstitutionalFlowTracker:
 
         results = []
         for i, stock in enumerate(stocks, 1):
-            symbol = stock.get('symbol', '')
-            company_name = stock.get('companyName', '')
-            market_cap = stock.get('marketCap', 0)
+            symbol = stock.get("symbol", "")
+            company_name = stock.get("companyName", "")
+            market_cap = stock.get("marketCap", 0)
 
             if i % 10 == 0:
                 print(f"Progress: {i}/{len(stocks)} stocks analyzed...")
@@ -251,8 +236,8 @@ class InstitutionalFlowTracker:
 
             if metrics:
                 # Apply filters
-                if abs(metrics['percent_change']) >= min_change_percent:
-                    if metrics['current_institution_count'] >= min_institutions:
+                if abs(metrics["percent_change"]) >= min_change_percent:
+                    if metrics["current_institution_count"] >= min_institutions:
                         results.append(metrics)
 
         # Deduplicate share classes (BRK-A/B, GOOG/GOOGL, etc.)
@@ -261,15 +246,14 @@ class InstitutionalFlowTracker:
         print(f"\nFound {len(results)} stocks meeting criteria")
 
         # Sort results
-        if sort_by == 'ownership_change':
-            results.sort(key=lambda x: abs(x['percent_change']), reverse=True)
-        elif sort_by == 'institution_count_change':
-            results.sort(key=lambda x: abs(x['institution_count_change']), reverse=True)
+        if sort_by == "ownership_change":
+            results.sort(key=lambda x: abs(x["percent_change"]), reverse=True)
+        elif sort_by == "institution_count_change":
+            results.sort(key=lambda x: abs(x["institution_count_change"]), reverse=True)
 
         return results[:top]
 
-    def generate_report(self, results: List[Dict], output_file: str = None,
-                        output_dir: str = None):
+    def generate_report(self, results: list[dict], output_file: str = None, output_dir: str = None):
         """Generate markdown report from screening results"""
 
         if not results:
@@ -293,61 +277,67 @@ Only stocks with **Grade A or B** data reliability are included. Grade C (unreli
 """
 
         # Top accumulators
-        accumulators = [r for r in results if r['percent_change'] > 0][:10]
+        accumulators = [r for r in results if r["percent_change"] > 0][:10]
         if accumulators:
             report += "\n| Symbol | Company | Ownership Change | Grade | Institution Change | Top Holder |\n"
-            report += "|--------|---------|-----------------|-------|-------------------|------------|\n"
+            report += (
+                "|--------|---------|-----------------|-------|-------------------|------------|\n"
+            )
             for r in accumulators:
-                top_holder = r['top_holders'][0]['name'] if r['top_holders'] else 'N/A'
-                report += (f"| {r['symbol']} | {r['company_name'][:30]} "
-                          f"| **+{r['percent_change']}%** | {r['reliability_grade']} "
-                          f"| +{r['institution_count_change']} | {top_holder[:30]} |\n")
+                top_holder = r["top_holders"][0]["name"] if r["top_holders"] else "N/A"
+                report += (
+                    f"| {r['symbol']} | {r['company_name'][:30]} "
+                    f"| **+{r['percent_change']}%** | {r['reliability_grade']} "
+                    f"| +{r['institution_count_change']} | {top_holder[:30]} |\n"
+                )
         else:
             report += "\nNo significant accumulation detected.\n"
 
         report += "\n**Top Distributors (Institutions Selling):**\n"
 
         # Top distributors
-        distributors = [r for r in results if r['percent_change'] < 0][:10]
+        distributors = [r for r in results if r["percent_change"] < 0][:10]
         if distributors:
             report += "\n| Symbol | Company | Ownership Change | Grade | Institution Change | Previously Top Holder |\n"
             report += "|--------|---------|-----------------|-------|-------------------|-----------------------|\n"
             for r in distributors:
-                top_holder = r['top_holders'][0]['name'] if r['top_holders'] else 'N/A'
-                report += (f"| {r['symbol']} | {r['company_name'][:30]} "
-                          f"| **{r['percent_change']}%** | {r['reliability_grade']} "
-                          f"| {r['institution_count_change']} | {top_holder[:30]} |\n")
+                top_holder = r["top_holders"][0]["name"] if r["top_holders"] else "N/A"
+                report += (
+                    f"| {r['symbol']} | {r['company_name'][:30]} "
+                    f"| **{r['percent_change']}%** | {r['reliability_grade']} "
+                    f"| {r['institution_count_change']} | {top_holder[:30]} |\n"
+                )
         else:
             report += "\nNo significant distribution detected.\n"
 
         report += "\n## Detailed Results\n\n"
 
         for r in results[:20]:  # Top 20 detailed
-            direction = "Accumulation" if r['percent_change'] > 0 else "Distribution"
+            direction = "Accumulation" if r["percent_change"] > 0 else "Distribution"
             grade_label = f"Grade {r['reliability_grade']}"
-            if r['reliability_grade'] == 'B':
+            if r["reliability_grade"] == "B":
                 grade_label += " (Reference Only)"
 
-            report += f"""### {r['symbol']} - {r['company_name']}
+            report += f"""### {r["symbol"]} - {r["company_name"]}
 
-**Signal:** {direction} ({r['percent_change']:+.2f}% institutional ownership change)
-**Data Reliability:** {grade_label} (genuine ratio: {r['genuine_ratio']:.1%})
+**Signal:** {direction} ({r["percent_change"]:+.2f}% institutional ownership change)
+**Data Reliability:** {grade_label} (genuine ratio: {r["genuine_ratio"]:.1%})
 
 **Metrics:**
-- Market Cap: ${r['market_cap']:,.0f}
-- Current Quarter: {r['current_quarter']}
-- Institutions: {r['current_institution_count']} (Buyers: {r.get('buyers', 'N/A')}, Sellers: {r.get('sellers', 'N/A')}, Unchanged: {r.get('unchanged', 'N/A')})
-- Net Shares Change (genuine only): {r['shares_change']:+,.0f}
-- Estimated Previous Total (genuine): {r['previous_total_shares']:,.0f} shares
+- Market Cap: ${r["market_cap"]:,.0f}
+- Current Quarter: {r["current_quarter"]}
+- Institutions: {r["current_institution_count"]} (Buyers: {r.get("buyers", "N/A")}, Sellers: {r.get("sellers", "N/A")}, Unchanged: {r.get("unchanged", "N/A")})
+- Net Shares Change (genuine only): {r["shares_change"]:+,.0f}
+- Estimated Previous Total (genuine): {r["previous_total_shares"]:,.0f} shares
 
 **Top 5 Current Holders:**
 """
-            for i, holder in enumerate(r['top_holders'][:5], 1):
+            for i, holder in enumerate(r["top_holders"][:5], 1):
                 report += f"{i}. {holder['name']}: {holder['shares']:,} shares (Change: {holder['change']:+,})\n"
 
             report += "\n---\n\n"
 
-        report += f"""
+        report += """
 ## Methodology
 
 ### Data Quality Filtering
@@ -397,7 +387,7 @@ For detailed interpretation framework, see:
 
         # Determine output path
         if output_file:
-            output_path = output_file if output_file.endswith('.md') else f"{output_file}.md"
+            output_path = output_file if output_file.endswith(".md") else f"{output_file}.md"
         else:
             filename = f"institutional_flow_screening_{datetime.now().strftime('%Y%m%d')}.md"
             if output_dir:
@@ -406,7 +396,7 @@ For detailed interpretation framework, see:
             else:
                 output_path = filename
 
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             f.write(report)
         print(f"\nReport saved to: {output_path}")
 
@@ -415,7 +405,7 @@ For detailed interpretation framework, see:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Track institutional ownership changes across stocks',
+        description="Track institutional ownership changes across stocks",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -430,68 +420,59 @@ Examples:
 
   # Custom output directory
   python3 track_institutional_flow.py --output-dir reports/
-        """
+        """,
     )
 
     parser.add_argument(
-        '--api-key',
+        "--api-key",
         type=str,
-        default=os.getenv('FMP_API_KEY'),
-        help='FMP API key (or set FMP_API_KEY environment variable)'
+        default=os.getenv("FMP_API_KEY"),
+        help="FMP API key (or set FMP_API_KEY environment variable)",
     )
     parser.add_argument(
-        '--top',
-        type=int,
-        default=50,
-        help='Number of top stocks to return (default: 50)'
+        "--top", type=int, default=50, help="Number of top stocks to return (default: 50)"
     )
     parser.add_argument(
-        '--min-change-percent',
+        "--min-change-percent",
         type=float,
         default=10.0,
-        help='Minimum %% change in institutional ownership (default: 10.0)'
+        help="Minimum %% change in institutional ownership (default: 10.0)",
     )
     parser.add_argument(
-        '--min-market-cap',
+        "--min-market-cap",
         type=int,
         default=1000000000,
-        help='Minimum market cap in dollars (default: 1B)'
+        help="Minimum market cap in dollars (default: 1B)",
     )
     parser.add_argument(
-        '--sector',
-        type=str,
-        help='Filter by specific sector (e.g., Technology, Healthcare)'
+        "--sector", type=str, help="Filter by specific sector (e.g., Technology, Healthcare)"
     )
     parser.add_argument(
-        '--min-institutions',
+        "--min-institutions",
         type=int,
         default=10,
-        help='Minimum number of institutional holders (default: 10)'
+        help="Minimum number of institutional holders (default: 10)",
     )
     parser.add_argument(
-        '--sort-by',
+        "--sort-by",
         type=str,
-        choices=['ownership_change', 'institution_count_change'],
-        default='ownership_change',
-        help='Sort results by metric (default: ownership_change)'
+        choices=["ownership_change", "institution_count_change"],
+        default="ownership_change",
+        help="Sort results by metric (default: ownership_change)",
     )
     parser.add_argument(
-        '--limit',
+        "--limit",
         type=int,
         default=100,
-        help='Number of stocks to fetch from screener (default: 100). '
-             'Lower values save API calls for free tier.'
+        help="Number of stocks to fetch from screener (default: 100). "
+        "Lower values save API calls for free tier.",
     )
+    parser.add_argument("--output", type=str, help="Output file path for JSON results")
     parser.add_argument(
-        '--output',
+        "--output-dir",
         type=str,
-        help='Output file path for JSON results'
-    )
-    parser.add_argument(
-        '--output-dir',
-        type=str,
-        default='reports/',
-        help='Output directory for reports (default: reports/)'
+        default="reports/",
+        help="Output directory for reports (default: reports/)",
     )
 
     args = parser.parse_args()
@@ -519,11 +500,11 @@ Examples:
 
     # Save JSON results if requested
     if args.output:
-        json_output = args.output if args.output.endswith('.json') else f"{args.output}.json"
+        json_output = args.output if args.output.endswith(".json") else f"{args.output}.json"
         if args.output_dir:
             os.makedirs(args.output_dir, exist_ok=True)
             json_output = os.path.join(args.output_dir, os.path.basename(json_output))
-        with open(json_output, 'w') as f:
+        with open(json_output, "w") as f:
             json.dump(results, f, indent=2)
         print(f"JSON results saved to: {json_output}")
 
@@ -532,16 +513,18 @@ Examples:
 
     # Print summary
     if results:
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TOP 10 INSTITUTIONAL FLOW CHANGES (Grade A/B only)")
-        print("="*80)
+        print("=" * 80)
         print(f"{'Symbol':<8} {'Company':<25} {'Change':>10} {'Grade':>6} {'Institutions':>12}")
-        print("-"*80)
+        print("-" * 80)
         for r in results[:10]:
-            print(f"{r['symbol']:<8} {r['company_name'][:25]:<25} "
-                  f"{r['percent_change']:>9.2f}% {r['reliability_grade']:>5} "
-                  f"{r['institution_count_change']:>+11d}")
+            print(
+                f"{r['symbol']:<8} {r['company_name'][:25]:<25} "
+                f"{r['percent_change']:>9.2f}% {r['reliability_grade']:>5} "
+                f"{r['institution_count_change']:>+11d}"
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -15,7 +15,7 @@ Features:
 import os
 import sys
 import time
-from typing import Dict, List, Optional
+from typing import Optional
 
 try:
     import requests
@@ -45,13 +45,13 @@ class FMPClient:
         self.max_retries = 1
         self.api_calls_made = 0
 
-    def _rate_limited_get(self, url: str, params: Optional[Dict] = None) -> Optional[Dict]:
+    def _rate_limited_get(self, url: str, params: Optional[dict] = None) -> Optional[dict]:
         if self.rate_limit_reached:
             return None
 
         if params is None:
             params = {}
-        params['apikey'] = self.api_key
+        params["apikey"] = self.api_key
 
         elapsed = time.time() - self.last_call_time
         if elapsed < self.RATE_LIMIT_DELAY:
@@ -76,14 +76,16 @@ class FMPClient:
                     self.rate_limit_reached = True
                     return None
             else:
-                print(f"ERROR: API request failed: {response.status_code} - {response.text[:200]}",
-                      file=sys.stderr)
+                print(
+                    f"ERROR: API request failed: {response.status_code} - {response.text[:200]}",
+                    file=sys.stderr,
+                )
                 return None
         except requests.exceptions.RequestException as e:
             print(f"ERROR: Request exception: {e}", file=sys.stderr)
             return None
 
-    def get_quote(self, symbols: str) -> Optional[List[Dict]]:
+    def get_quote(self, symbols: str) -> Optional[list[dict]]:
         """Fetch real-time quote data for one or more symbols (comma-separated)"""
         cache_key = f"quote_{symbols}"
         if cache_key in self.cache:
@@ -95,7 +97,7 @@ class FMPClient:
             self.cache[cache_key] = data
         return data
 
-    def get_historical_prices(self, symbol: str, days: int = 365) -> Optional[Dict]:
+    def get_historical_prices(self, symbol: str, days: int = 365) -> Optional[dict]:
         """Fetch historical daily OHLCV data"""
         cache_key = f"prices_{symbol}_{days}"
         if cache_key in self.cache:
@@ -108,40 +110,42 @@ class FMPClient:
             self.cache[cache_key] = data
         return data
 
-    def get_batch_quotes(self, symbols: List[str]) -> Dict[str, Dict]:
+    def get_batch_quotes(self, symbols: list[str]) -> dict[str, dict]:
         """Fetch quotes for a list of symbols, batching up to 5 per request"""
         results = {}
         # FMP supports comma-separated symbols in quote endpoint
         batch_size = 5
         for i in range(0, len(symbols), batch_size):
-            batch = symbols[i:i+batch_size]
+            batch = symbols[i : i + batch_size]
             batch_str = ",".join(batch)
             quotes = self.get_quote(batch_str)
             if quotes:
                 for q in quotes:
-                    results[q['symbol']] = q
+                    results[q["symbol"]] = q
         return results
 
-    def get_batch_historical(self, symbols: List[str], days: int = 50) -> Dict[str, List[Dict]]:
+    def get_batch_historical(self, symbols: list[str], days: int = 50) -> dict[str, list[dict]]:
         """Fetch historical prices for multiple symbols"""
         results = {}
         for symbol in symbols:
             data = self.get_historical_prices(symbol, days=days)
-            if data and 'historical' in data:
-                results[symbol] = data['historical']
+            if data and "historical" in data:
+                results[symbol] = data["historical"]
         return results
 
-    def calculate_ema(self, prices: List[float], period: int) -> float:
+    def calculate_ema(self, prices: list[float], period: int) -> float:
         """Calculate EMA (thin wrapper around math_utils for backward compat)."""
         from calculators.math_utils import calc_ema
+
         return calc_ema(prices, period)
 
-    def calculate_sma(self, prices: List[float], period: int) -> float:
+    def calculate_sma(self, prices: list[float], period: int) -> float:
         """Calculate SMA (thin wrapper around math_utils for backward compat)."""
         from calculators.math_utils import calc_sma
+
         return calc_sma(prices, period)
 
-    def get_vix_term_structure(self) -> Optional[Dict]:
+    def get_vix_term_structure(self) -> Optional[dict]:
         """
         Auto-detect VIX term structure by comparing VIX to VIX3M.
 
@@ -178,7 +182,7 @@ class FMPClient:
             "classification": classification,
         }
 
-    def get_api_stats(self) -> Dict:
+    def get_api_stats(self) -> dict:
         return {
             "cache_entries": len(self.cache),
             "api_calls_made": self.api_calls_made,

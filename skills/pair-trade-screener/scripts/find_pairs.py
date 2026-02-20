@@ -37,7 +37,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from itertools import combinations
 
 import numpy as np
@@ -47,16 +47,16 @@ from scipy import stats
 from statsmodels.tsa.ar_model import AutoReg
 from statsmodels.tsa.stattools import adfuller
 
-
 # =============================================================================
 # FMP API Functions
 # =============================================================================
+
 
 def get_api_key(args_api_key):
     """Get API key from args or environment variable"""
     if args_api_key:
         return args_api_key
-    api_key = os.environ.get('FMP_API_KEY')
+    api_key = os.environ.get("FMP_API_KEY")
     if not api_key:
         print("ERROR: FMP_API_KEY not found. Set environment variable or use --api-key")
         sys.exit(1)
@@ -68,12 +68,12 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
     print(f"\n[1/5] Fetching {sector} sector stocks from FMP API...")
 
     # Use stock screener to get sector stocks
-    url = f"https://financialmodelingprep.com/api/v3/stock-screener"
+    url = "https://financialmodelingprep.com/api/v3/stock-screener"
     params = {
-        'sector': sector,
-        'marketCapMoreThan': min_market_cap,
-        'limit': 1000,
-        'apikey': api_key
+        "sector": sector,
+        "marketCapMoreThan": min_market_cap,
+        "limit": 1000,
+        "apikey": api_key,
     }
 
     try:
@@ -82,20 +82,24 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
         data = response.json()
 
         if not data:
-            print(f"ERROR: No stocks found in {sector} sector with market cap > ${min_market_cap:,}")
+            print(
+                f"ERROR: No stocks found in {sector} sector with market cap > ${min_market_cap:,}"
+            )
             sys.exit(1)
 
         # Extract symbols and basic info
         stocks = []
         for item in data:
-            if item.get('isActivelyTrading', True):
-                stocks.append({
-                    'symbol': item['symbol'],
-                    'name': item.get('companyName', ''),
-                    'marketCap': item.get('marketCap', 0),
-                    'sector': item.get('sector', sector),
-                    'exchange': item.get('exchangeShortName', '')
-                })
+            if item.get("isActivelyTrading", True):
+                stocks.append(
+                    {
+                        "symbol": item["symbol"],
+                        "name": item.get("companyName", ""),
+                        "marketCap": item.get("marketCap", 0),
+                        "sector": item.get("sector", sector),
+                        "exchange": item.get("exchangeShortName", ""),
+                    }
+                )
 
         print(f"  → Found {len(stocks)} stocks in {sector} sector")
         return stocks
@@ -108,25 +112,25 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
 def fetch_historical_prices(symbol, api_key, lookback_days=730):
     """Fetch historical adjusted close prices for a symbol"""
     url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}"
-    params = {'apikey': api_key}
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
 
-        if 'historical' not in data:
+        if "historical" not in data:
             return None
 
         # Extract historical prices
-        historical = data['historical'][:lookback_days]
+        historical = data["historical"][:lookback_days]
         historical = historical[::-1]  # Reverse to chronological order
 
         # Convert to pandas Series
         prices = pd.Series(
-            [item['adjClose'] for item in historical],
-            index=[pd.to_datetime(item['date']) for item in historical],
-            name=symbol
+            [item["adjClose"] for item in historical],
+            index=[pd.to_datetime(item["date"]) for item in historical],
+            name=symbol,
         )
 
         return prices
@@ -143,7 +147,7 @@ def fetch_price_data_batch(symbols, api_key, lookback_days=730):
     failed_symbols = []
 
     for i, symbol in enumerate(symbols, 1):
-        print(f"  [{i}/{len(symbols)}] Fetching {symbol}...", end='', flush=True)
+        print(f"  [{i}/{len(symbols)}] Fetching {symbol}...", end="", flush=True)
 
         prices = fetch_historical_prices(symbol, api_key, lookback_days)
 
@@ -167,6 +171,7 @@ def fetch_price_data_batch(symbols, api_key, lookback_days=730):
 # =============================================================================
 # Statistical Analysis Functions
 # =============================================================================
+
 
 def calculate_correlation(prices_a, prices_b):
     """Calculate Pearson correlation coefficient"""
@@ -192,11 +197,7 @@ def calculate_beta(prices_a, prices_b):
     # Linear regression: A = alpha + beta * B
     slope, intercept, r_value, p_value, std_err = stats.linregress(aligned_b, aligned_a)
 
-    return {
-        'beta': slope,
-        'intercept': intercept,
-        'r_squared': r_value ** 2
-    }
+    return {"beta": slope, "intercept": intercept, "r_squared": r_value**2}
 
 
 def test_cointegration(prices_a, prices_b, beta):
@@ -211,21 +212,21 @@ def test_cointegration(prices_a, prices_b, beta):
 
     # ADF test
     try:
-        result = adfuller(spread, maxlag=1, regression='c')
+        result = adfuller(spread, maxlag=1, regression="c")
         adf_statistic = result[0]
         p_value = result[1]
         critical_values = result[4]
 
         return {
-            'adf_statistic': adf_statistic,
-            'p_value': p_value,
-            'critical_value_1pct': critical_values['1%'],
-            'critical_value_5pct': critical_values['5%'],
-            'critical_value_10pct': critical_values['10%'],
-            'is_cointegrated': p_value < 0.05,
-            'spread': spread
+            "adf_statistic": adf_statistic,
+            "p_value": p_value,
+            "critical_value_1pct": critical_values["1%"],
+            "critical_value_5pct": critical_values["5%"],
+            "critical_value_10pct": critical_values["10%"],
+            "is_cointegrated": p_value < 0.05,
+            "spread": spread,
         }
-    except Exception as e:
+    except Exception:
         return None
 
 
@@ -272,6 +273,7 @@ def calculate_current_zscore(spread, window=90):
 # Pair Analysis
 # =============================================================================
 
+
 def analyze_pair(symbol_a, symbol_b, prices_a, prices_b, min_correlation=0.70):
     """Analyze a single pair for cointegration"""
 
@@ -282,7 +284,7 @@ def analyze_pair(symbol_a, symbol_b, prices_a, prices_b, min_correlation=0.70):
 
     # Step 2: Calculate beta (hedge ratio)
     beta_result = calculate_beta(prices_a, prices_b)
-    beta = beta_result['beta']
+    beta = beta_result["beta"]
 
     # Step 3: Test for cointegration
     coint_result = test_cointegration(prices_a, prices_b, beta)
@@ -291,48 +293,48 @@ def analyze_pair(symbol_a, symbol_b, prices_a, prices_b, min_correlation=0.70):
 
     # Step 4: Calculate half-life (if cointegrated)
     half_life = None
-    if coint_result['is_cointegrated']:
-        half_life = calculate_half_life(coint_result['spread'])
+    if coint_result["is_cointegrated"]:
+        half_life = calculate_half_life(coint_result["spread"])
 
     # Step 5: Calculate current z-score
-    current_zscore = calculate_current_zscore(coint_result['spread'])
+    current_zscore = calculate_current_zscore(coint_result["spread"])
 
     # Step 6: Determine trade signal
-    signal = 'NONE'
+    signal = "NONE"
     if current_zscore is not None:
         if current_zscore > 2.0:
-            signal = 'SHORT'  # Short A, Long B
+            signal = "SHORT"  # Short A, Long B
         elif current_zscore < -2.0:
-            signal = 'LONG'   # Long A, Short B
+            signal = "LONG"  # Long A, Short B
 
     # Step 7: Determine strength rating
-    strength = '☆'
-    if coint_result['p_value'] < 0.01:
-        strength = '★★★'
-    elif coint_result['p_value'] < 0.05:
-        strength = '★★'
+    strength = "☆"
+    if coint_result["p_value"] < 0.01:
+        strength = "★★★"
+    elif coint_result["p_value"] < 0.05:
+        strength = "★★"
 
     return {
-        'pair': f"{symbol_a}/{symbol_b}",
-        'stock_a': symbol_a,
-        'stock_b': symbol_b,
-        'correlation': round(correlation, 4),
-        'beta': round(beta, 4),
-        'cointegration_pvalue': round(coint_result['p_value'], 4),
-        'adf_statistic': round(coint_result['adf_statistic'], 4),
-        'critical_value_5pct': round(coint_result['critical_value_5pct'], 4),
-        'is_cointegrated': coint_result['is_cointegrated'],
-        'half_life_days': round(half_life, 1) if half_life else None,
-        'current_zscore': round(current_zscore, 2) if current_zscore else None,
-        'signal': signal,
-        'strength': strength,
-        'timestamp': datetime.now().isoformat()
+        "pair": f"{symbol_a}/{symbol_b}",
+        "stock_a": symbol_a,
+        "stock_b": symbol_b,
+        "correlation": round(correlation, 4),
+        "beta": round(beta, 4),
+        "cointegration_pvalue": round(coint_result["p_value"], 4),
+        "adf_statistic": round(coint_result["adf_statistic"], 4),
+        "critical_value_5pct": round(coint_result["critical_value_5pct"], 4),
+        "is_cointegrated": coint_result["is_cointegrated"],
+        "half_life_days": round(half_life, 1) if half_life else None,
+        "current_zscore": round(current_zscore, 2) if current_zscore else None,
+        "signal": signal,
+        "strength": strength,
+        "timestamp": datetime.now().isoformat(),
     }
 
 
 def screen_all_pairs(price_data, min_correlation=0.70):
     """Screen all possible pairs from price data"""
-    print(f"\n[3/5] Calculating correlations and testing pairs...")
+    print("\n[3/5] Calculating correlations and testing pairs...")
 
     symbols = list(price_data.keys())
     total_pairs = len(list(combinations(symbols, 2)))
@@ -348,16 +350,13 @@ def screen_all_pairs(price_data, min_correlation=0.70):
         pairs_analyzed += 1
 
         if pairs_analyzed % 10 == 0 or pairs_analyzed == total_pairs:
-            print(f"  [{pairs_analyzed}/{total_pairs}] pairs analyzed...", end='\r', flush=True)
+            print(f"  [{pairs_analyzed}/{total_pairs}] pairs analyzed...", end="\r", flush=True)
 
         result = analyze_pair(
-            symbol_a, symbol_b,
-            price_data[symbol_a],
-            price_data[symbol_b],
-            min_correlation
+            symbol_a, symbol_b, price_data[symbol_a], price_data[symbol_b], min_correlation
         )
 
-        if result and result['is_cointegrated']:
+        if result and result["is_cointegrated"]:
             cointegrated_pairs.append(result)
 
     print(f"\n  → Found {len(cointegrated_pairs)} cointegrated pairs")
@@ -367,20 +366,21 @@ def screen_all_pairs(price_data, min_correlation=0.70):
 
 def rank_pairs(pairs):
     """Rank pairs by statistical strength"""
-    print(f"\n[4/5] Ranking pairs by statistical strength...")
+    print("\n[4/5] Ranking pairs by statistical strength...")
 
     # Sort by p-value (ascending) and then by absolute z-score (descending)
     ranked = sorted(
-        pairs,
-        key=lambda x: (x['cointegration_pvalue'], -abs(x['current_zscore'] or 0))
+        pairs, key=lambda x: (x["cointegration_pvalue"], -abs(x["current_zscore"] or 0))
     )
 
-    print(f"  → Top 10 pairs:")
+    print("  → Top 10 pairs:")
     for i, pair in enumerate(ranked[:10], 1):
-        print(f"    {i}. {pair['pair']} "
-              f"(p={pair['cointegration_pvalue']:.4f}, "
-              f"z={pair['current_zscore']:.2f}, "
-              f"{pair['strength']})")
+        print(
+            f"    {i}. {pair['pair']} "
+            f"(p={pair['cointegration_pvalue']:.4f}, "
+            f"z={pair['current_zscore']:.2f}, "
+            f"{pair['strength']})"
+        )
 
     return ranked
 
@@ -389,21 +389,22 @@ def rank_pairs(pairs):
 # Output
 # =============================================================================
 
+
 def save_results(pairs, output_file):
     """Save results to JSON file"""
     print(f"\n[5/5] Saving results to {output_file}...")
 
     output_data = {
-        'metadata': {
-            'generated_at': datetime.now().isoformat(),
-            'total_pairs': len(pairs),
-            'cointegrated_pairs': sum(1 for p in pairs if p['is_cointegrated']),
-            'active_signals': sum(1 for p in pairs if p['signal'] != 'NONE')
+        "metadata": {
+            "generated_at": datetime.now().isoformat(),
+            "total_pairs": len(pairs),
+            "cointegrated_pairs": sum(1 for p in pairs if p["is_cointegrated"]),
+            "active_signals": sum(1 for p in pairs if p["signal"] != "NONE"),
         },
-        'pairs': pairs
+        "pairs": pairs,
     }
 
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(output_data, f, indent=2)
 
     print(f"  → Saved {len(pairs)} pairs to {output_file}")
@@ -413,21 +414,21 @@ def save_results(pairs, output_file):
 
 def print_summary(pairs):
     """Print summary to console"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PAIR TRADING SCREEN SUMMARY")
-    print("="*70)
+    print("=" * 70)
 
-    cointegrated = [p for p in pairs if p['is_cointegrated']]
-    with_signals = [p for p in cointegrated if p['signal'] != 'NONE']
+    cointegrated = [p for p in pairs if p["is_cointegrated"]]
+    with_signals = [p for p in cointegrated if p["signal"] != "NONE"]
 
     print(f"\nTotal pairs analyzed: {len(pairs)}")
     print(f"Cointegrated pairs: {len(cointegrated)}")
     print(f"Pairs with trade signals: {len(with_signals)}")
 
     if with_signals:
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print("ACTIVE TRADE SIGNALS")
-        print("="*70)
+        print("=" * 70)
 
         for pair in with_signals[:10]:
             print(f"\nPair: {pair['pair']}")
@@ -435,19 +436,24 @@ def print_summary(pairs):
             print(f"  Z-Score: {pair['current_zscore']:.2f}")
             print(f"  Correlation: {pair['correlation']:.4f}")
             print(f"  P-Value: {pair['cointegration_pvalue']:.4f}")
-            print(f"  Half-Life: {pair['half_life_days']:.1f} days" if pair['half_life_days'] else "  Half-Life: N/A")
+            print(
+                f"  Half-Life: {pair['half_life_days']:.1f} days"
+                if pair["half_life_days"]
+                else "  Half-Life: N/A"
+            )
             print(f"  Strength: {pair['strength']}")
 
-    print(f"\n{'='*70}\n")
+    print(f"\n{'=' * 70}\n")
 
 
 # =============================================================================
 # Main
 # =============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description='Screen for cointegrated stock pairs suitable for pair trading',
+        description="Screen for cointegrated stock pairs suitable for pair trading",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -459,23 +465,42 @@ Examples:
 
   # Adjust parameters
   python find_pairs.py --sector Financials --min-correlation 0.75 --lookback-days 365
-        """
+        """,
     )
 
-    parser.add_argument('--sector', type=str,
-                        help='Sector to screen (Technology, Financials, Healthcare, etc.)')
-    parser.add_argument('--symbols', type=str,
-                        help='Comma-separated list of stock symbols (alternative to --sector)')
-    parser.add_argument('--min-correlation', type=float, default=0.70,
-                        help='Minimum correlation threshold (default: 0.70)')
-    parser.add_argument('--min-market-cap', type=float, default=2_000_000_000,
-                        help='Minimum market cap filter in dollars (default: $2B)')
-    parser.add_argument('--lookback-days', type=int, default=730,
-                        help='Historical data lookback period in days (default: 730)')
-    parser.add_argument('--output', type=str, default='pair_analysis.json',
-                        help='Output JSON file (default: pair_analysis.json)')
-    parser.add_argument('--api-key', type=str,
-                        help='FMP API key (or set FMP_API_KEY env variable)')
+    parser.add_argument(
+        "--sector", type=str, help="Sector to screen (Technology, Financials, Healthcare, etc.)"
+    )
+    parser.add_argument(
+        "--symbols",
+        type=str,
+        help="Comma-separated list of stock symbols (alternative to --sector)",
+    )
+    parser.add_argument(
+        "--min-correlation",
+        type=float,
+        default=0.70,
+        help="Minimum correlation threshold (default: 0.70)",
+    )
+    parser.add_argument(
+        "--min-market-cap",
+        type=float,
+        default=2_000_000_000,
+        help="Minimum market cap filter in dollars (default: $2B)",
+    )
+    parser.add_argument(
+        "--lookback-days",
+        type=int,
+        default=730,
+        help="Historical data lookback period in days (default: 730)",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="pair_analysis.json",
+        help="Output JSON file (default: pair_analysis.json)",
+    )
+    parser.add_argument("--api-key", type=str, help="FMP API key (or set FMP_API_KEY env variable)")
 
     args = parser.parse_args()
 
@@ -489,10 +514,10 @@ Examples:
     # Get API key
     api_key = get_api_key(args.api_key)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PAIR TRADE SCREENER")
-    print("="*70)
-    print(f"Configuration:")
+    print("=" * 70)
+    print("Configuration:")
     print(f"  Min Correlation: {args.min_correlation}")
     print(f"  Lookback Days: {args.lookback_days}")
     print(f"  Min Market Cap: ${args.min_market_cap:,.0f}")
@@ -500,9 +525,9 @@ Examples:
     # Get list of stocks to analyze
     if args.sector:
         stocks = fetch_sector_stocks(args.sector, api_key, args.min_market_cap)
-        symbols = [s['symbol'] for s in stocks]
+        symbols = [s["symbol"] for s in stocks]
     else:
-        symbols = [s.strip().upper() for s in args.symbols.split(',')]
+        symbols = [s.strip().upper() for s in args.symbols.split(",")]
 
     # Fetch price data
     price_data = fetch_price_data_batch(symbols, api_key, args.lookback_days)
@@ -531,5 +556,5 @@ Examples:
     print_summary(ranked_pairs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

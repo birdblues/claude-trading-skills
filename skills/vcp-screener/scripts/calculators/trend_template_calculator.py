@@ -18,15 +18,15 @@ Scoring: Each criterion = 14.3 points (7 x 14.3 = ~100)
 Pass threshold: >= 85 (must meet at least 6 of 7 criteria)
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 def calculate_trend_template(
-    historical_prices: List[Dict],
-    quote_data: Dict,
+    historical_prices: list[dict],
+    quote_data: dict,
     rs_rank: Optional[int] = None,
     ext_threshold: float = 8.0,
-) -> Dict:
+) -> dict:
     """
     Evaluate stock against Minervini's 7-point Trend Template.
 
@@ -64,7 +64,8 @@ def calculate_trend_template(
         c1_pass = price > sma150
     criteria["c1_price_above_sma150_200"] = {
         "passed": c1_pass,
-        "detail": f"Price ${price:.2f} vs SMA150 ${sma150:.2f}" + (f" / SMA200 ${sma200:.2f}" if sma200 else ""),
+        "detail": f"Price ${price:.2f} vs SMA150 ${sma150:.2f}"
+        + (f" / SMA200 ${sma200:.2f}" if sma200 else ""),
     }
 
     # Criterion 2: SMA150 > SMA200
@@ -73,7 +74,9 @@ def calculate_trend_template(
         c2_pass = sma150 > sma200
     criteria["c2_sma150_above_sma200"] = {
         "passed": c2_pass,
-        "detail": f"SMA150 ${sma150:.2f} vs SMA200 ${sma200:.2f}" if sma150 and sma200 else "Insufficient data",
+        "detail": f"SMA150 ${sma150:.2f} vs SMA200 ${sma200:.2f}"
+        if sma150 and sma200
+        else "Insufficient data",
     }
 
     # Criterion 3: SMA200 trending up for 22+ trading days
@@ -177,7 +180,9 @@ def calculate_trend_template(
         "raw_score": raw_score,
         "passed": passed,
         "extended_penalty": extended_penalty,
-        "sma50_distance_pct": round(sma50_distance_pct, 2) if sma50_distance_pct is not None else None,
+        "sma50_distance_pct": round(sma50_distance_pct, 2)
+        if sma50_distance_pct is not None
+        else None,
         "criteria_passed": passed_count,
         "criteria_total": 7,
         "criteria": criteria,
@@ -211,17 +216,17 @@ def _calculate_extended_penalty(
         return 0, distance_pct
 
     excess = distance_pct - base_threshold
-    if excess >= 17:       # base+17% (default: 25%+)
+    if excess >= 17:  # base+17% (default: 25%+)
         return -20, distance_pct
-    elif excess >= 10:     # base+10% (default: 18%+)
+    elif excess >= 10:  # base+10% (default: 18%+)
         return -15, distance_pct
-    elif excess >= 4:      # base+4%  (default: 12%+)
+    elif excess >= 4:  # base+4%  (default: 12%+)
         return -10, distance_pct
-    else:                  # base+0%  (default: 8%+)
+    else:  # base+0%  (default: 8%+)
         return -5, distance_pct
 
 
-def _sma(prices: List[float], period: int) -> Optional[float]:
+def _sma(prices: list[float], period: int) -> Optional[float]:
     """Calculate Simple Moving Average. Prices are most-recent-first."""
     if len(prices) < period:
         return None

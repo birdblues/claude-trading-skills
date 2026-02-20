@@ -1,17 +1,18 @@
 """Tests for theme_classifier module."""
 
 from calculators.theme_classifier import (
-    classify_themes,
-    get_theme_sector_weights,
-    _majority_direction,
-    enrich_vertical_themes,
-    deduplicate_themes,
     SECTOR_REPRESENTATIVE_STOCKS,
+    _majority_direction,
+    classify_themes,
+    deduplicate_themes,
+    enrich_vertical_themes,
+    get_theme_sector_weights,
 )
 
 
-def _make_ranked_industry(name, rank, weighted_return, direction, sector,
-                          rank_direction=None, **kwargs):
+def _make_ranked_industry(
+    name, rank, weighted_return, direction, sector, rank_direction=None, **kwargs
+):
     """Helper to create a ranked industry dict."""
     d = {
         "name": name,
@@ -79,12 +80,9 @@ class TestClassifyThemes:
 
     def test_cross_sector_bullish(self):
         ranked = [
-            _make_ranked_industry("Ind A", 1, 10.0, "bullish", "Tech",
-                                  rank_direction="bullish"),
-            _make_ranked_industry("Ind B", 2, 8.0, "bullish", "Tech",
-                                  rank_direction="bullish"),
-            _make_ranked_industry("Ind C", 3, 5.0, "bullish", "Health",
-                                  rank_direction="bullish"),
+            _make_ranked_industry("Ind A", 1, 10.0, "bullish", "Tech", rank_direction="bullish"),
+            _make_ranked_industry("Ind B", 2, 8.0, "bullish", "Tech", rank_direction="bullish"),
+            _make_ranked_industry("Ind C", 3, 5.0, "bullish", "Health", rank_direction="bullish"),
         ]
         config = self._make_config()
         themes = classify_themes(ranked, config, top_n=30)
@@ -97,15 +95,27 @@ class TestClassifyThemes:
         # 10 top industries (bullish) + 5 bottom Energy industries (bearish)
         ranked = []
         for i in range(10):
-            ranked.append(_make_ranked_industry(
-                f"Top {i}", i + 1, 10.0 - i, "bullish", "Technology",
-                rank_direction="bullish",
-            ))
+            ranked.append(
+                _make_ranked_industry(
+                    f"Top {i}",
+                    i + 1,
+                    10.0 - i,
+                    "bullish",
+                    "Technology",
+                    rank_direction="bullish",
+                )
+            )
         for i in range(5):
-            ranked.append(_make_ranked_industry(
-                f"Energy {i}", 11 + i, 2.0, "bullish", "Energy",
-                rank_direction="bearish",
-            ))
+            ranked.append(
+                _make_ranked_industry(
+                    f"Energy {i}",
+                    11 + i,
+                    2.0,
+                    "bullish",
+                    "Energy",
+                    rank_direction="bearish",
+                )
+            )
 
         config = {
             "cross_sector_min_matches": 2,
@@ -122,12 +132,9 @@ class TestClassifyThemes:
     def test_cross_sector_bearish_with_rank_direction(self):
         """Cross-sector theme with rank_direction=bearish industries should be bearish."""
         ranked = [
-            _make_ranked_industry("Ind A", 100, 3.0, "bullish", "Tech",
-                                  rank_direction="bearish"),
-            _make_ranked_industry("Ind B", 101, 2.0, "bullish", "Tech",
-                                  rank_direction="bearish"),
-            _make_ranked_industry("Ind C", 102, 1.0, "bullish", "Health",
-                                  rank_direction="bearish"),
+            _make_ranked_industry("Ind A", 100, 3.0, "bullish", "Tech", rank_direction="bearish"),
+            _make_ranked_industry("Ind B", 101, 2.0, "bullish", "Tech", rank_direction="bearish"),
+            _make_ranked_industry("Ind C", 102, 1.0, "bullish", "Health", rank_direction="bearish"),
         ]
         config = self._make_config()
         themes = classify_themes(ranked, config, top_n=150)
@@ -142,7 +149,8 @@ class TestEnrichVerticalThemes:
             "theme_name": "Oil & Gas (Energy)",
             "direction": "bullish",
             "matching_industries": [
-                {"name": "Oil & Gas E&P"}, {"name": "Oil & Gas Integrated"},
+                {"name": "Oil & Gas E&P"},
+                {"name": "Oil & Gas Integrated"},
                 {"name": "Oil & Gas Midstream"},
             ],
             "proxy_etfs": ["XLE", "XOP"],
@@ -153,7 +161,8 @@ class TestEnrichVerticalThemes:
             "theme_name": "Energy Sector Concentration",
             "direction": "bullish",
             "matching_industries": [
-                {"name": "Oil & Gas E&P"}, {"name": "Oil & Gas Integrated"},
+                {"name": "Oil & Gas E&P"},
+                {"name": "Oil & Gas Integrated"},
                 {"name": "Oil & Gas Drilling"},
             ],
             "proxy_etfs": [],
@@ -204,7 +213,8 @@ class TestDeduplicateThemes:
             "theme_name": "Oil & Gas (Energy)",
             "direction": "bullish",
             "matching_industries": [
-                {"name": "Oil & Gas E&P"}, {"name": "Oil & Gas Integrated"},
+                {"name": "Oil & Gas E&P"},
+                {"name": "Oil & Gas Integrated"},
                 {"name": "Oil & Gas Midstream"},
             ],
             "theme_origin": "seed",
@@ -213,7 +223,8 @@ class TestDeduplicateThemes:
             "theme_name": "Energy Sector Concentration",
             "direction": "bullish",
             "matching_industries": [
-                {"name": "Oil & Gas E&P"}, {"name": "Oil & Gas Integrated"},
+                {"name": "Oil & Gas E&P"},
+                {"name": "Oil & Gas Integrated"},
                 {"name": "Oil & Gas Drilling"},
             ],
             "theme_origin": "vertical",
@@ -228,7 +239,8 @@ class TestDeduplicateThemes:
             "theme_name": "Oil & Gas (Energy)",
             "direction": "bullish",
             "matching_industries": [
-                {"name": "Oil & Gas E&P"}, {"name": "Oil & Gas Integrated"},
+                {"name": "Oil & Gas E&P"},
+                {"name": "Oil & Gas Integrated"},
             ],
             "theme_origin": "seed",
         }
@@ -236,7 +248,8 @@ class TestDeduplicateThemes:
             "theme_name": "Energy Sector Concentration",
             "direction": "bearish",
             "matching_industries": [
-                {"name": "Oil & Gas E&P"}, {"name": "Oil & Gas Integrated"},
+                {"name": "Oil & Gas E&P"},
+                {"name": "Oil & Gas Integrated"},
             ],
             "theme_origin": "vertical",
         }
@@ -249,7 +262,10 @@ class TestDeduplicateThemes:
             "theme_name": "Theme A",
             "direction": "bullish",
             "matching_industries": [
-                {"name": "Ind A"}, {"name": "Ind B"}, {"name": "Ind C"}, {"name": "Ind D"},
+                {"name": "Ind A"},
+                {"name": "Ind B"},
+                {"name": "Ind C"},
+                {"name": "Ind D"},
             ],
             "theme_origin": "seed",
         }
@@ -257,7 +273,10 @@ class TestDeduplicateThemes:
             "theme_name": "Sector X Concentration",
             "direction": "bullish",
             "matching_industries": [
-                {"name": "Ind A"}, {"name": "Ind E"}, {"name": "Ind F"}, {"name": "Ind G"},
+                {"name": "Ind A"},
+                {"name": "Ind E"},
+                {"name": "Ind F"},
+                {"name": "Ind G"},
             ],
             "theme_origin": "vertical",
         }

@@ -1,11 +1,9 @@
 """Tests for allocation_engine.py"""
 
-import pytest
-
 from allocation_engine import (
-    generate_allocation,
-    calculate_position_sizing,
     ZONE_BASE_ALLOCATIONS,
+    calculate_position_sizing,
+    generate_allocation,
 )
 
 
@@ -16,9 +14,7 @@ class TestBaseAllocations:
         """Every zone's base allocation must sum to 100%."""
         for zone, alloc in ZONE_BASE_ALLOCATIONS.items():
             total = sum(alloc.values())
-            assert abs(total - 100) < 0.01, (
-                f"Zone '{zone}' sums to {total}, expected 100"
-            )
+            assert abs(total - 100) < 0.01, f"Zone '{zone}' sums to {total}, expected 100"
 
     def test_all_zones_present(self):
         assert "Maximum Conviction" in ZONE_BASE_ALLOCATIONS
@@ -87,31 +83,41 @@ class TestGenerateAllocation:
     def test_contraction_regime_shifts_to_defensive(self):
         """Contraction regime should reduce equity vs broadening."""
         broadening = generate_allocation(
-            conviction_score=60, zone="High Conviction",
-            pattern="wait_and_observe", regime="broadening",
+            conviction_score=60,
+            zone="High Conviction",
+            pattern="wait_and_observe",
+            regime="broadening",
         )
         contraction = generate_allocation(
-            conviction_score=60, zone="High Conviction",
-            pattern="wait_and_observe", regime="contraction",
+            conviction_score=60,
+            zone="High Conviction",
+            pattern="wait_and_observe",
+            regime="contraction",
         )
         assert contraction["equity"] < broadening["equity"]
 
     def test_wait_pattern_raises_cash(self):
         """wait_and_observe pattern should increase cash allocation."""
         active = generate_allocation(
-            conviction_score=60, zone="High Conviction",
-            pattern="policy_pivot_anticipation", regime="broadening",
+            conviction_score=60,
+            zone="High Conviction",
+            pattern="policy_pivot_anticipation",
+            regime="broadening",
         )
         wait = generate_allocation(
-            conviction_score=60, zone="High Conviction",
-            pattern="wait_and_observe", regime="broadening",
+            conviction_score=60,
+            zone="High Conviction",
+            pattern="wait_and_observe",
+            regime="broadening",
         )
         assert wait["cash"] >= active["cash"]
 
     def test_output_has_all_asset_classes(self):
         result = generate_allocation(
-            conviction_score=50, zone="Moderate Conviction",
-            pattern="wait_and_observe", regime="transitional",
+            conviction_score=50,
+            zone="Moderate Conviction",
+            pattern="wait_and_observe",
+            regime="transitional",
         )
         assert "equity" in result
         assert "cash" in result
@@ -120,8 +126,10 @@ class TestGenerateAllocation:
 
     def test_all_values_non_negative(self):
         result = generate_allocation(
-            conviction_score=50, zone="Moderate Conviction",
-            pattern="wait_and_observe", regime="transitional",
+            conviction_score=50,
+            zone="Moderate Conviction",
+            pattern="wait_and_observe",
+            regime="transitional",
         )
         for k, v in result.items():
             if k != "rationale":
@@ -130,12 +138,16 @@ class TestGenerateAllocation:
     def test_extreme_contrarian_boosts_equity(self):
         """Extreme contrarian (FTD confirmed in bear) should be aggressive."""
         normal = generate_allocation(
-            conviction_score=40, zone="Moderate Conviction",
-            pattern="wait_and_observe", regime="contraction",
+            conviction_score=40,
+            zone="Moderate Conviction",
+            pattern="wait_and_observe",
+            regime="contraction",
         )
         contrarian = generate_allocation(
-            conviction_score=40, zone="Moderate Conviction",
-            pattern="extreme_sentiment_contrarian", regime="contraction",
+            conviction_score=40,
+            zone="Moderate Conviction",
+            pattern="extreme_sentiment_contrarian",
+            regime="contraction",
         )
         assert contrarian["equity"] >= normal["equity"]
 

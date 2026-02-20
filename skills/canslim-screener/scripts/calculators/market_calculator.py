@@ -16,12 +16,12 @@ Scoring:
 - 0: Bear market (S&P 500 well below 50-EMA OR VIX >30) - DO NOT BUY
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 
-def calculate_market_direction(sp500_quote: Dict,
-                               sp500_prices: Optional[List[Dict]] = None,
-                               vix_quote: Optional[Dict] = None) -> Dict:
+def calculate_market_direction(
+    sp500_quote: dict, sp500_prices: Optional[list[dict]] = None, vix_quote: Optional[dict] = None
+) -> dict:
     """
     Calculate M component score based on S&P 500 trend and VIX
 
@@ -47,7 +47,7 @@ def calculate_market_direction(sp500_quote: Dict,
             "score": 50,  # Default to neutral if data unavailable
             "error": "S&P 500 quote data missing",
             "trend": "unknown",
-            "interpretation": "Market data unavailable"
+            "interpretation": "Market data unavailable",
         }
 
     sp500_price = sp500_quote.get("price")
@@ -56,7 +56,7 @@ def calculate_market_direction(sp500_quote: Dict,
             "score": 50,
             "error": "S&P 500 price missing",
             "trend": "unknown",
-            "interpretation": "Market data unavailable"
+            "interpretation": "Market data unavailable",
         }
 
     # Calculate or estimate 50-day EMA
@@ -100,8 +100,10 @@ def calculate_market_direction(sp500_quote: Dict,
     # Warning for bear market
     warning = None
     if score == 0:
-        warning = ("⚠️ BEAR MARKET - Do not buy stocks regardless of C, A, N scores. "
-                  "Raise 80-100% cash and wait for market recovery.")
+        warning = (
+            "⚠️ BEAR MARKET - Do not buy stocks regardless of C, A, N scores. "
+            "Raise 80-100% cash and wait for market recovery."
+        )
 
     return {
         "score": score,
@@ -112,11 +114,11 @@ def calculate_market_direction(sp500_quote: Dict,
         "vix_level": vix_level,
         "interpretation": interpretation,
         "warning": warning,
-        "error": None
+        "error": None,
     }
 
 
-def calculate_ema(prices: List[float], period: int = 50) -> float:
+def calculate_ema(prices: list[float], period: int = 50) -> float:
     """
     Calculate Exponential Moving Average
 
@@ -175,15 +177,12 @@ def score_market_direction(trend: str, vix_level: Optional[float]) -> int:
         if vix_level < 15:
             base_score += 10  # Low fear, bullish
         elif vix_level > 30:
-            base_score = 0    # Panic mode - override trend
+            base_score = 0  # Panic mode - override trend
 
     return min(max(base_score, 0), 100)
 
 
-def interpret_market_score(score: int,
-                           trend: str,
-                           distance: float,
-                           vix: Optional[float]) -> str:
+def interpret_market_score(score: int, trend: str, distance: float, vix: Optional[float]) -> str:
     """
     Generate human-readable market interpretation
 
@@ -238,7 +237,7 @@ if __name__ == "__main__":
     result3 = calculate_market_direction(test_sp500_3, vix_quote=test_vix_3)
     print(f"Test 3: Bear Market - Score: {result3['score']}")
     print(f"  {result3['interpretation']}")
-    if result3['warning']:
+    if result3["warning"]:
         print(f"  {result3['warning']}\n")
 
     print("✓ All tests completed")

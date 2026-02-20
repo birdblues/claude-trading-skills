@@ -30,8 +30,7 @@ Zone Detail (7-level refinement):
   0-19:   Bear
 """
 
-from typing import Dict, List, Optional
-
+from typing import Optional
 
 COMPONENT_WEIGHTS = {
     "market_breadth": 0.30,
@@ -58,10 +57,12 @@ WARNING_PENALTIES = {
 MULTI_WARNING_DISCOUNT = 1  # Reduce total penalty by this when multiple warnings
 
 
-def calculate_composite_score(component_scores: Dict[str, float],
-                              data_availability: Optional[Dict[str, bool]] = None,
-                              warning_flags: Optional[Dict[str, bool]] = None,
-                              historical_data_points: Optional[int] = None) -> Dict:
+def calculate_composite_score(
+    component_scores: dict[str, float],
+    data_availability: Optional[dict[str, bool]] = None,
+    warning_flags: Optional[dict[str, bool]] = None,
+    historical_data_points: Optional[int] = None,
+) -> dict:
     """
     Calculate weighted composite market health score.
 
@@ -101,8 +102,7 @@ def calculate_composite_score(component_scores: Dict[str, float],
     composite = round(min(100, max(0, composite_raw + warning_penalty)), 1)
 
     # Identify strongest and weakest components
-    valid_scores = {k: v for k, v in component_scores.items()
-                    if k in COMPONENT_WEIGHTS}
+    valid_scores = {k: v for k, v in component_scores.items() if k in COMPONENT_WEIGHTS}
 
     if valid_scores:
         strongest = max(valid_scores, key=valid_scores.get)
@@ -124,24 +124,22 @@ def calculate_composite_score(component_scores: Dict[str, float],
     active_warnings, zone_info = _apply_warning_overlays(zone_info, warning_flags)
 
     # Calculate data quality
-    available_count = sum(
-        1 for k in COMPONENT_WEIGHTS
-        if data_availability.get(k, True)
-    )
+    available_count = sum(1 for k in COMPONENT_WEIGHTS if data_availability.get(k, True))
     total_components = len(COMPONENT_WEIGHTS)
     missing_components = [
-        COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS
-        if not data_availability.get(k, True)
+        COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS if not data_availability.get(k, True)
     ]
 
     if available_count == total_components:
         quality_label = f"Complete ({available_count}/{total_components} components)"
     elif available_count >= total_components - 1:
-        quality_label = (f"Partial ({available_count}/{total_components} components)"
-                        " - interpret with caution")
+        quality_label = (
+            f"Partial ({available_count}/{total_components} components) - interpret with caution"
+        )
     else:
-        quality_label = (f"Limited ({available_count}/{total_components} components)"
-                        " - low confidence")
+        quality_label = (
+            f"Limited ({available_count}/{total_components} components) - low confidence"
+        )
 
     data_quality = {
         "available_count": available_count,
@@ -186,7 +184,7 @@ def calculate_composite_score(component_scores: Dict[str, float],
     }
 
 
-def _calculate_warning_penalties(warning_flags: Dict[str, bool]) -> Dict:
+def _calculate_warning_penalties(warning_flags: dict[str, bool]) -> dict:
     """Calculate composite score penalties from active warnings.
 
     Returns:
@@ -229,7 +227,7 @@ def _interpret_zone_detail(composite: float) -> str:
         return "Bear"
 
 
-def _calculate_zone_proximity(composite: float) -> Dict:
+def _calculate_zone_proximity(composite: float) -> dict:
     """Calculate proximity to nearest zone boundary.
 
     Boundaries are at 20, 40, 60, 80.
@@ -247,7 +245,9 @@ def _calculate_zone_proximity(composite: float) -> Dict:
     else:
         direction = "at"
 
-    label = f"Near boundary: {distance:+.1f} points from {nearest} ({direction})" if at_boundary else ""
+    label = (
+        f"Near boundary: {distance:+.1f} points from {nearest} ({direction})" if at_boundary else ""
+    )
 
     return {
         "nearest_boundary": nearest,
@@ -257,8 +257,7 @@ def _calculate_zone_proximity(composite: float) -> Dict:
     }
 
 
-def _apply_warning_overlays(zone_info: Dict,
-                            warning_flags: Dict[str, bool]) -> tuple:
+def _apply_warning_overlays(zone_info: dict, warning_flags: dict[str, bool]) -> tuple:
     """Apply warning-driven adjustments to zone guidance and actions.
 
     When component-level warnings (e.g. late_cycle, high_spread) are active,
@@ -272,46 +271,58 @@ def _apply_warning_overlays(zone_info: Dict,
     active = []
 
     if warning_flags.get("late_cycle"):
-        active.append({
-            "flag": "late_cycle",
-            "label": "LATE CYCLE WARNING",
-            "description": ("Commodity sectors leading both cyclical and defensive groups. "
-                            "Historically associated with late-cycle inflation or sector rotation "
-                            "preceding broader market weakness."),
-            "actions": [
-                "Favor lower end of exposure range (e.g. 80% if guidance is 80-100%)",
-                "New entries limited to A-grade setups only",
-                "Tighten stops on commodity/cyclical positions",
-                "Monitor for commodity rollover as potential broad market lead indicator",
-            ],
-        })
+        active.append(
+            {
+                "flag": "late_cycle",
+                "label": "LATE CYCLE WARNING",
+                "description": (
+                    "Commodity sectors leading both cyclical and defensive groups. "
+                    "Historically associated with late-cycle inflation or sector rotation "
+                    "preceding broader market weakness."
+                ),
+                "actions": [
+                    "Favor lower end of exposure range (e.g. 80% if guidance is 80-100%)",
+                    "New entries limited to A-grade setups only",
+                    "Tighten stops on commodity/cyclical positions",
+                    "Monitor for commodity rollover as potential broad market lead indicator",
+                ],
+            }
+        )
 
     if warning_flags.get("high_spread"):
-        active.append({
-            "flag": "high_spread",
-            "label": "HIGH SELECTIVITY WARNING",
-            "description": ("Wide spread between strongest and weakest sectors indicates "
-                            "highly selective market. Breadth may be masking narrowing leadership."),
-            "actions": [
-                "Concentrate on sectors with ratio above 10MA",
-                "Avoid lagging sectors even if trend is nominally 'up'",
-                "Reduce position count to highest-conviction ideas",
-            ],
-        })
+        active.append(
+            {
+                "flag": "high_spread",
+                "label": "HIGH SELECTIVITY WARNING",
+                "description": (
+                    "Wide spread between strongest and weakest sectors indicates "
+                    "highly selective market. Breadth may be masking narrowing leadership."
+                ),
+                "actions": [
+                    "Concentrate on sectors with ratio above 10MA",
+                    "Avoid lagging sectors even if trend is nominally 'up'",
+                    "Reduce position count to highest-conviction ideas",
+                ],
+            }
+        )
 
     if warning_flags.get("divergence"):
-        active.append({
-            "flag": "divergence",
-            "label": "SECTOR DIVERGENCE WARNING",
-            "description": ("Significant divergence detected within sector groups. "
-                            "Some sectors within the same group are moving in opposite "
-                            "directions, suggesting hidden risk beneath the averages."),
-            "actions": [
-                "Verify individual sector trends before entering positions",
-                "Avoid sectors diverging from their group majority",
-                "Monitor for group convergence or further deterioration",
-            ],
-        })
+        active.append(
+            {
+                "flag": "divergence",
+                "label": "SECTOR DIVERGENCE WARNING",
+                "description": (
+                    "Significant divergence detected within sector groups. "
+                    "Some sectors within the same group are moving in opposite "
+                    "directions, suggesting hidden risk beneath the averages."
+                ),
+                "actions": [
+                    "Verify individual sector trends before entering positions",
+                    "Avoid sectors diverging from their group majority",
+                    "Monitor for group convergence or further deterioration",
+                ],
+            }
+        )
 
     # If any warning is active, tighten exposure guidance for bullish zones
     if active and zone_info["zone"] in ("Strong Bull", "Bull"):
@@ -321,14 +332,13 @@ def _apply_warning_overlays(zone_info: Dict,
         elif zone_info["zone"] == "Bull":
             zone_info["exposure_guidance"] = "Normal Exposure, Lower End (80-90%)"
         zone_info["guidance"] += (
-            " However, active warnings suggest operating at the conservative "
-            "end of the range."
+            " However, active warnings suggest operating at the conservative end of the range."
         )
 
     return active, zone_info
 
 
-def _interpret_zone(composite: float) -> Dict:
+def _interpret_zone(composite: float) -> dict:
     """Map composite score to health zone (higher = healthier)"""
     if composite >= 80:
         return {

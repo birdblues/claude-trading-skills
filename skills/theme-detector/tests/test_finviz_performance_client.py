@@ -1,6 +1,6 @@
 """Tests for finviz_performance_client outlier winsorization."""
 
-from finviz_performance_client import cap_outlier_performances, _apply_hard_caps, HARD_CAPS
+from finviz_performance_client import HARD_CAPS, _apply_hard_caps, cap_outlier_performances
 
 
 class TestCapOutlierPerformances:
@@ -21,8 +21,9 @@ class TestCapOutlierPerformances:
             for i in range(20)
         ]
         # Add extreme outlier
-        data.append({"name": "Outlier", "perf_1w": 99.0, "perf_1m": 5.0,
-                      "perf_3m": 10.0, "perf_6m": 15.0})
+        data.append(
+            {"name": "Outlier", "perf_1w": 99.0, "perf_1m": 5.0, "perf_3m": 10.0, "perf_6m": 15.0}
+        )
         result = cap_outlier_performances(data)
         outlier = next(r for r in result if r["name"] == "Outlier")
         # Should be capped and original preserved
@@ -35,8 +36,9 @@ class TestCapOutlierPerformances:
             {"name": f"I{i}", "perf_1w": 2.0, "perf_1m": 5.0, "perf_3m": 10.0, "perf_6m": 15.0}
             for i in range(20)
         ]
-        data.append({"name": "Extreme", "perf_1w": -99.0, "perf_1m": 5.0,
-                      "perf_3m": 10.0, "perf_6m": 15.0})
+        data.append(
+            {"name": "Extreme", "perf_1w": -99.0, "perf_1m": 5.0, "perf_3m": 10.0, "perf_6m": 15.0}
+        )
         result = cap_outlier_performances(data)
         extreme = next(r for r in result if r["name"] == "Extreme")
         assert "raw_perf_1w" in extreme
@@ -111,15 +113,17 @@ class TestApplyHardCaps:
 
     def test_all_perf_keys_capped(self):
         """All perf_* keys should be capped at their respective limits."""
-        data = [{
-            "name": "A",
-            "perf_1w": 999.0,
-            "perf_1m": 999.0,
-            "perf_3m": 999.0,
-            "perf_6m": 999.0,
-            "perf_1y": 999.0,
-            "perf_ytd": 999.0,
-        }]
+        data = [
+            {
+                "name": "A",
+                "perf_1w": 999.0,
+                "perf_1m": 999.0,
+                "perf_3m": 999.0,
+                "perf_6m": 999.0,
+                "perf_1y": 999.0,
+                "perf_ytd": 999.0,
+            }
+        ]
         _apply_hard_caps(data)
         for key, cap in HARD_CAPS.items():
             assert data[0][key] == cap

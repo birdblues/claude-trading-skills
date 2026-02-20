@@ -6,7 +6,9 @@ Critical decision point for Phase 2 implementation
 
 import os
 import sys
+
 import requests
+
 
 def test_institutional_endpoint():
     """
@@ -17,7 +19,7 @@ def test_institutional_endpoint():
               False if endpoint restricted (Fallback Implementation)
     """
     # Get API key
-    api_key = os.environ.get('FMP_API_KEY')
+    api_key = os.environ.get("FMP_API_KEY")
 
     if not api_key:
         print("ERROR: FMP_API_KEY environment variable not set")
@@ -61,8 +63,10 @@ def test_institutional_endpoint():
                 print()
                 print("Sample data:")
                 for i, holder in enumerate(data[:3]):
-                    print(f"  {i+1}. {holder.get('holder', 'N/A')}: "
-                          f"{holder.get('shares', 0):,} shares")
+                    print(
+                        f"  {i + 1}. {holder.get('holder', 'N/A')}: "
+                        f"{holder.get('shares', 0):,} shares"
+                    )
                 print()
                 print("DECISION: Use Full Implementation (Step 3A)")
                 print("  - Full institutional analysis with holder count and ownership %")

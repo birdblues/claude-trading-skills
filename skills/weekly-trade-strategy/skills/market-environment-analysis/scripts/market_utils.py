@@ -6,7 +6,6 @@ This script provides common functions for market analysis report creation.
 """
 
 from datetime import datetime, timedelta
-import json
 
 
 def get_market_session_times():
@@ -17,7 +16,7 @@ def get_market_session_times():
         "Hong Kong": {"open": "09:30 HKT", "close": "16:00 HKT", "lunch": "12:00-13:00"},
         "Singapore": {"open": "09:00 SGT", "close": "17:00 SGT", "lunch": "12:00-13:00"},
         "London": {"open": "08:00 GMT", "close": "16:30 GMT", "lunch": None},
-        "New York": {"open": "09:30 EST", "close": "16:00 EST", "lunch": None}
+        "New York": {"open": "09:30 EST", "close": "16:00 EST", "lunch": None},
     }
 
 
@@ -29,7 +28,7 @@ def format_market_report_header():
 =====================================
 📊 Daily Market Environment Report
 =====================================
-Created: {now.strftime('%Y-%m-%d')} ({weekdays[now.weekday()]}) {now.strftime('%H:%M')}
+Created: {now.strftime("%Y-%m-%d")} ({weekdays[now.weekday()]}) {now.strftime("%H:%M")}
 =====================================
 """
 
@@ -39,15 +38,15 @@ def calculate_trading_days_to_event(event_date_str):
     # Simple version: excludes weekends (doesn't consider holidays)
     event_date = datetime.strptime(event_date_str, "%Y-%m-%d")
     today = datetime.now().date()
-    
+
     trading_days = 0
     current = today
-    
+
     while current < event_date.date():
         if current.weekday() < 5:  # Monday to Friday
             trading_days += 1
         current += timedelta(days=1)
-    
+
     return trading_days
 
 
@@ -77,9 +76,9 @@ def get_market_status():
     """Determine current market status"""
     now = datetime.now()
     hour = now.hour
-    
+
     status = []
-    
+
     # Simple market open determination (timezone not considered)
     if 9 <= hour < 15:
         status.append("🟢 Tokyo Market: Trading")
@@ -87,12 +86,12 @@ def get_market_status():
         status.append("🔴 Tokyo Market: Closed")
     else:
         status.append("⏰ Tokyo Market: After hours")
-    
+
     if 21 <= hour or hour < 4:
         status.append("🟢 US Market: Trading (previous day)")
     else:
         status.append("🔴 US Market: Closed")
-    
+
     return "\n".join(status)
 
 
@@ -122,6 +121,6 @@ if __name__ == "__main__":
     print(get_market_status())
     print("\nTrading Hours:")
     for market, times in get_market_session_times().items():
-        lunch = f" (Lunch break: {times['lunch']})" if times.get('lunch') else ""
+        lunch = f" (Lunch break: {times['lunch']})" if times.get("lunch") else ""
         print(f"  {market}: {times['open']} - {times['close']}{lunch}")
     print(generate_checklist())

@@ -1,23 +1,24 @@
 """Tests for Component 6: Divergence Calculator — dual-window."""
 
-import pytest
-
 from calculators.divergence_calculator import calculate_divergence
 
 
-def _make_divergence_rows(make_row, n, sp_start=5000, sp_end=5100,
-                          ma8_start=0.50, ma8_end=0.55):
+def _make_divergence_rows(make_row, n, sp_start=5000, sp_end=5100, ma8_start=0.50, ma8_end=0.55):
     """Create n rows with linear interpolation of S&P and 8MA."""
     rows = []
     for i in range(n):
         frac = i / max(n - 1, 1)
         sp = sp_start + (sp_end - sp_start) * frac
         ma8 = ma8_start + (ma8_end - ma8_start) * frac
-        rows.append(make_row(**{
-            "S&P500_Price": sp,
-            "Breadth_Index_8MA": ma8,
-            "Date": f"2025-01-{i + 1:02d}",
-        }))
+        rows.append(
+            make_row(
+                **{
+                    "S&P500_Price": sp,
+                    "Breadth_Index_8MA": ma8,
+                    "Date": f"2025-01-{i + 1:02d}",
+                }
+            )
+        )
     return rows
 
 
@@ -44,25 +45,29 @@ class TestDualWindow:
         """20d bearish (<=25) & 60d healthy (>=50) -> early_warning True."""
         # First 60 rows: SP and breadth both rising strongly
         # -> 60d window sees both up -> score=70 (>=50)
-        rows = _make_divergence_rows(make_row, 60, sp_start=5000, sp_end=5200,
-                                     ma8_start=0.35, ma8_end=0.65)
+        rows = _make_divergence_rows(
+            make_row, 60, sp_start=5000, sp_end=5200, ma8_start=0.35, ma8_end=0.65
+        )
         # Last 20 rows: SP up >3% but breadth down sharply (<-0.05)
         # -> 20d window score=10 (<=25)
         for i in range(20):
             frac = i / 19
-            row = make_row(**{
-                "S&P500_Price": 5200 + 200 * frac,
-                "Breadth_Index_8MA": 0.65 - 0.15 * frac,
-                "Date": f"2025-03-{i + 1:02d}",
-            })
+            row = make_row(
+                **{
+                    "S&P500_Price": 5200 + 200 * frac,
+                    "Breadth_Index_8MA": 0.65 - 0.15 * frac,
+                    "Date": f"2025-03-{i + 1:02d}",
+                }
+            )
             rows.append(row)
         result = calculate_divergence(rows)
         assert result["early_warning"] is True
 
     def test_early_warning_false_when_both_healthy(self, make_row):
         """Both windows healthy -> early_warning False."""
-        rows = _make_divergence_rows(make_row, 80, sp_start=5000, sp_end=5100,
-                                     ma8_start=0.50, ma8_end=0.55)
+        rows = _make_divergence_rows(
+            make_row, 80, sp_start=5000, sp_end=5100, ma8_start=0.50, ma8_end=0.55
+        )
         result = calculate_divergence(rows)
         assert result["early_warning"] is False
 
@@ -112,25 +117,30 @@ class TestNearFlat:
 
     def test_near_flat_both_tiny_movements(self):
         from calculators.divergence_calculator import _score_divergence
+
         score, label = _score_divergence(0.3, 0.005)
         assert "Near-flat" in label
 
     def test_not_flat_when_sp_significant(self):
         from calculators.divergence_calculator import _score_divergence
+
         score, label = _score_divergence(1.0, 0.005)
         assert "Near-flat" not in label
 
     def test_not_flat_when_breadth_significant(self):
         from calculators.divergence_calculator import _score_divergence
+
         score, label = _score_divergence(0.3, 0.02)
         assert "Near-flat" not in label
 
     def test_near_flat_both_negative_tiny(self):
         from calculators.divergence_calculator import _score_divergence
+
         score, label = _score_divergence(-0.2, -0.003)
         assert "Near-flat" in label
 
     def test_not_flat_when_sp_exactly_at_threshold(self):
         from calculators.divergence_calculator import _score_divergence
+
         score, label = _score_divergence(0.5, 0.005)
         assert "Near-flat" not in label

@@ -20,10 +20,8 @@ Scoring:
 - 0 points: Ratio < 0.5 (Strong Distribution)
 """
 
-from typing import Dict, List
 
-
-def calculate_supply_demand(historical_prices: Dict) -> Dict:
+def calculate_supply_demand(historical_prices: dict) -> dict:
     """
     Calculate supply/demand dynamics based on volume patterns
 
@@ -61,7 +59,7 @@ def calculate_supply_demand(historical_prices: Dict) -> Dict:
             "avg_down_volume": None,
             "up_days_count": 0,
             "down_days_count": 0,
-            "interpretation": "Data unavailable"
+            "interpretation": "Data unavailable",
         }
 
     prices = historical_prices["historical"]
@@ -77,7 +75,7 @@ def calculate_supply_demand(historical_prices: Dict) -> Dict:
             "up_days_count": 0,
             "down_days_count": 0,
             "interpretation": "Data unavailable",
-            "quality_warning": "Less than 60 days of historical data available"
+            "quality_warning": "Less than 60 days of historical data available",
         }
 
     # Analyze last 60 days (prices are typically newest first, so take first 60)
@@ -116,7 +114,7 @@ def calculate_supply_demand(historical_prices: Dict) -> Dict:
             "up_days_count": len(up_days),
             "down_days_count": len(down_days),
             "interpretation": "Data quality issues",
-            "quality_warning": f"Too few classified days (up: {len(up_days)}, down: {len(down_days)})"
+            "quality_warning": f"Too few classified days (up: {len(up_days)}, down: {len(down_days)})",
         }
 
     # Calculate average volumes
@@ -147,7 +145,7 @@ def calculate_supply_demand(historical_prices: Dict) -> Dict:
         "avg_down_volume": int(avg_down_volume),
         "up_days_count": len(up_days),
         "down_days_count": len(down_days),
-        "interpretation": interpretation
+        "interpretation": interpretation,
     }
 
 
@@ -164,15 +162,15 @@ def score_supply_demand(ratio: float) -> int:
     if ratio >= 2.0:
         return 100  # Strong Accumulation
     elif ratio >= 1.5:
-        return 80   # Accumulation
+        return 80  # Accumulation
     elif ratio >= 1.0:
-        return 60   # Neutral/Weak Accumulation
+        return 60  # Neutral/Weak Accumulation
     elif ratio >= 0.7:
-        return 40   # Neutral/Weak Distribution
+        return 40  # Neutral/Weak Distribution
     elif ratio >= 0.5:
-        return 20   # Distribution
+        return 20  # Distribution
     else:
-        return 0    # Strong Distribution
+        return 0  # Strong Distribution
 
 
 def interpret_supply_demand(ratio: float, accumulation: bool) -> str:
@@ -209,7 +207,8 @@ if __name__ == "__main__":
             {"date": "2024-12-09", "close": 148.0, "volume": 50000000},  # down day
             {"date": "2024-12-06", "close": 149.0, "volume": 75000000},  # up day
             {"date": "2024-12-05", "close": 147.0, "volume": 45000000},  # down day
-        ] * 15  # Repeat to get 60 days
+        ]
+        * 15  # Repeat to get 60 days
     }
 
     result = calculate_supply_demand(sample_data)

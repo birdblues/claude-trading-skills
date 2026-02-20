@@ -21,7 +21,7 @@ Multi-period confirmation:
   Some periods only     -> "unconfirmed" (capped at 80)
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 DEFENSIVE_ETFS = ["XLU", "XLP", "XLV", "VNQ"]
 OFFENSIVE_ETFS = ["XLK", "XLC", "XLY", "QQQ"]
@@ -29,7 +29,7 @@ OFFENSIVE_ETFS = ["XLK", "XLC", "XLY", "QQQ"]
 MULTI_PERIOD_WEIGHTS = {10: 0.2, 20: 0.5, 40: 0.3}
 
 
-def _calc_return(symbol_hist: List[Dict], days: int) -> Optional[float]:
+def _calc_return(symbol_hist: list[dict], days: int) -> Optional[float]:
     if not symbol_hist or len(symbol_hist) < days + 1:
         return None
     recent = symbol_hist[0].get("close", symbol_hist[0].get("adjClose", 0))
@@ -39,8 +39,7 @@ def _calc_return(symbol_hist: List[Dict], days: int) -> Optional[float]:
     return (recent - past) / past * 100
 
 
-def _compute_period_rotation(historical: Dict[str, List[Dict]],
-                             lookback: int) -> Optional[Dict]:
+def _compute_period_rotation(historical: dict[str, list[dict]], lookback: int) -> Optional[dict]:
     """Compute defensive vs offensive rotation for a single period."""
     def_returns = []
     off_returns = []
@@ -75,8 +74,7 @@ def _compute_period_rotation(historical: Dict[str, List[Dict]],
     }
 
 
-def calculate_defensive_rotation(historical: Dict[str, List[Dict]],
-                                 lookback: int = 20) -> Dict:
+def calculate_defensive_rotation(historical: dict[str, list[dict]], lookback: int = 20) -> dict:
     """
     Calculate defensive vs offensive sector rotation score using multi-period analysis.
 

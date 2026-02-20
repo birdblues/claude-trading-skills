@@ -12,21 +12,19 @@ This is a classic risk-on/risk-off barometer that captures
 consumer-facing economic sentiment.
 """
 
-from typing import Dict, List, Optional
 from .utils import (
-    downsample_to_monthly,
     calculate_ratio,
+    compute_percentile,
+    compute_roc,
     compute_sma,
     detect_crossover,
-    compute_roc,
-    compute_percentile,
-    score_transition_signal,
     determine_direction,
+    downsample_to_monthly,
+    score_transition_signal,
 )
 
 
-def calculate_sector_rotation(xly_history: List[Dict],
-                              xlp_history: List[Dict]) -> Dict:
+def calculate_sector_rotation(xly_history: list[dict], xlp_history: list[dict]) -> dict:
     """
     Calculate sector rotation transition signal from XLY/XLP ratio.
 
@@ -71,8 +69,10 @@ def calculate_sector_rotation(xly_history: List[Dict],
 
     # Direction
     direction, momentum_qualifier = determine_direction(
-        crossover, roc_3m,
-        positive_label="risk_on", negative_label="risk_off",
+        crossover,
+        roc_3m,
+        positive_label="risk_on",
+        negative_label="risk_off",
         neutral_label="neutral",
     )
 
@@ -105,7 +105,7 @@ def _describe_signal(score: int, direction: str, ratio: float) -> str:
         return f"STABLE: Sector rotation stable, {direction} (XLY/XLP={ratio:.4f})"
 
 
-def _insufficient_data(reason: str) -> Dict:
+def _insufficient_data(reason: str) -> dict:
     return {
         "score": 0,
         "signal": f"INSUFFICIENT DATA: {reason}",

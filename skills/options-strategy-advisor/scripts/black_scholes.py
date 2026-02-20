@@ -30,10 +30,8 @@ Version: 1.0
 """
 
 import numpy as np
-from scipy.stats import norm
 import requests
-import os
-from datetime import datetime, timedelta
+from scipy.stats import norm
 
 
 class OptionPricer:
@@ -94,8 +92,9 @@ class OptionPricer:
         d1 = self._d1()
         d2 = self._d2()
 
-        price = (self.S * np.exp(-self.q * self.T) * norm.cdf(d1) -
-                 self.K * np.exp(-self.r * self.T) * norm.cdf(d2))
+        price = self.S * np.exp(-self.q * self.T) * norm.cdf(d1) - self.K * np.exp(
+            -self.r * self.T
+        ) * norm.cdf(d2)
 
         return max(0, price)  # Price cannot be negative
 
@@ -104,8 +103,9 @@ class OptionPricer:
         d1 = self._d1()
         d2 = self._d2()
 
-        price = (self.K * np.exp(-self.r * self.T) * norm.cdf(-d2) -
-                 self.S * np.exp(-self.q * self.T) * norm.cdf(-d1))
+        price = self.K * np.exp(-self.r * self.T) * norm.cdf(-d2) - self.S * np.exp(
+            -self.q * self.T
+        ) * norm.cdf(-d1)
 
         return max(0, price)
 
@@ -154,7 +154,9 @@ class OptionPricer:
         d1 = self._d1()
         d2 = self._d2()
 
-        term1 = -self.S * norm.pdf(d1) * self.sigma * np.exp(-self.q * self.T) / (2 * np.sqrt(self.T))
+        term1 = (
+            -self.S * norm.pdf(d1) * self.sigma * np.exp(-self.q * self.T) / (2 * np.sqrt(self.T))
+        )
         term2 = -self.r * self.K * np.exp(-self.r * self.T) * norm.cdf(d2)
         term3 = self.q * self.S * norm.cdf(d1) * np.exp(-self.q * self.T)
 
@@ -166,7 +168,9 @@ class OptionPricer:
         d1 = self._d1()
         d2 = self._d2()
 
-        term1 = -self.S * norm.pdf(d1) * self.sigma * np.exp(-self.q * self.T) / (2 * np.sqrt(self.T))
+        term1 = (
+            -self.S * norm.pdf(d1) * self.sigma * np.exp(-self.q * self.T) / (2 * np.sqrt(self.T))
+        )
         term2 = self.r * self.K * np.exp(-self.r * self.T) * norm.cdf(-d2)
         term3 = -self.q * self.S * norm.cdf(-d1) * np.exp(-self.q * self.T)
 
@@ -215,16 +219,16 @@ class OptionPricer:
     # Utility Methods
     # =========================================================================
 
-    def intrinsic_value(self, option_type='call'):
+    def intrinsic_value(self, option_type="call"):
         """Calculate intrinsic value"""
-        if option_type.lower() == 'call':
+        if option_type.lower() == "call":
             return max(0, self.S - self.K)
         else:  # put
             return max(0, self.K - self.S)
 
-    def time_value(self, option_type='call'):
+    def time_value(self, option_type="call"):
         """Calculate time value (extrinsic value)"""
-        if option_type.lower() == 'call':
+        if option_type.lower() == "call":
             price = self.call_price()
         else:
             price = self.put_price()
@@ -241,45 +245,46 @@ class OptionPricer:
         ratio = self.S / self.K
 
         if abs(ratio - 1.0) < 0.02:  # Within 2%
-            return 'ATM'
+            return "ATM"
         elif ratio > 1.0:
-            return 'ITM (Call) / OTM (Put)'
+            return "ITM (Call) / OTM (Put)"
         else:
-            return 'OTM (Call) / ITM (Put)'
+            return "OTM (Call) / ITM (Put)"
 
-    def get_all_greeks(self, option_type='call'):
+    def get_all_greeks(self, option_type="call"):
         """
         Get all Greeks for an option
 
         Returns: dict with all Greeks
         """
-        if option_type.lower() == 'call':
+        if option_type.lower() == "call":
             return {
-                'price': self.call_price(),
-                'delta': self.call_delta(),
-                'gamma': self.gamma(),
-                'theta': self.call_theta(),
-                'vega': self.vega(),
-                'rho': self.call_rho(),
-                'intrinsic_value': self.intrinsic_value('call'),
-                'time_value': self.time_value('call')
+                "price": self.call_price(),
+                "delta": self.call_delta(),
+                "gamma": self.gamma(),
+                "theta": self.call_theta(),
+                "vega": self.vega(),
+                "rho": self.call_rho(),
+                "intrinsic_value": self.intrinsic_value("call"),
+                "time_value": self.time_value("call"),
             }
         else:
             return {
-                'price': self.put_price(),
-                'delta': self.put_delta(),
-                'gamma': self.gamma(),
-                'theta': self.put_theta(),
-                'vega': self.vega(),
-                'rho': self.put_rho(),
-                'intrinsic_value': self.intrinsic_value('put'),
-                'time_value': self.time_value('put')
+                "price": self.put_price(),
+                "delta": self.put_delta(),
+                "gamma": self.gamma(),
+                "theta": self.put_theta(),
+                "vega": self.vega(),
+                "rho": self.put_rho(),
+                "intrinsic_value": self.intrinsic_value("put"),
+                "time_value": self.time_value("put"),
             }
 
 
 # =============================================================================
 # Historical Volatility Calculator
 # =============================================================================
+
 
 def calculate_historical_volatility(prices, window=30):
     """
@@ -332,21 +337,21 @@ def fetch_historical_prices_for_hv(symbol, api_key, days=90):
         List of adjusted close prices
     """
     url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}"
-    params = {'apikey': api_key}
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
 
-        if 'historical' not in data:
+        if "historical" not in data:
             return None
 
         # Get most recent 'days' of data
-        historical = data['historical'][:days]
+        historical = data["historical"][:days]
         historical = historical[::-1]  # Reverse to chronological order
 
-        prices = [item['adjClose'] for item in historical]
+        prices = [item["adjClose"] for item in historical]
         return prices
 
     except Exception as e:
@@ -358,10 +363,11 @@ def fetch_historical_prices_for_hv(symbol, api_key, days=90):
 # FMP API Integration
 # =============================================================================
 
+
 def get_current_stock_price(symbol, api_key):
     """Fetch current stock price from FMP API"""
     url = f"https://financialmodelingprep.com/api/v3/quote/{symbol}"
-    params = {'apikey': api_key}
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)
@@ -369,7 +375,7 @@ def get_current_stock_price(symbol, api_key):
         data = response.json()
 
         if data and len(data) > 0:
-            return data[0]['price']
+            return data[0]["price"]
         return None
 
     except Exception as e:
@@ -380,7 +386,7 @@ def get_current_stock_price(symbol, api_key):
 def get_dividend_yield(symbol, api_key):
     """Fetch dividend yield from FMP API"""
     url = f"https://financialmodelingprep.com/api/v3/profile/{symbol}"
-    params = {'apikey': api_key}
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)
@@ -389,8 +395,8 @@ def get_dividend_yield(symbol, api_key):
 
         if data and len(data) > 0:
             # Last annual dividend / current price
-            last_div = data[0].get('lastDiv', 0)
-            price = data[0].get('price', 1)
+            last_div = data[0].get("lastDiv", 0)
+            price = data[0].get("price", 1)
             div_yield = (last_div / price) if price > 0 else 0
             return div_yield
 
@@ -404,10 +410,10 @@ def get_dividend_yield(symbol, api_key):
 # Example Usage
 # =============================================================================
 
-if __name__ == '__main__':
-    print("\n" + "="*70)
+if __name__ == "__main__":
+    print("\n" + "=" * 70)
     print("BLACK-SCHOLES OPTIONS PRICER - EXAMPLE")
-    print("="*70)
+    print("=" * 70)
 
     # Example parameters
     stock_price = 180.00
@@ -418,13 +424,13 @@ if __name__ == '__main__':
     volatility = 0.25  # 25%
     dividend_yield = 0.01  # 1%
 
-    print(f"\nInput Parameters:")
+    print("\nInput Parameters:")
     print(f"  Stock Price: ${stock_price:.2f}")
     print(f"  Strike Price: ${strike_price:.2f}")
     print(f"  Days to Expiration: {days_to_expiration}")
-    print(f"  Volatility: {volatility*100:.1f}%")
-    print(f"  Risk-Free Rate: {risk_free_rate*100:.2f}%")
-    print(f"  Dividend Yield: {dividend_yield*100:.1f}%")
+    print(f"  Volatility: {volatility * 100:.1f}%")
+    print(f"  Risk-Free Rate: {risk_free_rate * 100:.2f}%")
+    print(f"  Dividend Yield: {dividend_yield * 100:.1f}%")
 
     # Create pricer
     pricer = OptionPricer(
@@ -433,45 +439,57 @@ if __name__ == '__main__':
         T=time_to_expiration,
         r=risk_free_rate,
         sigma=volatility,
-        q=dividend_yield
+        q=dividend_yield,
     )
 
     # Call option
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CALL OPTION")
-    print("="*70)
+    print("=" * 70)
 
-    call_greeks = pricer.get_all_greeks('call')
+    call_greeks = pricer.get_all_greeks("call")
     print(f"Price: ${call_greeks['price']:.2f}")
     print(f"Intrinsic Value: ${call_greeks['intrinsic_value']:.2f}")
     print(f"Time Value: ${call_greeks['time_value']:.2f}")
-    print(f"\nGreeks:")
-    print(f"  Delta: {call_greeks['delta']:.4f} (${call_greeks['delta']*100:.2f} per $1 move)")
+    print("\nGreeks:")
+    print(f"  Delta: {call_greeks['delta']:.4f} (${call_greeks['delta'] * 100:.2f} per $1 move)")
     print(f"  Gamma: {call_greeks['gamma']:.4f} (delta changes by {call_greeks['gamma']:.4f})")
-    print(f"  Theta: ${call_greeks['theta']:.2f}/day (loses ${abs(call_greeks['theta']):.2f} per day)")
-    print(f"  Vega: ${call_greeks['vega']:.2f} per 1% IV (gains ${call_greeks['vega']:.2f} if IV +1%)")
-    print(f"  Rho: ${call_greeks['rho']:.2f} per 1% rate (gains ${call_greeks['rho']:.2f} if rate +1%)")
+    print(
+        f"  Theta: ${call_greeks['theta']:.2f}/day (loses ${abs(call_greeks['theta']):.2f} per day)"
+    )
+    print(
+        f"  Vega: ${call_greeks['vega']:.2f} per 1% IV (gains ${call_greeks['vega']:.2f} if IV +1%)"
+    )
+    print(
+        f"  Rho: ${call_greeks['rho']:.2f} per 1% rate (gains ${call_greeks['rho']:.2f} if rate +1%)"
+    )
 
     # Put option
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("PUT OPTION")
-    print("="*70)
+    print("=" * 70)
 
-    put_greeks = pricer.get_all_greeks('put')
+    put_greeks = pricer.get_all_greeks("put")
     print(f"Price: ${put_greeks['price']:.2f}")
     print(f"Intrinsic Value: ${put_greeks['intrinsic_value']:.2f}")
     print(f"Time Value: ${put_greeks['time_value']:.2f}")
-    print(f"\nGreeks:")
-    print(f"  Delta: {put_greeks['delta']:.4f} (${put_greeks['delta']*100:.2f} per $1 move)")
+    print("\nGreeks:")
+    print(f"  Delta: {put_greeks['delta']:.4f} (${put_greeks['delta'] * 100:.2f} per $1 move)")
     print(f"  Gamma: {put_greeks['gamma']:.4f} (delta changes by {put_greeks['gamma']:.4f})")
-    print(f"  Theta: ${put_greeks['theta']:.2f}/day (loses ${abs(put_greeks['theta']):.2f} per day)")
-    print(f"  Vega: ${put_greeks['vega']:.2f} per 1% IV (gains ${put_greeks['vega']:.2f} if IV +1%)")
-    print(f"  Rho: ${put_greeks['rho']:.2f} per 1% rate (loses ${abs(put_greeks['rho']):.2f} if rate +1%)")
+    print(
+        f"  Theta: ${put_greeks['theta']:.2f}/day (loses ${abs(put_greeks['theta']):.2f} per day)"
+    )
+    print(
+        f"  Vega: ${put_greeks['vega']:.2f} per 1% IV (gains ${put_greeks['vega']:.2f} if IV +1%)"
+    )
+    print(
+        f"  Rho: ${put_greeks['rho']:.2f} per 1% rate (loses ${abs(put_greeks['rho']):.2f} if rate +1%)"
+    )
 
     # Moneyness
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"Moneyness: {pricer.moneyness()}")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     # Historical Volatility Example
     print("\nHistorical Volatility Example:")
@@ -482,14 +500,14 @@ if __name__ == '__main__':
     simulated_prices = [180 * np.exp(np.sum(np.random.randn(i) * 0.01)) for i in range(90)]
 
     hv = calculate_historical_volatility(simulated_prices, window=30)
-    print(f"30-Day Historical Volatility: {hv*100:.2f}%")
-    print(f"Implied Volatility (input): {volatility*100:.1f}%")
+    print(f"30-Day Historical Volatility: {hv * 100:.2f}%")
+    print(f"Implied Volatility (input): {volatility * 100:.1f}%")
 
     if hv < volatility:
-        print(f"→ IV > HV: Options may be expensive (consider selling premium)")
+        print("→ IV > HV: Options may be expensive (consider selling premium)")
     elif hv > volatility:
-        print(f"→ IV < HV: Options may be cheap (consider buying)")
+        print("→ IV < HV: Options may be cheap (consider buying)")
     else:
-        print(f"→ IV ≈ HV: Options fairly priced")
+        print("→ IV ≈ HV: Options fairly priced")
 
-    print("\n" + "="*70 + "\n")
+    print("\n" + "=" * 70 + "\n")

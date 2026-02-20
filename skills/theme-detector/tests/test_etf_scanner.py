@@ -1,6 +1,7 @@
 """Tests for etf_scanner field-level merge logic."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
 from etf_scanner import ETFScanner
 
 
@@ -13,18 +14,30 @@ class TestBatchStockMetricsFieldMerge:
 
         # Mock FMP to return PE but not RSI
         fmp_results = [
-            {"symbol": "AAPL", "rsi_14": None, "dist_from_52w_high": None,
-             "dist_from_52w_low": None, "pe_ratio": 25.0},
+            {
+                "symbol": "AAPL",
+                "rsi_14": None,
+                "dist_from_52w_high": None,
+                "dist_from_52w_low": None,
+                "pe_ratio": 25.0,
+            },
         ]
 
         # Mock yfinance to return RSI
         yf_results = [
-            {"symbol": "AAPL", "rsi_14": 55.0, "dist_from_52w_high": 0.1,
-             "dist_from_52w_low": 0.3, "pe_ratio": 24.0},
+            {
+                "symbol": "AAPL",
+                "rsi_14": 55.0,
+                "dist_from_52w_high": 0.1,
+                "dist_from_52w_low": 0.3,
+                "pe_ratio": 24.0,
+            },
         ]
 
-        with patch.object(scanner, '_batch_stock_metrics_fmp', return_value=fmp_results), \
-             patch.object(scanner, '_batch_stock_metrics_yfinance', return_value=yf_results):
+        with (
+            patch.object(scanner, "_batch_stock_metrics_fmp", return_value=fmp_results),
+            patch.object(scanner, "_batch_stock_metrics_yfinance", return_value=yf_results),
+        ):
             results = scanner.batch_stock_metrics(["AAPL"])
 
         assert len(results) == 1
@@ -39,12 +52,19 @@ class TestBatchStockMetricsFieldMerge:
         scanner = ETFScanner(fmp_api_key="test_key")
 
         fmp_results = [
-            {"symbol": "AAPL", "rsi_14": 60.0, "dist_from_52w_high": 0.05,
-             "dist_from_52w_low": 0.3, "pe_ratio": 25.0},
+            {
+                "symbol": "AAPL",
+                "rsi_14": 60.0,
+                "dist_from_52w_high": 0.05,
+                "dist_from_52w_low": 0.3,
+                "pe_ratio": 25.0,
+            },
         ]
 
-        with patch.object(scanner, '_batch_stock_metrics_fmp', return_value=fmp_results) as fmp_mock, \
-             patch.object(scanner, '_batch_stock_metrics_yfinance') as yf_mock:
+        with (
+            patch.object(scanner, "_batch_stock_metrics_fmp", return_value=fmp_results),
+            patch.object(scanner, "_batch_stock_metrics_yfinance") as yf_mock,
+        ):
             results = scanner.batch_stock_metrics(["AAPL"])
             # yfinance should not be called when all fields present
             yf_mock.assert_not_called()
@@ -57,17 +77,29 @@ class TestBatchStockMetricsFieldMerge:
         scanner = ETFScanner(fmp_api_key="test_key")
 
         fmp_results = [
-            {"symbol": "XYZ", "rsi_14": None, "dist_from_52w_high": None,
-             "dist_from_52w_low": None, "pe_ratio": None},
+            {
+                "symbol": "XYZ",
+                "rsi_14": None,
+                "dist_from_52w_high": None,
+                "dist_from_52w_low": None,
+                "pe_ratio": None,
+            },
         ]
 
         yf_results = [
-            {"symbol": "XYZ", "rsi_14": 45.0, "dist_from_52w_high": 0.2,
-             "dist_from_52w_low": 0.15, "pe_ratio": 18.0},
+            {
+                "symbol": "XYZ",
+                "rsi_14": 45.0,
+                "dist_from_52w_high": 0.2,
+                "dist_from_52w_low": 0.15,
+                "pe_ratio": 18.0,
+            },
         ]
 
-        with patch.object(scanner, '_batch_stock_metrics_fmp', return_value=fmp_results), \
-             patch.object(scanner, '_batch_stock_metrics_yfinance', return_value=yf_results):
+        with (
+            patch.object(scanner, "_batch_stock_metrics_fmp", return_value=fmp_results),
+            patch.object(scanner, "_batch_stock_metrics_yfinance", return_value=yf_results),
+        ):
             results = scanner.batch_stock_metrics(["XYZ"])
 
         assert results[0]["rsi_14"] == 45.0
@@ -78,11 +110,16 @@ class TestBatchStockMetricsFieldMerge:
         scanner = ETFScanner(fmp_api_key="test_key")
 
         fmp_stock_results = [
-            {"symbol": "AAPL", "rsi_14": 60.0, "dist_from_52w_high": 0.05,
-             "dist_from_52w_low": 0.3, "pe_ratio": 25.0},
+            {
+                "symbol": "AAPL",
+                "rsi_14": 60.0,
+                "dist_from_52w_high": 0.05,
+                "dist_from_52w_low": 0.3,
+                "pe_ratio": 25.0,
+            },
         ]
 
-        with patch.object(scanner, '_batch_stock_metrics_fmp', return_value=fmp_stock_results):
+        with patch.object(scanner, "_batch_stock_metrics_fmp", return_value=fmp_stock_results):
             scanner.batch_stock_metrics(["AAPL"])
 
         # After batch_stock_metrics, context should be "stock"
@@ -103,7 +140,7 @@ class TestBatchStockMetricsFieldMerge:
             "XLK": {"symbol": "XLK", "vol_20d": 1000.0, "vol_60d": 800.0, "vol_ratio": 1.25},
         }
 
-        with patch.object(scanner, '_batch_etf_volume_ratios_fmp', return_value=fmp_etf_results):
+        with patch.object(scanner, "_batch_etf_volume_ratios_fmp", return_value=fmp_etf_results):
             scanner.batch_etf_volume_ratios(["XLK"])
 
         # After batch_etf_volume_ratios, context should be "etf"
@@ -131,17 +168,29 @@ class TestBatchStockMetricsFieldMerge:
         scanner = ETFScanner(fmp_api_key="test_key")
 
         fmp_results = [
-            {"symbol": "AAPL", "rsi_14": None, "dist_from_52w_high": 0.05,
-             "dist_from_52w_low": None, "pe_ratio": 25.0},
+            {
+                "symbol": "AAPL",
+                "rsi_14": None,
+                "dist_from_52w_high": 0.05,
+                "dist_from_52w_low": None,
+                "pe_ratio": 25.0,
+            },
         ]
 
         yf_results = [
-            {"symbol": "AAPL", "rsi_14": 55.0, "dist_from_52w_high": 0.08,
-             "dist_from_52w_low": 0.3, "pe_ratio": 24.0},
+            {
+                "symbol": "AAPL",
+                "rsi_14": 55.0,
+                "dist_from_52w_high": 0.08,
+                "dist_from_52w_low": 0.3,
+                "pe_ratio": 24.0,
+            },
         ]
 
-        with patch.object(scanner, '_batch_stock_metrics_fmp', return_value=fmp_results), \
-             patch.object(scanner, '_batch_stock_metrics_yfinance', return_value=yf_results):
+        with (
+            patch.object(scanner, "_batch_stock_metrics_fmp", return_value=fmp_results),
+            patch.object(scanner, "_batch_stock_metrics_yfinance", return_value=yf_results),
+        ):
             results = scanner.batch_stock_metrics(["AAPL"])
 
         r = results[0]

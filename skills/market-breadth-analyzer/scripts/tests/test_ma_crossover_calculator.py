@@ -1,29 +1,30 @@
 """Tests for Component 2: MA Crossover Calculator."""
 
-import pytest
-
 from calculators.ma_crossover_calculator import calculate_ma_crossover
 
 
-def _make_crossover_rows(make_row, n=10, ma8=0.60, ma200=0.50,
-                          ma8_5d_ago=None):
+def _make_crossover_rows(make_row, n=10, ma8=0.60, ma200=0.50, ma8_5d_ago=None):
     """Create n rows. The 5th-from-last sets ma8_5d_ago value."""
     if ma8_5d_ago is None:
         ma8_5d_ago = ma8  # no direction change
     rows = []
     for i in range(n):
         if i == n - 6:
-            rows.append(make_row(
-                Date=f"2025-01-{i+1:02d}",
-                Breadth_Index_8MA=ma8_5d_ago,
-                Breadth_Index_200MA=ma200,
-            ))
+            rows.append(
+                make_row(
+                    Date=f"2025-01-{i + 1:02d}",
+                    Breadth_Index_8MA=ma8_5d_ago,
+                    Breadth_Index_200MA=ma200,
+                )
+            )
         else:
-            rows.append(make_row(
-                Date=f"2025-01-{i+1:02d}",
-                Breadth_Index_8MA=ma8,
-                Breadth_Index_200MA=ma200,
-            ))
+            rows.append(
+                make_row(
+                    Date=f"2025-01-{i + 1:02d}",
+                    Breadth_Index_8MA=ma8,
+                    Breadth_Index_200MA=ma200,
+                )
+            )
     return rows
 
 
@@ -79,7 +80,10 @@ class TestDirectionModifier:
     def test_recovery_signal_plus10(self, make_row):
         # Gap < 0 (8MA below 200MA) but 8MA rising -> +10
         rows = _make_crossover_rows(
-            make_row, ma8=0.48, ma200=0.50, ma8_5d_ago=0.44,
+            make_row,
+            ma8=0.48,
+            ma200=0.50,
+            ma8_5d_ago=0.44,
         )
         result = calculate_ma_crossover(rows)
         assert result["direction_modifier"] == 10
@@ -88,7 +92,10 @@ class TestDirectionModifier:
     def test_deterioration_signal_minus10(self, make_row):
         # Gap > 0 (8MA above 200MA) but 8MA falling -> -10
         rows = _make_crossover_rows(
-            make_row, ma8=0.55, ma200=0.50, ma8_5d_ago=0.60,
+            make_row,
+            ma8=0.55,
+            ma200=0.50,
+            ma8_5d_ago=0.60,
         )
         result = calculate_ma_crossover(rows)
         assert result["direction_modifier"] == -10
@@ -97,7 +104,10 @@ class TestDirectionModifier:
     def test_no_modifier_gap_positive_rising(self, make_row):
         # Gap > 0 and rising -> no modifier (healthy)
         rows = _make_crossover_rows(
-            make_row, ma8=0.60, ma200=0.50, ma8_5d_ago=0.55,
+            make_row,
+            ma8=0.60,
+            ma200=0.50,
+            ma8_5d_ago=0.55,
         )
         result = calculate_ma_crossover(rows)
         assert result["direction_modifier"] == 0
@@ -105,7 +115,10 @@ class TestDirectionModifier:
     def test_no_modifier_gap_negative_falling(self, make_row):
         # Gap < 0 and falling -> no modifier (already bearish)
         rows = _make_crossover_rows(
-            make_row, ma8=0.45, ma200=0.50, ma8_5d_ago=0.48,
+            make_row,
+            ma8=0.45,
+            ma200=0.50,
+            ma8_5d_ago=0.48,
         )
         result = calculate_ma_crossover(rows)
         assert result["direction_modifier"] == 0

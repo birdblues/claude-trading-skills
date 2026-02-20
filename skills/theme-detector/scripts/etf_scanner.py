@@ -11,24 +11,25 @@ FMP API key is optional; without it, yfinance is used exclusively.
 
 import sys
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 try:
-    import pandas as pd
     import numpy as np
+    import pandas as pd
 except ImportError:
-    print("ERROR: pandas/numpy not found. Install with: pip install pandas numpy",
-          file=sys.stderr)
+    print("ERROR: pandas/numpy not found. Install with: pip install pandas numpy", file=sys.stderr)
     sys.exit(1)
 
 try:
     import yfinance as yf
+
     HAS_YFINANCE = True
 except ImportError:
     HAS_YFINANCE = False
 
 try:
     import requests as _requests_lib
+
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
@@ -38,24 +39,25 @@ except ImportError:
 # FMP endpoint definitions (R2-1: callable URL builders for stable/v3)
 # ---------------------------------------------------------------------------
 
-def _stable_quote_url(base: str, symbols_str: str, params: Dict) -> Tuple[str, Dict]:
+
+def _stable_quote_url(base: str, symbols_str: str, params: dict) -> tuple[str, dict]:
     """stable/quote?symbol=A,B&apikey=..."""
     params["symbol"] = symbols_str
     return base, params
 
 
-def _v3_quote_url(base: str, symbols_str: str, params: Dict) -> Tuple[str, Dict]:
+def _v3_quote_url(base: str, symbols_str: str, params: dict) -> tuple[str, dict]:
     """api/v3/quote/A,B?apikey=..."""
     return f"{base}/{symbols_str}", params
 
 
-def _stable_hist_url(base: str, symbols_str: str, params: Dict) -> Tuple[str, Dict]:
+def _stable_hist_url(base: str, symbols_str: str, params: dict) -> tuple[str, dict]:
     """stable/historical-price-full?symbol=A,B&..."""
     params["symbol"] = symbols_str
     return base, params
 
 
-def _v3_hist_url(base: str, symbols_str: str, params: Dict) -> Tuple[str, Dict]:
+def _v3_hist_url(base: str, symbols_str: str, params: dict) -> tuple[str, dict]:
     """api/v3/historical-price-full/A,B?..."""
     return f"{base}/{symbols_str}", params
 
@@ -82,24 +84,24 @@ class ETFScanner:
     FMP_QUOTE_BATCH_SIZE = 50
 
     def __init__(self, fmp_api_key: Optional[str] = None, rate_limit_sec: float = 0.3):
-        self._cache: Dict[str, pd.DataFrame] = {}
+        self._cache: dict[str, pd.DataFrame] = {}
         self._fmp_api_key = fmp_api_key
         self._rate_limit_sec = rate_limit_sec
         self._last_request_time = 0.0
-        self._fmp_quote_cache: Dict[str, Dict] = {}  # normalized_symbol -> quote dict
-        self._stats: Dict[str, Dict[str, int]] = {
+        self._fmp_quote_cache: dict[str, dict] = {}  # normalized_symbol -> quote dict
+        self._stats: dict[str, dict[str, int]] = {
             "stock": {"fmp_calls": 0, "fmp_failures": 0, "yf_calls": 0, "yf_fallbacks": 0},
             "etf": {"fmp_calls": 0, "fmp_failures": 0, "yf_calls": 0, "yf_fallbacks": 0},
         }
         self._current_stats_context: str = "stock"
 
-    def backend_stats(self) -> Dict[str, Any]:
+    def backend_stats(self) -> dict[str, Any]:
         """Return backend usage statistics with both flat and nested formats.
 
         Flat keys (backward compatible): fmp_calls, fmp_failures, yf_calls, yf_fallbacks
         Nested keys: stock.{...}, etf.{...}
         """
-        flat: Dict[str, int] = {}
+        flat: dict[str, int] = {}
         for key in ["fmp_calls", "fmp_failures", "yf_calls", "yf_fallbacks"]:
             flat[key] = self._stats["stock"][key] + self._stats["etf"][key]
         return {
@@ -127,7 +129,7 @@ class ETFScanner:
         self._last_request_time = time.time()
 
     def _fmp_request(
-        self, endpoint_key: str, symbols_str: str, extra_params: Optional[Dict] = None
+        self, endpoint_key: str, symbols_str: str, extra_params: Optional[dict] = None
     ) -> Optional[Any]:
         """Try each endpoint (stable -> v3) with correct URL format.
 
@@ -165,9 +167,9 @@ class ETFScanner:
     # -------------------------------------------------------------------
     # FMP quote fetch (R2-4: normalized cache)
     # -------------------------------------------------------------------
-    def _fetch_fmp_quotes(self, symbols: List[str]) -> Dict[str, Dict]:
+    def _fetch_fmp_quotes(self, symbols: list[str]) -> dict[str, dict]:
         """Batch fetch quotes. Returns {original_symbol: quote_dict}."""
-        result: Dict[str, Dict] = {}
+        result: dict[str, dict] = {}
         uncached = []
         for s in symbols:
             norm = self._normalize_symbol_for_fmp(s)
@@ -175,7 +177,7 @@ class ETFScanner:
                 uncached.append(s)
 
         for i in range(0, len(uncached), self.FMP_QUOTE_BATCH_SIZE):
-            batch = uncached[i:i + self.FMP_QUOTE_BATCH_SIZE]
+            batch = uncached[i : i + self.FMP_QUOTE_BATCH_SIZE]
             normalized = [self._normalize_symbol_for_fmp(s) for s in batch]
             data = self._fmp_request("quote", ",".join(normalized))
             if isinstance(data, list):
@@ -206,15 +208,15 @@ class ETFScanner:
     # FMP historical fetch (R2-2: per-symbol retry)
     # -------------------------------------------------------------------
     def _fetch_fmp_historical(
-        self, symbols: List[str], timeseries: int = 20
-    ) -> Dict[str, List[Dict]]:
+        self, symbols: list[str], timeseries: int = 20
+    ) -> dict[str, list[dict]]:
         """Batch fetch historical prices with per-symbol retry on partial failure."""
-        result: Dict[str, List[Dict]] = {}
+        result: dict[str, list[dict]] = {}
         extra = {"timeseries": timeseries}
 
         # Phase 1: batch fetch
         for i in range(0, len(symbols), self.FMP_HIST_BATCH_SIZE):
-            batch = symbols[i:i + self.FMP_HIST_BATCH_SIZE]
+            batch = symbols[i : i + self.FMP_HIST_BATCH_SIZE]
             normalized = [self._normalize_symbol_for_fmp(s) for s in batch]
             data = self._fmp_request("historical", ",".join(normalized), extra)
             if data is None:
@@ -237,14 +239,14 @@ class ETFScanner:
                     self._parse_historical_response(data, result)
 
         # Map normalized keys back to original symbols
-        mapped: Dict[str, List[Dict]] = {}
+        mapped: dict[str, list[dict]] = {}
         for s in symbols:
             norm = self._normalize_symbol_for_fmp(s)
             if norm in result:
                 mapped[s] = result[norm]
         return mapped
 
-    def _parse_historical_response(self, data: Any, result: Dict) -> None:
+    def _parse_historical_response(self, data: Any, result: dict) -> None:
         """Parse FMP historical response (batch or single format).
 
         Keys in result are always normalized (e.g., BRK.B not BRK-B).
@@ -263,7 +265,7 @@ class ETFScanner:
     # -------------------------------------------------------------------
     # FMP-based stock metrics
     # -------------------------------------------------------------------
-    def _batch_stock_metrics_fmp(self, symbols: List[str]) -> List[Dict]:
+    def _batch_stock_metrics_fmp(self, symbols: list[str]) -> list[dict]:
         """Compute stock metrics using FMP quote + historical data."""
         quotes = self._fetch_fmp_quotes(symbols)
         historical = self._fetch_fmp_historical(symbols, timeseries=20)
@@ -271,8 +273,10 @@ class ETFScanner:
         results = []
         for s in symbols:
             entry = {
-                "symbol": s, "rsi_14": None,
-                "dist_from_52w_high": None, "dist_from_52w_low": None,
+                "symbol": s,
+                "rsi_14": None,
+                "dist_from_52w_high": None,
+                "dist_from_52w_low": None,
                 "pe_ratio": None,
             }
 
@@ -286,13 +290,9 @@ class ETFScanner:
             year_high = q.get("yearHigh")
             year_low = q.get("yearLow")
             if price and year_high and year_high > 0:
-                entry["dist_from_52w_high"] = round(
-                    (year_high - price) / year_high, 4
-                )
+                entry["dist_from_52w_high"] = round((year_high - price) / year_high, 4)
             if price and year_low is not None and price > 0:
-                entry["dist_from_52w_low"] = round(
-                    (price - year_low) / price, 4
-                )
+                entry["dist_from_52w_low"] = round((price - year_low) / price, 4)
 
             # RSI from historical close
             hist = historical.get(s, [])
@@ -309,11 +309,11 @@ class ETFScanner:
     # -------------------------------------------------------------------
     # FMP-based ETF volume ratios
     # -------------------------------------------------------------------
-    def _batch_etf_volume_ratios_fmp(self, symbols: List[str]) -> Dict[str, Dict]:
+    def _batch_etf_volume_ratios_fmp(self, symbols: list[str]) -> dict[str, dict]:
         """Compute ETF volume ratios using FMP historical data."""
         historical = self._fetch_fmp_historical(symbols, timeseries=60)
 
-        result: Dict[str, Dict] = {}
+        result: dict[str, dict] = {}
         for s in symbols:
             entry = {"symbol": s, "vol_20d": None, "vol_60d": None, "vol_ratio": None}
             hist = historical.get(s, [])
@@ -322,7 +322,9 @@ class ETFScanner:
             if len(volumes) >= 20:
                 # Historical comes newest-first
                 vol_20d = float(np.mean(volumes[:20]))
-                vol_60d = float(np.mean(volumes[:60])) if len(volumes) >= 60 else float(np.mean(volumes))
+                vol_60d = (
+                    float(np.mean(volumes[:60])) if len(volumes) >= 60 else float(np.mean(volumes))
+                )
                 entry["vol_20d"] = vol_20d
                 entry["vol_60d"] = vol_60d
                 entry["vol_ratio"] = vol_20d / vol_60d if vol_60d > 0 else None
@@ -333,10 +335,9 @@ class ETFScanner:
     # -------------------------------------------------------------------
     # yfinance-based methods (original implementations)
     # -------------------------------------------------------------------
-    def _get_etf_volume_ratio_yfinance(self, symbol: str) -> Dict:
+    def _get_etf_volume_ratio_yfinance(self, symbol: str) -> dict:
         """Get 20-day / 60-day average volume ratio via yfinance."""
-        result = {"symbol": symbol, "vol_20d": None, "vol_60d": None,
-                  "vol_ratio": None}
+        result = {"symbol": symbol, "vol_20d": None, "vol_60d": None, "vol_ratio": None}
 
         if not HAS_YFINANCE:
             print("WARNING: yfinance not installed.", file=sys.stderr)
@@ -359,18 +360,24 @@ class ETFScanner:
             result["vol_ratio"] = vol_20d / vol_60d if vol_60d > 0 else None
 
         except Exception as e:
-            print(f"WARNING: Volume ratio failed for {symbol}: {e}",
-                  file=sys.stderr)
+            print(f"WARNING: Volume ratio failed for {symbol}: {e}", file=sys.stderr)
 
         return result
 
-    def _batch_stock_metrics_yfinance(self, symbols: List[str]) -> List[Dict]:
+    def _batch_stock_metrics_yfinance(self, symbols: list[str]) -> list[dict]:
         """Batch-download stock data and compute metrics via yfinance."""
         if not HAS_YFINANCE:
             print("WARNING: yfinance not installed.", file=sys.stderr)
-            return [{"symbol": s, "rsi_14": None, "dist_from_52w_high": None,
-                     "dist_from_52w_low": None, "pe_ratio": None}
-                    for s in symbols]
+            return [
+                {
+                    "symbol": s,
+                    "rsi_14": None,
+                    "dist_from_52w_high": None,
+                    "dist_from_52w_low": None,
+                    "pe_ratio": None,
+                }
+                for s in symbols
+            ]
 
         try:
             data = yf.download(
@@ -382,15 +389,26 @@ class ETFScanner:
             )
         except Exception as e:
             print(f"WARNING: Batch download failed: {e}", file=sys.stderr)
-            return [{"symbol": s, "rsi_14": None, "dist_from_52w_high": None,
-                     "dist_from_52w_low": None, "pe_ratio": None}
-                    for s in symbols]
+            return [
+                {
+                    "symbol": s,
+                    "rsi_14": None,
+                    "dist_from_52w_high": None,
+                    "dist_from_52w_low": None,
+                    "pe_ratio": None,
+                }
+                for s in symbols
+            ]
 
         results = []
         for symbol in symbols:
-            entry = {"symbol": symbol, "rsi_14": None,
-                     "dist_from_52w_high": None, "dist_from_52w_low": None,
-                     "pe_ratio": None}
+            entry = {
+                "symbol": symbol,
+                "rsi_14": None,
+                "dist_from_52w_high": None,
+                "dist_from_52w_low": None,
+                "pe_ratio": None,
+            }
             try:
                 if len(symbols) == 1:
                     sym_data = data
@@ -418,8 +436,7 @@ class ETFScanner:
                 entry["pe_ratio"] = self._get_pe_ratio(symbol)
 
             except Exception as e:
-                print(f"WARNING: Metrics failed for {symbol}: {e}",
-                      file=sys.stderr)
+                print(f"WARNING: Metrics failed for {symbol}: {e}", file=sys.stderr)
 
             results.append(entry)
 
@@ -428,7 +445,7 @@ class ETFScanner:
     # -------------------------------------------------------------------
     # Public methods (FMP -> yfinance symbol-level fallback)
     # -------------------------------------------------------------------
-    def get_etf_volume_ratio(self, symbol: str) -> Dict:
+    def get_etf_volume_ratio(self, symbol: str) -> dict:
         """Get 20-day / 60-day average volume ratio for an ETF.
 
         Args:
@@ -446,7 +463,7 @@ class ETFScanner:
 
         return self._get_etf_volume_ratio_yfinance(symbol)
 
-    def batch_etf_volume_ratios(self, symbols: List[str]) -> Dict[str, Dict]:
+    def batch_etf_volume_ratios(self, symbols: list[str]) -> dict[str, dict]:
         """Batch fetch ETF volume ratios with FMP -> yfinance fallback.
 
         Args:
@@ -460,13 +477,13 @@ class ETFScanner:
 
         self._current_stats_context = "etf"
         # Phase 1: Try FMP batch
-        fmp_results: Dict[str, Dict] = {}
+        fmp_results: dict[str, dict] = {}
         fmp_attempted = self._fmp_api_key and HAS_REQUESTS
         if fmp_attempted:
             fmp_results = self._batch_etf_volume_ratios_fmp(symbols)
 
         # Phase 2: yfinance for missing/empty
-        result: Dict[str, Dict] = {}
+        result: dict[str, dict] = {}
         missing_for_yf = []
         for sym in symbols:
             fmp_data = fmp_results.get(sym, {})
@@ -484,7 +501,7 @@ class ETFScanner:
 
         return result
 
-    def batch_stock_metrics(self, symbols: List[str]) -> List[Dict]:
+    def batch_stock_metrics(self, symbols: list[str]) -> list[dict]:
         """Batch compute stock metrics with FMP -> yfinance symbol-level fallback.
 
         Args:
@@ -499,7 +516,7 @@ class ETFScanner:
 
         self._current_stats_context = "stock"
         # Phase 1: FMP results (accept any non-empty result)
-        fmp_results: Dict[str, Dict] = {}
+        fmp_results: dict[str, dict] = {}
         fmp_attempted = self._fmp_api_key and HAS_REQUESTS
         metric_keys = ["pe_ratio", "rsi_14", "dist_from_52w_high", "dist_from_52w_low"]
         if fmp_attempted:
@@ -512,10 +529,9 @@ class ETFScanner:
 
         # Phase 2: yfinance for symbols missing RSI (not just missing entirely)
         missing_rsi = [
-            s for s in symbols
-            if s not in fmp_results or fmp_results[s].get("rsi_14") is None
+            s for s in symbols if s not in fmp_results or fmp_results[s].get("rsi_14") is None
         ]
-        yf_results: Dict[str, Dict] = {}
+        yf_results: dict[str, dict] = {}
         if missing_rsi:
             if fmp_attempted:
                 self._stats["stock"]["yf_fallbacks"] += 1
@@ -539,11 +555,15 @@ class ETFScanner:
             elif s in yf_results:
                 results.append(yf_results[s])
             else:
-                results.append({
-                    "symbol": s, "rsi_14": None,
-                    "dist_from_52w_high": None,
-                    "dist_from_52w_low": None, "pe_ratio": None,
-                })
+                results.append(
+                    {
+                        "symbol": s,
+                        "rsi_14": None,
+                        "dist_from_52w_high": None,
+                        "dist_from_52w_low": None,
+                        "pe_ratio": None,
+                    }
+                )
         return results
 
     # -------------------------------------------------------------------
@@ -560,8 +580,8 @@ class ETFScanner:
         gains = deltas.where(deltas > 0, 0.0)
         losses = (-deltas).where(deltas < 0, 0.0)
 
-        first_avg_gain = gains.iloc[1:period + 1].mean()
-        first_avg_loss = losses.iloc[1:period + 1].mean()
+        first_avg_gain = gains.iloc[1 : period + 1].mean()
+        first_avg_loss = losses.iloc[1 : period + 1].mean()
 
         avg_gain = first_avg_gain
         avg_loss = first_avg_loss
@@ -578,9 +598,7 @@ class ETFScanner:
         return round(rsi, 2)
 
     @staticmethod
-    def _calculate_52w_distances(close: pd.Series,
-                                  high: pd.Series,
-                                  low: pd.Series) -> Dict:
+    def _calculate_52w_distances(close: pd.Series, high: pd.Series, low: pd.Series) -> dict:
         """Calculate distance from 52-week high and low."""
         result = {"dist_from_52w_high": None, "dist_from_52w_low": None}
 
@@ -595,14 +613,12 @@ class ETFScanner:
         low_52w = float(low.min())
 
         if high_52w > 0:
-            result["dist_from_52w_high"] = round(
-                (high_52w - current) / high_52w, 4
-            )
+            result["dist_from_52w_high"] = round((high_52w - current) / high_52w, 4)
 
         if low_52w >= 0:
-            result["dist_from_52w_low"] = round(
-                (current - low_52w) / current, 4
-            ) if current > 0 else None
+            result["dist_from_52w_low"] = (
+                round((current - low_52w) / current, 4) if current > 0 else None
+            )
 
         return result
 
@@ -629,6 +645,5 @@ class ETFScanner:
             self._cache[cache_key] = data
             return data
         except Exception as e:
-            print(f"WARNING: Download failed for {symbol}: {e}",
-                  file=sys.stderr)
+            print(f"WARNING: Download failed for {symbol}: {e}", file=sys.stderr)
             return None

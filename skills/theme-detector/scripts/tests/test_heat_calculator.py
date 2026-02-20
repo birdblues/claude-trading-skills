@@ -2,15 +2,15 @@
 
 import pytest
 from calculators.heat_calculator import (
-    momentum_strength_score,
-    volume_intensity_score,
-    uptrend_signal_score,
     breadth_signal_score,
     calculate_theme_heat,
+    momentum_strength_score,
+    uptrend_signal_score,
+    volume_intensity_score,
 )
 
-
 # ── momentum_strength_score ──────────────────────────────────────────
+
 
 class TestMomentumStrengthScore:
     """sigmoid: 100 / (1 + exp(-0.15 * (abs(wr%) - 5.0)))"""
@@ -50,6 +50,7 @@ class TestMomentumStrengthScore:
 
 # ── volume_intensity_score ───────────────────────────────────────────
 
+
 class TestVolumeIntensityScore:
     """min(100, max(0, (vol_20d/vol_60d - 0.8) * 250))"""
 
@@ -85,8 +86,8 @@ class TestVolumeIntensityScore:
 
 # ── uptrend_signal_score ─────────────────────────────────────────────
 
-class TestUptrendSignalScore:
 
+class TestUptrendSignalScore:
     def _make_sector(self, ratio, ma_10, slope, weight=1.0):
         return {
             "sector": "test",
@@ -149,8 +150,8 @@ class TestUptrendSignalScore:
 
 # ── breadth_signal_score ─────────────────────────────────────────────
 
-class TestBreadthSignalScore:
 
+class TestBreadthSignalScore:
     def test_zero(self):
         assert breadth_signal_score(0.0) == pytest.approx(0.0)
 
@@ -172,8 +173,8 @@ class TestBreadthSignalScore:
 
 # ── calculate_theme_heat ─────────────────────────────────────────────
 
-class TestCalculateThemeHeat:
 
+class TestCalculateThemeHeat:
     def test_weighted_sum(self):
         # 80*0.40 + 60*0.25 + 70*0.20 + 50*0.15
         # = 32 + 15 + 14 + 7.5 = 68.5
@@ -212,6 +213,7 @@ class TestCalculateThemeHeat:
 
 
 # ── uptrend_signal_score with None values ────────────────────────────
+
 
 class TestUptrendSignalNoneValues:
     """Ensure None values in sector_data don't cause TypeError."""

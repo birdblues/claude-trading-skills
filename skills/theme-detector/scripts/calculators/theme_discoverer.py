@@ -17,7 +17,6 @@ Algorithm:
 
 import math
 from collections import Counter
-from typing import Dict, List, Set, Tuple
 
 from calculators.theme_classifier import get_theme_sector_weights
 
@@ -31,9 +30,19 @@ _MIN_CLUSTER_SIZE = 2
 _OVERLAP_THRESHOLD = 0.5
 
 _STOP_WORDS = {
-    "Services", "Products", "Equipment", "Materials", "General",
-    "Other", "Specialty", "Diversified", "Regulated", "Independent",
-    "&", "-", "and",
+    "Services",
+    "Products",
+    "Equipment",
+    "Materials",
+    "General",
+    "Other",
+    "Specialty",
+    "Diversified",
+    "Regulated",
+    "Independent",
+    "&",
+    "-",
+    "and",
 }
 
 
@@ -41,15 +50,16 @@ _STOP_WORDS = {
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def discover_themes(
-    ranked_industries: List[Dict],
-    matched_names: Set[str],
-    existing_themes: List[Dict],
+    ranked_industries: list[dict],
+    matched_names: set[str],
+    existing_themes: list[dict],
     top_n: int = 30,
     gap_threshold: float = _GAP_THRESHOLD_PCT,
     vector_threshold: float = _VECTOR_THRESHOLD,
     min_cluster_size: int = _MIN_CLUSTER_SIZE,
-) -> List[Dict]:
+) -> list[dict]:
     """Discover new themes from unmatched industries.
 
     Args:
@@ -86,11 +96,12 @@ def discover_themes(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_unmatched_industries(
-    ranked: List[Dict],
-    matched_names: Set[str],
+    ranked: list[dict],
+    matched_names: set[str],
     top_n: int,
-) -> Tuple[List[Dict], List[Dict]]:
+) -> tuple[list[dict], list[dict]]:
     """Extract unmatched industries from top N and bottom N.
 
     Returns:
@@ -103,11 +114,11 @@ def _get_unmatched_industries(
     top_names = {ind["name"] for ind in top}
 
     bullish = [
-        ind for ind in top
-        if ind["name"] not in matched_names and ind.get("direction") == "bullish"
+        ind for ind in top if ind["name"] not in matched_names and ind.get("direction") == "bullish"
     ]
     bearish = [
-        ind for ind in bottom
+        ind
+        for ind in bottom
         if ind["name"] not in matched_names
         and ind["name"] not in top_names
         and ind.get("direction") == "bearish"
@@ -117,10 +128,10 @@ def _get_unmatched_industries(
 
 
 def _cluster_by_proximity(
-    industries: List[Dict],
+    industries: list[dict],
     gap_threshold: float,
     vector_threshold: float,
-) -> List[List[Dict]]:
+) -> list[list[dict]]:
     """Cluster industries by weighted_return proximity and perf vector distance.
 
     Industries are sorted by weighted_return. Adjacent pairs are joined into
@@ -138,7 +149,7 @@ def _cluster_by_proximity(
     sorted_inds = sorted(industries, key=lambda x: x.get("weighted_return", 0), reverse=True)
     ranges = _compute_ranges(sorted_inds)
 
-    clusters: List[List[Dict]] = [[sorted_inds[0]]]
+    clusters: list[list[dict]] = [[sorted_inds[0]]]
 
     for i in range(1, len(sorted_inds)):
         prev = sorted_inds[i - 1]
@@ -156,7 +167,7 @@ def _cluster_by_proximity(
     return [c for c in clusters if len(c) >= 2]
 
 
-def _perf_vector_distance(a: Dict, b: Dict, ranges: Dict) -> float:
+def _perf_vector_distance(a: dict, b: dict, ranges: dict) -> float:
     """Normalized Euclidean distance between perf vectors (1W, 1M, 3M).
 
     Each timeframe difference is normalized by the range (max - min) across
@@ -178,7 +189,7 @@ def _perf_vector_distance(a: Dict, b: Dict, ranges: Dict) -> float:
     return math.sqrt(total)
 
 
-def _compute_ranges(industries: List[Dict]) -> Dict[str, float]:
+def _compute_ranges(industries: list[dict]) -> dict[str, float]:
     """Compute value ranges for perf normalization."""
     keys = ["perf_1w", "perf_1m", "perf_3m"]
     ranges = {}
@@ -191,13 +202,13 @@ def _compute_ranges(industries: List[Dict]) -> Dict[str, float]:
     return ranges
 
 
-def _auto_name_cluster(industries: List[Dict]) -> str:
+def _auto_name_cluster(industries: list[dict]) -> str:
     """Generate a descriptive name for a cluster from industry name tokens.
 
     Tokenizes all industry names, removes stop words, picks the top 2
     most frequent tokens and joins them.
     """
-    tokens: List[str] = []
+    tokens: list[str] = []
     for ind in industries:
         name = ind.get("name", "")
         for token in name.split():
@@ -219,9 +230,9 @@ def _auto_name_cluster(industries: List[Dict]) -> str:
 
 
 def _is_duplicate_of_existing(
-    cluster_industries: List[Dict],
+    cluster_industries: list[dict],
     cluster_direction: str,
-    existing_themes: List[Dict],
+    existing_themes: list[dict],
     overlap_threshold: float = _OVERLAP_THRESHOLD,
 ) -> bool:
     """Check if a discovered cluster duplicates an existing theme.
@@ -255,7 +266,7 @@ def _is_duplicate_of_existing(
     return False
 
 
-def _build_theme_dict(name: str, industries: List[Dict]) -> Dict:
+def _build_theme_dict(name: str, industries: list[dict]) -> dict:
     """Build a theme dict compatible with classify_themes() output.
 
     Discovered themes have proxy_etfs=[], static_stocks=[],

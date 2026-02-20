@@ -1,10 +1,8 @@
 """E2E tests for the full strategy_synthesizer pipeline."""
 
-import pytest
-
-from report_loader import load_all_reports, extract_signal, REQUIRED_SKILLS, OPTIONAL_SKILLS
+from allocation_engine import calculate_position_sizing, generate_allocation
+from report_loader import OPTIONAL_SKILLS, REQUIRED_SKILLS, extract_signal, load_all_reports
 from scorer import calculate_composite_conviction, classify_pattern
-from allocation_engine import generate_allocation, calculate_position_sizing
 
 
 def _run_pipeline(reports_dir, max_age=72):
@@ -23,8 +21,10 @@ def _run_pipeline(reports_dir, max_age=72):
 
     regime = signals.get("macro_regime", {}).get("regime", "transitional")
     allocation = generate_allocation(
-        conviction_score=score, zone=zone,
-        pattern=pattern["pattern"], regime=regime,
+        conviction_score=score,
+        zone=zone,
+        pattern=pattern["pattern"],
+        regime=regime,
     )
     sizing = calculate_position_sizing(conviction_score=score, zone=zone)
 
@@ -51,14 +51,19 @@ class TestFullPipeline:
         conv = result["conviction"]
         assert 0 <= conv["conviction_score"] <= 100
         assert conv["zone"] in [
-            "Maximum Conviction", "High Conviction", "Moderate Conviction",
-            "Low Conviction", "Capital Preservation",
+            "Maximum Conviction",
+            "High Conviction",
+            "Moderate Conviction",
+            "Low Conviction",
+            "Capital Preservation",
         ]
 
         pattern = result["pattern"]
         assert pattern["pattern"] in [
-            "policy_pivot_anticipation", "unsustainable_distortion",
-            "extreme_sentiment_contrarian", "wait_and_observe",
+            "policy_pivot_anticipation",
+            "unsustainable_distortion",
+            "extreme_sentiment_contrarian",
+            "wait_and_observe",
         ]
         assert 0 <= pattern["match_strength"] <= 100
 
@@ -92,19 +97,27 @@ class TestFullPipeline:
     def test_allocation_sums_to_100_across_zones(self, full_reports):
         """All 5 zones must produce allocations that sum to 100%."""
         zones = [
-            "Maximum Conviction", "High Conviction", "Moderate Conviction",
-            "Low Conviction", "Capital Preservation",
+            "Maximum Conviction",
+            "High Conviction",
+            "Moderate Conviction",
+            "Low Conviction",
+            "Capital Preservation",
         ]
         patterns = [
-            "policy_pivot_anticipation", "unsustainable_distortion",
-            "extreme_sentiment_contrarian", "wait_and_observe",
+            "policy_pivot_anticipation",
+            "unsustainable_distortion",
+            "extreme_sentiment_contrarian",
+            "wait_and_observe",
         ]
         for zone in zones:
             for pattern in patterns:
                 alloc = generate_allocation(
-                    conviction_score=50, zone=zone,
-                    pattern=pattern, regime="transitional",
+                    conviction_score=50,
+                    zone=zone,
+                    pattern=pattern,
+                    regime="transitional",
                 )
                 total = sum(alloc.values())
-                assert abs(total - 100) < 0.2, \
+                assert abs(total - 100) < 0.2, (
                     f"Zone={zone}, Pattern={pattern}: allocation={total}%"
+                )

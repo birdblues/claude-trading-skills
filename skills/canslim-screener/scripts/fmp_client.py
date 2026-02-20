@@ -15,8 +15,7 @@ Features:
 import os
 import sys
 import time
-from typing import Dict, List, Optional
-from datetime import datetime
+from typing import Optional
 
 try:
     import requests
@@ -55,7 +54,7 @@ class FMPClient:
         self.retry_count = 0
         self.max_retries = 1
 
-    def _rate_limited_get(self, url: str, params: Optional[Dict] = None) -> Optional[Dict]:
+    def _rate_limited_get(self, url: str, params: Optional[dict] = None) -> Optional[dict]:
         """
         Make rate-limited GET request with retry logic
 
@@ -71,7 +70,7 @@ class FMPClient:
 
         if params is None:
             params = {}
-        params['apikey'] = self.api_key
+        params["apikey"] = self.api_key
 
         # Enforce rate limit
         elapsed = time.time() - self.last_call_time
@@ -90,27 +89,30 @@ class FMPClient:
                 # Rate limit exceeded
                 self.retry_count += 1
                 if self.retry_count <= self.max_retries:
-                    print(f"WARNING: Rate limit exceeded. Waiting 60 seconds...", file=sys.stderr)
+                    print("WARNING: Rate limit exceeded. Waiting 60 seconds...", file=sys.stderr)
                     time.sleep(60)
                     return self._rate_limited_get(url, params)
                 else:
-                    print(f"ERROR: Daily API rate limit reached. Stopping analysis.", file=sys.stderr)
+                    print(
+                        "ERROR: Daily API rate limit reached. Stopping analysis.", file=sys.stderr
+                    )
                     self.rate_limit_reached = True
                     return None
 
             else:
-                print(f"ERROR: API request failed: {response.status_code} - {response.text[:200]}",
-                      file=sys.stderr)
+                print(
+                    f"ERROR: API request failed: {response.status_code} - {response.text[:200]}",
+                    file=sys.stderr,
+                )
                 return None
 
         except requests.exceptions.RequestException as e:
             print(f"ERROR: Request exception: {e}", file=sys.stderr)
             return None
 
-    def get_income_statement(self,
-                            symbol: str,
-                            period: str = "quarter",
-                            limit: int = 8) -> Optional[List[Dict]]:
+    def get_income_statement(
+        self, symbol: str, period: str = "quarter", limit: int = 8
+    ) -> Optional[list[dict]]:
         """
         Fetch income statement data (quarterly or annual)
 
@@ -141,7 +143,7 @@ class FMPClient:
 
         return data
 
-    def get_quote(self, symbols: str) -> Optional[List[Dict]]:
+    def get_quote(self, symbols: str) -> Optional[list[dict]]:
         """
         Fetch real-time quote data
 
@@ -172,9 +174,7 @@ class FMPClient:
 
         return data
 
-    def get_historical_prices(self,
-                             symbol: str,
-                             days: int = 365) -> Optional[Dict]:
+    def get_historical_prices(self, symbol: str, days: int = 365) -> Optional[dict]:
         """
         Fetch historical daily price data
 
@@ -205,7 +205,7 @@ class FMPClient:
 
         return data
 
-    def get_profile(self, symbol: str) -> Optional[List[Dict]]:
+    def get_profile(self, symbol: str) -> Optional[list[dict]]:
         """
         Fetch company profile (sector, industry, description)
 
@@ -233,7 +233,7 @@ class FMPClient:
 
         return data
 
-    def get_institutional_holders(self, symbol: str) -> Optional[List[Dict]]:
+    def get_institutional_holders(self, symbol: str) -> Optional[list[dict]]:
         """
         Fetch institutional holder data (Phase 2: I component)
 
@@ -270,7 +270,7 @@ class FMPClient:
 
         return data
 
-    def calculate_ema(self, prices: List[float], period: int = 50) -> float:
+    def calculate_ema(self, prices: list[float], period: int = 50) -> float:
         """
         Calculate Exponential Moving Average
 
@@ -308,7 +308,7 @@ class FMPClient:
         self.cache = {}
         print("Cache cleared", file=sys.stderr)
 
-    def get_api_stats(self) -> Dict:
+    def get_api_stats(self) -> dict:
         """
         Get API usage statistics for current session
 
@@ -318,7 +318,7 @@ class FMPClient:
         return {
             "cache_entries": len(self.cache),
             "rate_limit_reached": self.rate_limit_reached,
-            "retry_count": self.retry_count
+            "retry_count": self.retry_count,
         }
 
 
@@ -357,10 +357,10 @@ def test_client():
     # Test 4: Historical prices
     print("\n4. Testing historical prices (AAPL)...")
     prices = client.get_historical_prices("AAPL", days=365)
-    if prices and 'historical' in prices:
+    if prices and "historical" in prices:
         print(f"✓ Fetched {len(prices['historical'])} days of price history")
-        if len(prices['historical']) > 0:
-            latest = prices['historical'][0]
+        if len(prices["historical"]) > 0:
+            latest = prices["historical"][0]
             print(f"  Latest: {latest['date']}, Close: ${latest['close']:.2f}")
     else:
         print("✗ Historical prices failed")
@@ -378,11 +378,11 @@ def test_client():
     print("\n6. Testing cache (repeat AAPL quote)...")
     quote2 = client.get_quote("AAPL")
     if quote2:
-        print(f"✓ Cache working (no API call made)")
+        print("✓ Cache working (no API call made)")
 
     # Stats
     stats = client.get_api_stats()
-    print(f"\nAPI Stats:")
+    print("\nAPI Stats:")
     print(f"  Cache entries: {stats['cache_entries']}")
     print(f"  Rate limit reached: {stats['rate_limit_reached']}")
 

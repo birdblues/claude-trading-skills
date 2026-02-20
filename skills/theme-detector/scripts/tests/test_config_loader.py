@@ -7,20 +7,19 @@ import os
 import tempfile
 
 import pytest
-
 from config_loader import (
-    load_themes_config,
-    _load_yaml,
-    _validate_config,
     _extract_etf_catalog,
-    _strip_etf_count,
     _get_bundled_yaml_path,
+    _load_yaml,
+    _strip_etf_count,
+    _validate_config,
+    load_themes_config,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _write_yaml(tmpdir, content):
     path = os.path.join(tmpdir, "themes.yaml")
@@ -58,8 +57,8 @@ cross_sector:
 # TestLoadYaml
 # ---------------------------------------------------------------------------
 
-class TestLoadYaml:
 
+class TestLoadYaml:
     def test_loads_valid_yaml(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = _write_yaml(tmpdir, VALID_YAML)
@@ -82,8 +81,8 @@ class TestLoadYaml:
 # TestValidateConfig
 # ---------------------------------------------------------------------------
 
-class TestValidateConfig:
 
+class TestValidateConfig:
     def test_valid_config_passes(self):
         config = {
             "cross_sector_min_matches": 2,
@@ -127,8 +126,8 @@ class TestValidateConfig:
 # TestExtractEtfCatalog
 # ---------------------------------------------------------------------------
 
-class TestExtractEtfCatalog:
 
+class TestExtractEtfCatalog:
     def test_extracts_etf_counts(self):
         config = {
             "cross_sector": [
@@ -158,8 +157,8 @@ class TestExtractEtfCatalog:
 # TestStripEtfCount
 # ---------------------------------------------------------------------------
 
-class TestStripEtfCount:
 
+class TestStripEtfCount:
     def test_removes_etf_count_from_themes(self):
         config = {
             "cross_sector": [
@@ -187,8 +186,8 @@ class TestStripEtfCount:
 # TestLoadThemesConfig (integration)
 # ---------------------------------------------------------------------------
 
-class TestLoadThemesConfig:
 
+class TestLoadThemesConfig:
     def test_bundled_yaml_loads_successfully(self):
         """Default (no path) loads the bundled themes.yaml."""
         config, catalog = load_themes_config()
@@ -219,8 +218,10 @@ class TestLoadThemesConfig:
 
     def test_bundled_yaml_fallback_to_inline(self, monkeypatch):
         """When bundled YAML is broken, falls back to inline config."""
+
         def fake_get_path():
             return "/nonexistent/bundled/themes.yaml"
+
         monkeypatch.setattr("config_loader._get_bundled_yaml_path", fake_get_path)
         config, catalog = load_themes_config()
         # Should fall back to DEFAULT_THEMES_CONFIG from default_theme_config.py

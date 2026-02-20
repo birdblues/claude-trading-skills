@@ -17,8 +17,7 @@ Scoring: Weighted average of ETF deterioration signals.
 If 60%+ ETFs are deteriorating, apply 1.3x amplification.
 """
 
-from typing import Dict, List, Optional
-import sys
+from typing import Optional
 
 # Default Leading/Growth ETF basket
 DEFAULT_LEADING_ETFS = ["ARKK", "WCLD", "IGV", "XBI", "SOXX", "SMH", "KWEB", "TAN"]
@@ -26,18 +25,30 @@ LEADING_ETFS = DEFAULT_LEADING_ETFS  # backward compat
 
 # Expanded candidate pool for dynamic basket selection
 CANDIDATE_POOL = [
-    "SMH", "SOXX", "PSI", "SOXQ",   # Semiconductors
-    "IGV", "WCLD", "CLOU", "BUG",    # Software / Cloud / Cyber
-    "XBI", "ARKG",                    # Biotech / Genomics
-    "ARKK", "ARKW", "KOMP",          # Innovation / Disruptive
-    "TAN", "ICLN",                    # Clean Energy
-    "KWEB", "FDN",                    # Internet / China Tech
-    "FINX", "IPAY",                   # Fintech / Payments
-    "BOTZ",                           # Robotics / AI
+    "SMH",
+    "SOXX",
+    "PSI",
+    "SOXQ",  # Semiconductors
+    "IGV",
+    "WCLD",
+    "CLOU",
+    "BUG",  # Software / Cloud / Cyber
+    "XBI",
+    "ARKG",  # Biotech / Genomics
+    "ARKK",
+    "ARKW",
+    "KOMP",  # Innovation / Disruptive
+    "TAN",
+    "ICLN",  # Clean Energy
+    "KWEB",
+    "FDN",  # Internet / China Tech
+    "FINX",
+    "IPAY",  # Fintech / Payments
+    "BOTZ",  # Robotics / AI
 ]
 
 
-def select_dynamic_basket(quotes: Dict[str, Dict], top_n: int = 10) -> List[str]:
+def select_dynamic_basket(quotes: dict[str, dict], top_n: int = 10) -> list[str]:
     """
     Select top-N ETFs from candidate pool by proximity to 52-week high.
 
@@ -69,9 +80,9 @@ def select_dynamic_basket(quotes: Dict[str, Dict], top_n: int = 10) -> List[str]
     return [s[0] for s in scored[:top_n]]
 
 
-def calculate_leading_stock_health(quotes: Dict[str, Dict],
-                                   historical: Dict[str, List[Dict]],
-                                   etf_list: Optional[List[str]] = None) -> Dict:
+def calculate_leading_stock_health(
+    quotes: dict[str, dict], historical: dict[str, list[dict]], etf_list: Optional[list[str]] = None
+) -> dict:
     """
     Calculate leading stock health score.
 
@@ -168,14 +179,14 @@ def calculate_leading_stock_health(quotes: Dict[str, Dict],
     }
 
 
-def _evaluate_etf(symbol: str, quote: Dict, history: List[Dict]) -> Dict:
+def _evaluate_etf(symbol: str, quote: dict, history: list[dict]) -> dict:
     """Evaluate a single ETF's deterioration level"""
     score = 0
     flags = []
 
     price = quote.get("price", 0)
     year_high = quote.get("yearHigh", 0)
-    year_low = quote.get("yearLow", 0)
+    quote.get("yearLow", 0)
 
     # 1. Distance from 52-week high (0-40 points)
     if year_high > 0:
@@ -242,7 +253,7 @@ def _evaluate_etf(symbol: str, quote: Dict, history: List[Dict]) -> Dict:
     }
 
 
-def _detect_lower_highs(history: List[Dict], lookback: int = 20) -> bool:
+def _detect_lower_highs(history: list[dict], lookback: int = 20) -> bool:
     """
     Detect lower highs pattern in recent price action.
 
@@ -256,7 +267,7 @@ def _detect_lower_highs(history: List[Dict], lookback: int = 20) -> bool:
     # Find local maxima (swing highs)
     swing_highs = []
     for i in range(1, len(highs) - 1):
-        if highs[i] > highs[i-1] and highs[i] > highs[i+1]:
+        if highs[i] > highs[i - 1] and highs[i] > highs[i + 1]:
             swing_highs.append(highs[i])
 
     # Need at least 2 swing highs to compare

@@ -18,33 +18,67 @@ import argparse
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Add calculators directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'calculators'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "calculators"))
 
-from fmp_client import FMPClient
 from calculators.earnings_calculator import calculate_quarterly_growth
 from calculators.growth_calculator import calculate_annual_growth
+from calculators.institutional_calculator import calculate_institutional_sponsorship
+from calculators.leadership_calculator import calculate_leadership
+from calculators.market_calculator import calculate_market_direction
 from calculators.new_highs_calculator import calculate_newness
 from calculators.supply_demand_calculator import calculate_supply_demand
-from calculators.leadership_calculator import calculate_leadership
-from calculators.institutional_calculator import calculate_institutional_sponsorship
-from calculators.market_calculator import calculate_market_direction
-from scorer import (
-    calculate_composite_score, check_minimum_thresholds,
-    calculate_composite_score_phase2, check_minimum_thresholds_phase2,
-    calculate_composite_score_phase3, check_minimum_thresholds_phase3
-)
+from fmp_client import FMPClient
 from report_generator import generate_json_report, generate_markdown_report
-
+from scorer import (
+    calculate_composite_score_phase3,
+    check_minimum_thresholds_phase3,
+)
 
 # S&P 500 sample tickers (top 40 by market cap)
 DEFAULT_UNIVERSE = [
-    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "BRK.B", "UNH", "JNJ",
-    "XOM", "V", "PG", "JPM", "MA", "HD", "CVX", "MRK", "ABBV", "PEP",
-    "COST", "AVGO", "KO", "ADBE", "LLY", "TMO", "WMT", "MCD", "CSCO", "ACN",
-    "ORCL", "ABT", "NKE", "CRM", "DHR", "VZ", "TXN", "AMD", "QCOM", "INTC"
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "NVDA",
+    "META",
+    "TSLA",
+    "BRK.B",
+    "UNH",
+    "JNJ",
+    "XOM",
+    "V",
+    "PG",
+    "JPM",
+    "MA",
+    "HD",
+    "CVX",
+    "MRK",
+    "ABBV",
+    "PEP",
+    "COST",
+    "AVGO",
+    "KO",
+    "ADBE",
+    "LLY",
+    "TMO",
+    "WMT",
+    "MCD",
+    "CSCO",
+    "ACN",
+    "ORCL",
+    "ABT",
+    "NKE",
+    "CRM",
+    "DHR",
+    "VZ",
+    "TXN",
+    "AMD",
+    "QCOM",
+    "INTC",
 ]
 
 
@@ -55,40 +89,41 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--api-key",
-        help="FMP API key (defaults to FMP_API_KEY environment variable)"
+        "--api-key", help="FMP API key (defaults to FMP_API_KEY environment variable)"
     )
 
     parser.add_argument(
         "--max-candidates",
         type=int,
         default=40,
-        help="Maximum number of stocks to analyze (default: 40; use 35 for free tier's 250 calls/day limit)"
+        help="Maximum number of stocks to analyze (default: 40; use 35 for free tier's 250 calls/day limit)",
     )
 
     parser.add_argument(
         "--top",
         type=int,
         default=20,
-        help="Number of top stocks to include in report (default: 20)"
+        help="Number of top stocks to include in report (default: 20)",
     )
 
     parser.add_argument(
         "--output-dir",
         default=".",
-        help="Output directory for reports (default: current directory)"
+        help="Output directory for reports (default: current directory)",
     )
 
     parser.add_argument(
         "--universe",
         nargs="+",
-        help="Custom list of stock symbols to screen (overrides default S&P 500)"
+        help="Custom list of stock symbols to screen (overrides default S&P 500)",
     )
 
     return parser.parse_args()
 
 
-def analyze_stock(symbol: str, client: FMPClient, market_data: Dict, sp500_historical: List[Dict] = None) -> Optional[Dict]:
+def analyze_stock(
+    symbol: str, client: FMPClient, market_data: dict, sp500_historical: list[dict] = None
+) -> Optional[dict]:
     """
     Analyze a single stock using CANSLIM Phase 3 components (7 components: C, A, N, S, L, I, M)
 
@@ -124,46 +159,55 @@ def analyze_stock(symbol: str, client: FMPClient, market_data: Dict, sp500_histo
 
         # C Component: Current Quarterly Earnings
         quarterly_income = client.get_income_statement(symbol, period="quarter", limit=8)
-        c_result = calculate_quarterly_growth(quarterly_income) if quarterly_income else {
-            "score": 0, "error": "No quarterly data"
-        }
+        c_result = (
+            calculate_quarterly_growth(quarterly_income)
+            if quarterly_income
+            else {"score": 0, "error": "No quarterly data"}
+        )
 
         # A Component: Annual Growth
         annual_income = client.get_income_statement(symbol, period="annual", limit=5)
-        a_result = calculate_annual_growth(annual_income) if annual_income else {
-            "score": 50, "error": "No annual data"
-        }
+        a_result = (
+            calculate_annual_growth(annual_income)
+            if annual_income
+            else {"score": 50, "error": "No annual data"}
+        )
 
         # N Component: Newness / New Highs
         n_result = calculate_newness(quote[0])
 
         # S Component: Supply/Demand (uses existing historical_prices data - no extra API call)
         historical_prices = client.get_historical_prices(symbol, days=90)
-        s_result = calculate_supply_demand(historical_prices) if historical_prices else {
-            "score": 0, "error": "No price history data"
-        }
+        s_result = (
+            calculate_supply_demand(historical_prices)
+            if historical_prices
+            else {"score": 0, "error": "No price history data"}
+        )
 
         # L Component: Leadership / Relative Strength (52-week performance vs S&P 500)
         # Use 365-day historical data for full year comparison
         historical_prices_52w_data = client.get_historical_prices(symbol, days=365)
         # Extract 'historical' list from FMP response format
-        historical_prices_52w = historical_prices_52w_data.get("historical", []) if historical_prices_52w_data else []
+        historical_prices_52w = (
+            historical_prices_52w_data.get("historical", []) if historical_prices_52w_data else []
+        )
         # Prepare S&P 500 historical list (extract from FMP response format)
         sp500_historical_list = sp500_historical.get("historical", []) if sp500_historical else None
-        l_result = calculate_leadership(
-            historical_prices_52w,
-            sp500_historical=sp500_historical_list
-        ) if historical_prices_52w else {
-            "score": 0, "error": "No 52-week price history"
-        }
+        l_result = (
+            calculate_leadership(historical_prices_52w, sp500_historical=sp500_historical_list)
+            if historical_prices_52w
+            else {"score": 0, "error": "No 52-week price history"}
+        )
 
         # I Component: Institutional Sponsorship (with Finviz fallback)
         institutional_holders = client.get_institutional_holders(symbol)
-        i_result = calculate_institutional_sponsorship(
-            institutional_holders, profile[0], symbol=symbol, use_finviz_fallback=True
-        ) if institutional_holders else {
-            "score": 0, "error": "No institutional holder data"
-        }
+        i_result = (
+            calculate_institutional_sponsorship(
+                institutional_holders, profile[0], symbol=symbol, use_finviz_fallback=True
+            )
+            if institutional_holders
+            else {"score": 0, "error": "No institutional holder data"}
+        )
 
         # M Component: Market Direction (use pre-calculated)
         m_result = market_data
@@ -176,7 +220,7 @@ def analyze_stock(symbol: str, client: FMPClient, market_data: Dict, sp500_histo
             s_score=s_result.get("score", 0),
             l_score=l_result.get("score", 0),
             i_score=i_result.get("score", 0),
-            m_score=m_result.get("score", 50)
+            m_score=m_result.get("score", 50),
         )
 
         # Check minimum thresholds (Phase 3)
@@ -187,7 +231,7 @@ def analyze_stock(symbol: str, client: FMPClient, market_data: Dict, sp500_histo
             s_score=s_result.get("score", 0),
             l_score=l_result.get("score", 0),
             i_score=i_result.get("score", 0),
-            m_score=m_result.get("score", 50)
+            m_score=m_result.get("score", 50),
         )
 
         print(f"✓ Score: {composite['composite_score']:.1f} ({composite['rating']})")
@@ -211,7 +255,7 @@ def analyze_stock(symbol: str, client: FMPClient, market_data: Dict, sp500_histo
             "l_component": l_result,  # NEW: Phase 3
             "i_component": i_result,
             "m_component": m_result,
-            "threshold_check": threshold_check
+            "threshold_check": threshold_check,
         }
 
     except Exception as e:
@@ -225,7 +269,9 @@ def main():
 
     print("=" * 60)
     print("CANSLIM Stock Screener - Phase 3 (Full CANSLIM)")
-    print("Components: C (Earnings), A (Growth), N (Newness), S (Supply/Demand), L (Leadership), I (Institutional), M (Market)")
+    print(
+        "Components: C (Earnings), A (Growth), N (Newness), S (Supply/Demand), L (Leadership), I (Institutional), M (Market)"
+    )
     print("=" * 60)
     print()
 
@@ -239,10 +285,10 @@ def main():
 
     # Determine universe
     if args.universe:
-        universe = args.universe[:args.max_candidates]
+        universe = args.universe[: args.max_candidates]
         print(f"✓ Custom universe: {len(universe)} stocks")
     else:
-        universe = DEFAULT_UNIVERSE[:args.max_candidates]
+        universe = DEFAULT_UNIVERSE[: args.max_candidates]
         print(f"✓ Default universe (S&P 500 top {len(universe)}): {len(universe)} stocks")
 
     print()
@@ -260,19 +306,23 @@ def main():
 
     # Fetch S&P 500 historical prices (used by both M and L components)
     print("Fetching S&P 500 52-week data for M (EMA) and L (Relative Strength) components...")
-    sp500_historical = client.get_historical_prices("^GSPC", days=365)  # Must match ^GSPC quote for M component EMA
+    sp500_historical = client.get_historical_prices(
+        "^GSPC", days=365
+    )  # Must match ^GSPC quote for M component EMA
     if sp500_historical and sp500_historical.get("historical"):
         sp500_days = len(sp500_historical.get("historical", []))
         print(f"✓ S&P 500 historical data: {sp500_days} days")
     else:
-        print("⚠️  S&P 500 historical data unavailable - M component will use EMA fallback, L component will use absolute performance")
+        print(
+            "⚠️  S&P 500 historical data unavailable - M component will use EMA fallback, L component will use absolute performance"
+        )
 
     # Calculate M component using real historical prices for accurate EMA
     sp500_historical_list = sp500_historical.get("historical", []) if sp500_historical else []
     market_data = calculate_market_direction(
         sp500_quote=sp500_quote[0],
         sp500_prices=sp500_historical_list if sp500_historical_list else None,
-        vix_quote=vix_quote[0] if vix_quote else None
+        vix_quote=vix_quote[0] if vix_quote else None,
     )
 
     print(f"S&P 500: ${market_data['sp500_price']:.2f}")
@@ -281,7 +331,7 @@ def main():
     print(f"M Score: {market_data['score']}/100")
     print(f"Interpretation: {market_data['interpretation']}")
 
-    if market_data.get('warning'):
+    if market_data.get("warning"):
         print()
         print(f"⚠️  WARNING: {market_data['warning']}")
         print("    Consider raising cash allocation. CANSLIM doesn't work in bear markets.")
@@ -306,7 +356,7 @@ def main():
     print("Step 3: Ranking Results")
     print("-" * 60)
 
-    results.sort(key=lambda x: x['composite_score'], reverse=True)
+    results.sort(key=lambda x: x["composite_score"], reverse=True)
 
     # Display top 5
     print("Top 5 Stocks:")
@@ -330,14 +380,14 @@ def main():
         "candidates_analyzed": len(results),
         "universe_size": len(universe),
         "market_condition": {
-            "trend": market_data['trend'],
-            "M_score": market_data['score'],
-            "warning": market_data.get('warning')
-        }
+            "trend": market_data["trend"],
+            "M_score": market_data["score"],
+            "warning": market_data.get("warning"),
+        },
     }
 
     # Limit to top N for report
-    top_results = results[:args.top]
+    top_results = results[: args.top]
 
     generate_json_report(top_results, metadata, json_file)
     generate_markdown_report(top_results, metadata, md_file)
@@ -352,10 +402,12 @@ def main():
 
     # API stats
     api_stats = client.get_api_stats()
-    print(f"API Usage:")
+    print("API Usage:")
     print(f"  Cache entries: {api_stats['cache_entries']}")
-    print(f"  Estimated calls: ~{len(universe) * 7 + 3} (3 market data calls + {len(universe)} stocks × 7 API calls each)")
-    print(f"  Phase 3 includes all 7 CANSLIM components (C, A, N, S, L, I, M)")
+    print(
+        f"  Estimated calls: ~{len(universe) * 7 + 3} (3 market data calls + {len(universe)} stocks × 7 API calls each)"
+    )
+    print("  Phase 3 includes all 7 CANSLIM components (C, A, N, S, L, I, M)")
     print()
 
 

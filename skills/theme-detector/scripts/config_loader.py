@@ -13,12 +13,13 @@ Error handling:
 import copy
 import os
 import sys
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 # Build tuple of catchable YAML errors (yaml may not be installed)
 _YAML_ERRORS: tuple = ()
 try:
     import yaml
+
     _YAML_ERRORS = (yaml.YAMLError,)
 except ImportError:
     pass
@@ -26,7 +27,7 @@ except ImportError:
 
 def load_themes_config(
     yaml_path: Optional[str] = None,
-) -> Tuple[Dict, Dict[str, int]]:
+) -> tuple[dict, dict[str, int]]:
     """Load themes config and ETF catalog.
 
     Args:
@@ -57,13 +58,13 @@ def load_themes_config(
         config = _strip_etf_count(raw)
         return config, catalog
     except (FileNotFoundError, ValueError, RuntimeError, ImportError, *_YAML_ERRORS) as exc:
-        print(f"WARNING: YAML load failed ({exc}), using inline config",
-              file=sys.stderr)
+        print(f"WARNING: YAML load failed ({exc}), using inline config", file=sys.stderr)
         from default_theme_config import DEFAULT_THEMES_CONFIG, ETF_CATALOG
+
         return copy.deepcopy(DEFAULT_THEMES_CONFIG), dict(ETF_CATALOG)
 
 
-def _load_yaml(path: str) -> Dict:
+def _load_yaml(path: str) -> dict:
     """Load and parse a YAML file.
 
     Raises:
@@ -78,15 +79,14 @@ def _load_yaml(path: str) -> Dict:
         import yaml
     except ImportError:
         raise RuntimeError(
-            "PyYAML is required but not installed. "
-            "Install with: pip install pyyaml>=6.0"
+            "PyYAML is required but not installed. Install with: pip install pyyaml>=6.0"
         )
 
     with open(path) as f:
         return yaml.safe_load(f)
 
 
-def _validate_config(config: Dict) -> None:
+def _validate_config(config: dict) -> None:
     """Validate required keys in themes config.
 
     Raises:
@@ -100,17 +100,14 @@ def _validate_config(config: Dict) -> None:
 
     for i, theme in enumerate(config["cross_sector"]):
         if "theme_name" not in theme:
-            raise ValueError(
-                f"Theme at index {i} missing required key: theme_name"
-            )
+            raise ValueError(f"Theme at index {i} missing required key: theme_name")
         if "matching_keywords" not in theme:
             raise ValueError(
-                f"Theme '{theme.get('theme_name', i)}' missing required key: "
-                f"matching_keywords"
+                f"Theme '{theme.get('theme_name', i)}' missing required key: matching_keywords"
             )
 
 
-def _extract_etf_catalog(config: Dict) -> Dict[str, int]:
+def _extract_etf_catalog(config: dict) -> dict[str, int]:
     """Extract ETF counts from config into a catalog dict.
 
     Each theme may have an `etf_count` field. Missing etf_count defaults to 0.
@@ -125,7 +122,7 @@ def _extract_etf_catalog(config: Dict) -> Dict[str, int]:
     return catalog
 
 
-def _strip_etf_count(config: Dict) -> Dict:
+def _strip_etf_count(config: dict) -> dict:
     """Return a copy of config with etf_count removed from each theme.
 
     The etf_count is only used for ETF catalog extraction and should not

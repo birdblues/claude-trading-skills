@@ -1,11 +1,9 @@
 """Tests for Breadth CSV Client (TraderMonty auto-fetch)."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
 import requests
-
 from breadth_csv_client import fetch_breadth_200dma
 
 # Sample CSV content matching TraderMonty's format
@@ -27,7 +25,6 @@ def _mock_response(text, status_code=200):
 
 
 class TestFetchBreadth200dma:
-
     @patch("breadth_csv_client.requests.get")
     def test_fetch_success_returns_value(self, mock_get):
         """Normal fetch returns a dict with value in 0-100 range."""

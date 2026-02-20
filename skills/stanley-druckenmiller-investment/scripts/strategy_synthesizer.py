@@ -19,15 +19,14 @@ import argparse
 import os
 import sys
 from datetime import datetime
-from typing import Dict
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from report_loader import load_all_reports, extract_signal, REQUIRED_SKILLS, OPTIONAL_SKILLS
-from scorer import calculate_composite_conviction, classify_pattern
-from allocation_engine import generate_allocation, calculate_position_sizing
+from allocation_engine import calculate_position_sizing, generate_allocation
 from report_generator import generate_json_report, generate_markdown_report
+from report_loader import OPTIONAL_SKILLS, REQUIRED_SKILLS, extract_signal, load_all_reports
+from scorer import calculate_composite_conviction, classify_pattern
 
 
 def parse_arguments():
@@ -35,16 +34,18 @@ def parse_arguments():
         description="Druckenmiller Strategy Synthesizer - Meta-Skill Orchestrator"
     )
     parser.add_argument(
-        "--reports-dir", default="reports/",
-        help="Directory containing upstream skill JSON reports (default: reports/)"
+        "--reports-dir",
+        default="reports/",
+        help="Directory containing upstream skill JSON reports (default: reports/)",
     )
     parser.add_argument(
-        "--output-dir", default="reports/",
-        help="Directory for output reports (default: reports/)"
+        "--output-dir", default="reports/", help="Directory for output reports (default: reports/)"
     )
     parser.add_argument(
-        "--max-age", type=float, default=72,
-        help="Maximum age (hours) for input reports (default: 72)"
+        "--max-age",
+        type=float,
+        default=72,
+        help="Maximum age (hours) for input reports (default: 72)",
     )
     return parser.parse_args()
 
@@ -75,7 +76,9 @@ def main():
 
     required_count = sum(1 for k in reports if k in REQUIRED_SKILLS)
     optional_count = sum(1 for k in reports if k in OPTIONAL_SKILLS)
-    print(f"  Loaded {len(reports)} reports ({required_count} required + {optional_count} optional)")
+    print(
+        f"  Loaded {len(reports)} reports ({required_count} required + {optional_count} optional)"
+    )
 
     for skill_name in reports:
         marker = "REQ" if skill_name in REQUIRED_SKILLS else "OPT"
@@ -99,7 +102,9 @@ def main():
         elif "derived_score" in sig:
             print(f"  {skill_name}: derived={sig['derived_score']}")
         elif "quality_score" in sig:
-            print(f"  {skill_name}: quality={sig['quality_score']}, state={sig.get('state', 'N/A')}")
+            print(
+                f"  {skill_name}: quality={sig['quality_score']}, state={sig.get('state', 'N/A')}"
+            )
 
     print()
 
@@ -116,10 +121,14 @@ def main():
     print(f"  Conviction Score: {score}/100")
     print(f"  Zone: {zone}")
     print(f"  Exposure Range: {conviction['exposure_range']}")
-    print(f"  Strongest: {conviction['strongest_component']['label']} "
-          f"({conviction['strongest_component']['score']})")
-    print(f"  Weakest: {conviction['weakest_component']['label']} "
-          f"({conviction['weakest_component']['score']})")
+    print(
+        f"  Strongest: {conviction['strongest_component']['label']} "
+        f"({conviction['strongest_component']['score']})"
+    )
+    print(
+        f"  Weakest: {conviction['weakest_component']['label']} "
+        f"({conviction['weakest_component']['score']})"
+    )
     print()
 
     # ========================================================================

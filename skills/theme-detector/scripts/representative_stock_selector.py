@@ -12,9 +12,8 @@ Selects representative stocks for market themes using a fallback chain:
 import csv
 import io
 import logging
-import sys
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 try:
     import requests
@@ -50,7 +49,7 @@ CAP_ELITE_MAP = {
 
 # Industry name -> Elite URL code (lowercase, spaces/punctuation removed)
 # Derived from finvizfinance.screener.base.filter_dict["Industry"]["option"]
-_INDUSTRY_CODE_CACHE: Dict[str, str] = {}
+_INDUSTRY_CODE_CACHE: dict[str, str] = {}
 
 
 def _industry_to_code(industry: str) -> str:
@@ -68,6 +67,7 @@ def _industry_to_code(industry: str) -> str:
 # Source state tracking
 # ---------------------------------------------------------------------------
 
+
 class _SourceState:
     """Track per-source failure state for circuit breaker."""
 
@@ -81,6 +81,7 @@ class _SourceState:
 # ---------------------------------------------------------------------------
 # Parse helpers
 # ---------------------------------------------------------------------------
+
 
 def _parse_market_cap(value) -> int:
     """Parse FINVIZ Market Cap string to integer.
@@ -188,6 +189,7 @@ def _parse_volume(value) -> Optional[int]:
 # Selector
 # ---------------------------------------------------------------------------
 
+
 class RepresentativeStockSelector:
     """Select representative stocks for themes dynamically.
 
@@ -209,10 +211,10 @@ class RepresentativeStockSelector:
         self._rate_limit_sec = rate_limit_sec
         self._max_per_industry = max_per_industry
         self._min_cap = min_cap
-        self._industry_cache: Dict[Tuple[str, bool], List[Dict]] = {}
-        self._etf_cache: Dict[str, List[Dict]] = {}
+        self._industry_cache: dict[tuple[str, bool], list[dict]] = {}
+        self._etf_cache: dict[str, list[dict]] = {}
         self._last_request_time: float = 0.0
-        self._source_states: Dict[str, _SourceState] = {
+        self._source_states: dict[str, _SourceState] = {
             "elite": _SourceState(),
             "public": _SourceState(),
             "fmp": _SourceState(),
@@ -229,13 +231,13 @@ class RepresentativeStockSelector:
         return sum(s.total_failures for s in self._source_states.values())
 
     @property
-    def source_states(self) -> Dict[str, _SourceState]:
+    def source_states(self) -> dict[str, _SourceState]:
         return self._source_states
 
     @property
-    def _active_sources(self) -> List[str]:
+    def _active_sources(self) -> list[str]:
         """Sources actually available given current config."""
-        sources: List[str] = []
+        sources: list[str] = []
         if self._finviz_mode == "elite" and self._finviz_elite_key:
             sources.append("elite")
         sources.append("public")  # always available
@@ -247,9 +249,7 @@ class RepresentativeStockSelector:
     def status(self) -> str:
         """Overall health: active / degraded / circuit_broken."""
         active = self._active_sources
-        disabled_count = sum(
-            1 for name in active if self._source_states[name].disabled
-        )
+        disabled_count = sum(1 for name in active if self._source_states[name].disabled)
         if disabled_count == 0:
             return "active"
         elif disabled_count < len(active):
@@ -259,28 +259,24 @@ class RepresentativeStockSelector:
 
     # -- Main entry point ----------------------------------------------------
 
-    def select_stocks(self, theme: Dict, max_stocks: int = 10) -> List[Dict]:
+    def select_stocks(self, theme: dict, max_stocks: int = 10) -> list[dict]:
         """Select representative stocks for a theme.
 
         Returns list of dicts with keys:
             symbol, source, market_cap, matched_industries, reasons, composite_score
         """
         is_bearish = theme.get("direction") == "bearish"
-        candidates: List[Dict] = []
-        industries = [
-            ind.get("name", "") for ind in theme.get("matching_industries", [])
-        ]
+        candidates: list[dict] = []
+        industries = [ind.get("name", "") for ind in theme.get("matching_industries", [])]
 
         # Priority 1: FINVIZ (Elite or Public) per industry
         for industry in industries:
             cache_key = (industry, is_bearish)
             if cache_key in self._industry_cache:
-                candidates.extend(
-                    self._industry_cache[cache_key][:self._max_per_industry]
-                )
+                candidates.extend(self._industry_cache[cache_key][: self._max_per_industry])
                 continue
 
-            stocks: List[Dict] = []
+            stocks: list[dict] = []
             fetch_limit = max(max_stocks, self._max_per_industry * 2)
 
             # Elite attempt
@@ -302,7 +298,7 @@ class RepresentativeStockSelector:
             # Score and cache
             stocks = self._compute_composite_score(stocks, is_bearish)
             self._industry_cache[cache_key] = stocks
-            candidates.extend(stocks[:self._max_per_industry])
+            candidates.extend(stocks[: self._max_per_industry])
 
         # Priority 1.5: 2nd pass - fill from cache for single-industry themes
         unique_syms = set(c["symbol"] for c in candidates)
@@ -310,7 +306,7 @@ class RepresentativeStockSelector:
             for industry in industries:
                 cache_key = (industry, is_bearish)
                 cached = self._industry_cache.get(cache_key, [])
-                for stock in cached[self._max_per_industry:]:
+                for stock in cached[self._max_per_industry :]:
                     if stock["symbol"] not in unique_syms:
                         candidates.append(stock)
                         unique_syms.add(stock["symbol"])
@@ -337,22 +333,22 @@ class RepresentativeStockSelector:
         # Priority 3: static_stocks fallback
         if not candidates:
             for sym in theme.get("static_stocks", [])[:max_stocks]:
-                candidates.append({
-                    "symbol": sym,
-                    "source": "static",
-                    "market_cap": 0,
-                    "matched_industries": [],
-                    "reasons": ["Static fallback"],
-                    "composite_score": 0,
-                })
+                candidates.append(
+                    {
+                        "symbol": sym,
+                        "source": "static",
+                        "market_cap": 0,
+                        "matched_industries": [],
+                        "reasons": ["Static fallback"],
+                        "composite_score": 0,
+                    }
+                )
 
         return self._merge_and_rank(candidates, max_stocks)
 
     # -- Fetch methods -------------------------------------------------------
 
-    def _fetch_finviz_elite(
-        self, industry: str, limit: int, is_bearish: bool
-    ) -> List[Dict]:
+    def _fetch_finviz_elite(self, industry: str, limit: int, is_bearish: bool) -> list[dict]:
         """Fetch stocks via FINVIZ Elite CSV export."""
         if requests is None:
             return []
@@ -380,20 +376,22 @@ class RepresentativeStockSelector:
                 return []
 
             reader = csv.DictReader(io.StringIO(resp.text))
-            stocks: List[Dict] = []
+            stocks: list[dict] = []
             for row in reader:
                 ticker = row.get("Ticker", "").strip()
                 if not ticker:
                     continue
-                stocks.append({
-                    "symbol": ticker,
-                    "source": "finviz_elite",
-                    "market_cap": _parse_market_cap(row.get("Market Cap")),
-                    "change": _parse_change(row.get("Change")),
-                    "volume": _parse_volume(row.get("Volume")),
-                    "matched_industries": [industry],
-                    "reasons": [f"Elite screener: {industry}"],
-                })
+                stocks.append(
+                    {
+                        "symbol": ticker,
+                        "source": "finviz_elite",
+                        "market_cap": _parse_market_cap(row.get("Market Cap")),
+                        "change": _parse_change(row.get("Change")),
+                        "volume": _parse_volume(row.get("Volume")),
+                        "matched_industries": [industry],
+                        "reasons": [f"Elite screener: {industry}"],
+                    }
+                )
                 if len(stocks) >= limit:
                     break
 
@@ -405,9 +403,7 @@ class RepresentativeStockSelector:
             self._record_failure("elite")
             return []
 
-    def _fetch_finviz_public(
-        self, industry: str, limit: int, is_bearish: bool
-    ) -> List[Dict]:
+    def _fetch_finviz_public(self, industry: str, limit: int, is_bearish: bool) -> list[dict]:
         """Fetch stocks via finvizfinance public screener."""
         if Overview is None:
             logger.warning("finvizfinance not installed")
@@ -429,28 +425,28 @@ class RepresentativeStockSelector:
         try:
             o = Overview()
             o.set_filter(filters_dict=filters_dict)
-            df = o.screener_view(
-                order="Market Cap.", limit=limit, verbose=0, ascend=False
-            )
+            df = o.screener_view(order="Market Cap.", limit=limit, verbose=0, ascend=False)
 
             if df is None or df.empty:
                 self._record_success("public")  # Empty result is not a failure
                 return []
 
-            stocks: List[Dict] = []
+            stocks: list[dict] = []
             for _, row in df.iterrows():
                 ticker = str(row.get("Ticker", "")).strip()
                 if not ticker:
                     continue
-                stocks.append({
-                    "symbol": ticker,
-                    "source": "finviz_public",
-                    "market_cap": _parse_market_cap(row.get("Market Cap")),
-                    "change": _parse_change(row.get("Change")),
-                    "volume": _parse_volume(row.get("Volume")),
-                    "matched_industries": [industry],
-                    "reasons": [f"Public screener: {industry}"],
-                })
+                stocks.append(
+                    {
+                        "symbol": ticker,
+                        "source": "finviz_public",
+                        "market_cap": _parse_market_cap(row.get("Market Cap")),
+                        "change": _parse_change(row.get("Change")),
+                        "volume": _parse_volume(row.get("Volume")),
+                        "matched_industries": [industry],
+                        "reasons": [f"Public screener: {industry}"],
+                    }
+                )
 
             self._record_success("public")
             return stocks
@@ -460,7 +456,7 @@ class RepresentativeStockSelector:
             self._record_failure("public")
             return []
 
-    def _fetch_etf_holdings(self, etf_symbol: str, limit: int) -> List[Dict]:
+    def _fetch_etf_holdings(self, etf_symbol: str, limit: int) -> list[dict]:
         """Fetch top ETF holdings via FMP API."""
         if requests is None or not self._fmp_api_key:
             return []
@@ -484,20 +480,22 @@ class RepresentativeStockSelector:
                 self._record_failure("fmp")
                 return []
 
-            stocks: List[Dict] = []
+            stocks: list[dict] = []
             for item in data[:limit]:
                 ticker = item.get("asset", "").strip()
                 if not ticker:
                     continue
-                stocks.append({
-                    "symbol": ticker,
-                    "source": "etf_holdings",
-                    "market_cap": _parse_market_cap(item.get("marketValue")),
-                    "change": None,
-                    "volume": None,
-                    "matched_industries": [],
-                    "reasons": [f"Held by {etf_symbol}"],
-                })
+                stocks.append(
+                    {
+                        "symbol": ticker,
+                        "source": "etf_holdings",
+                        "market_cap": _parse_market_cap(item.get("marketValue")),
+                        "change": None,
+                        "volume": None,
+                        "matched_industries": [],
+                        "reasons": [f"Held by {etf_symbol}"],
+                    }
+                )
 
             self._record_success("fmp")
             return stocks
@@ -509,9 +507,7 @@ class RepresentativeStockSelector:
 
     # -- Scoring & ranking ---------------------------------------------------
 
-    def _compute_composite_score(
-        self, stocks: List[Dict], is_bearish: bool
-    ) -> List[Dict]:
+    def _compute_composite_score(self, stocks: list[dict], is_bearish: bool) -> list[dict]:
         """Compute composite score: 0.4*cap_rank + 0.3*change_rank + 0.3*vol_rank.
 
         Missing fields are excluded and weights re-normalized.
@@ -542,7 +538,7 @@ class RepresentativeStockSelector:
             else:
                 change_vals.append((i, None))
 
-        change_rank: Dict[int, Optional[int]] = {}
+        change_rank: dict[int, Optional[int]] = {}
         if has_change:
             valid = [(i, v) for i, v in change_vals if v is not None]
             valid_sorted = sorted(valid, key=lambda x: x[1], reverse=True)
@@ -566,7 +562,7 @@ class RepresentativeStockSelector:
             else:
                 vol_vals.append((i, None))
 
-        vol_rank: Dict[int, Optional[int]] = {}
+        vol_rank: dict[int, Optional[int]] = {}
         if has_volume:
             valid = [(i, v) for i, v in vol_vals if v is not None]
             valid_sorted = sorted(valid, key=lambda x: x[1], reverse=True)
@@ -621,11 +617,9 @@ class RepresentativeStockSelector:
         stocks.sort(key=lambda x: x.get("composite_score", 0), reverse=True)
         return stocks
 
-    def _merge_and_rank(
-        self, candidates: List[Dict], max_stocks: int
-    ) -> List[Dict]:
+    def _merge_and_rank(self, candidates: list[dict], max_stocks: int) -> list[dict]:
         """Deduplicate by symbol, merge industries/reasons, rank by score."""
-        merged: Dict[str, Dict] = {}
+        merged: dict[str, dict] = {}
         for c in candidates:
             sym = c["symbol"]
             if sym in merged:
@@ -669,5 +663,8 @@ class RepresentativeStockSelector:
         state.total_failures += 1
         if state.consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
             state.disabled = True
-            logger.warning("Source %s disabled after %d consecutive failures",
-                           source, _MAX_CONSECUTIVE_FAILURES)
+            logger.warning(
+                "Source %s disabled after %d consecutive failures",
+                source,
+                _MAX_CONSECUTIVE_FAILURES,
+            )

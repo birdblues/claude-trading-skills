@@ -1,6 +1,5 @@
 """Tests for report_generator.py — incremental across Steps 1-4."""
 
-import json
 import os
 import tempfile
 
@@ -161,9 +160,7 @@ def _base_analysis(**overrides):
 
 def _generate_to_string(analysis):
     """Generate markdown report and return as string."""
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".md", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         tmp = f.name
     try:
         generate_markdown_report(analysis, tmp)
@@ -185,26 +182,16 @@ class TestStep1ExcludedComponents:
 
     def test_excluded_component_marked(self):
         analysis = _base_analysis()
-        analysis["composite"]["excluded_components"] = [
-            "Peak/Trough Cycle Position"
-        ]
-        analysis["composite"]["component_scores"]["cycle_position"][
-            "data_available"
-        ] = False
-        analysis["composite"]["component_scores"]["cycle_position"][
-            "effective_weight"
-        ] = 0.0
+        analysis["composite"]["excluded_components"] = ["Peak/Trough Cycle Position"]
+        analysis["composite"]["component_scores"]["cycle_position"]["data_available"] = False
+        analysis["composite"]["component_scores"]["cycle_position"]["effective_weight"] = 0.0
         md = _generate_to_string(analysis)
         assert "(excluded)" in md
 
     def test_excluded_note_displayed(self):
         analysis = _base_analysis()
-        analysis["composite"]["excluded_components"] = [
-            "Peak/Trough Cycle Position"
-        ]
-        analysis["composite"]["component_scores"]["cycle_position"][
-            "data_available"
-        ] = False
+        analysis["composite"]["excluded_components"] = ["Peak/Trough Cycle Position"]
+        analysis["composite"]["component_scores"]["cycle_position"]["data_available"] = False
         md = _generate_to_string(analysis)
         assert "excluded due to insufficient data" in md
 

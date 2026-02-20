@@ -25,10 +25,8 @@ Scoring (100 = healthy):
   Score = clamp(0.70 * level_score + 0.30 * trend_score + modifier, 0, 100)
 """
 
-from typing import Dict, List
 
-
-def calculate_breadth_level_trend(rows: List[Dict]) -> Dict:
+def calculate_breadth_level_trend(rows: list[dict]) -> dict:
     """
     Calculate current breadth level and trend score.
 
@@ -84,7 +82,7 @@ def calculate_breadth_level_trend(rows: List[Dict]) -> Dict:
     return result
 
 
-def _direction_modifier(rows: List[Dict], current_8ma: float):
+def _direction_modifier(rows: list[dict], current_8ma: float):
     """Calculate 8MA direction modifier based on 5-day movement.
 
     Returns (direction_str_or_None, modifier_int).

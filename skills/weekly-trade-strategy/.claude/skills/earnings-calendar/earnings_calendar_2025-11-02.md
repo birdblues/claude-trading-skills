@@ -444,4 +444,3 @@
 ---
 
 *Report generated using FMP Earnings Calendar API with mid-cap+ filter (>$2B market cap). Data current as of report generation time. Always verify earnings dates through official company sources.*
-

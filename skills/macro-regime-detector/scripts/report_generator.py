@@ -6,17 +6,16 @@ Generates JSON and Markdown reports for macro regime detection analysis.
 """
 
 import json
-from typing import Dict
 
 
-def generate_json_report(analysis: Dict, output_file: str):
+def generate_json_report(analysis: dict, output_file: str):
     """Save full analysis as JSON"""
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(analysis, f, indent=2, default=str)
     print(f"JSON report saved to: {output_file}")
 
 
-def generate_markdown_report(analysis: Dict, output_file: str):
+def generate_markdown_report(analysis: dict, output_file: str):
     """Generate comprehensive Markdown report"""
     lines = []
     composite = analysis.get("composite", {})
@@ -31,7 +30,9 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("# Macro Regime Detector Report")
     lines.append("")
     lines.append(f"**Generated:** {metadata.get('generated_at', 'N/A')}")
-    lines.append(f"**Data Source:** FMP API ({metadata.get('api_calls', {}).get('api_calls_made', 'N/A')} calls)")
+    lines.append(
+        f"**Data Source:** FMP API ({metadata.get('api_calls', {}).get('api_calls_made', 'N/A')} calls)"
+    )
     lines.append("")
 
     # ================================================================
@@ -54,13 +55,17 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append(f"| **Confidence** | {confidence.upper()} |")
     lines.append(f"| **Transition Score** | {zone_emoji} **{score}/100** |")
     lines.append(f"| **Signal Zone** | {zone} |")
-    lines.append(f"| **Transition Probability** | {transition.get('probability_range', 'N/A')} ({transition.get('level', 'N/A')}) |")
+    lines.append(
+        f"| **Transition Probability** | {transition.get('probability_range', 'N/A')} ({transition.get('level', 'N/A')}) |"
+    )
     lines.append(f"| **Components Signaling** | {composite.get('signaling_components', 0)}/6 |")
     dq = composite.get("data_quality", {})
     if dq:
         lines.append(f"| **Data Quality** | {dq.get('label', 'N/A')} |")
     if transition.get("ambiguous"):
-        lines.append("| **Regime Clarity** | **AMBIGUOUS** - Multiple regimes show similar evidence |")
+        lines.append(
+            "| **Regime Clarity** | **AMBIGUOUS** - Multiple regimes show similar evidence |"
+        )
     tied = regime.get("tied_regimes")
     if tied:
         lines.append(f"| **Competing Regimes** | {' vs '.join(r.capitalize() for r in tied)} |")
@@ -75,7 +80,9 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     from_r = transition.get("from_regime")
     to_r = transition.get("to_regime")
     if from_r and to_r:
-        lines.append(f"> **Transition Direction:** {from_r.capitalize()} \u2192 {to_r.capitalize()}")
+        lines.append(
+            f"> **Transition Direction:** {from_r.capitalize()} \u2192 {to_r.capitalize()}"
+        )
     lines.append("")
 
     # ================================================================
@@ -85,12 +92,20 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
     lines.append("## 2. Transition Signal Dashboard")
     lines.append("")
-    lines.append("| # | Component | Weight | Score | Direction | Fit | Crossover | Momentum (3M ROC) |")
-    lines.append("|---|-----------|--------|-------|-----------|----|-----------|--------------------| ")
+    lines.append(
+        "| # | Component | Weight | Score | Direction | Fit | Crossover | Momentum (3M ROC) |"
+    )
+    lines.append(
+        "|---|-----------|--------|-------|-----------|----|-----------|--------------------| "
+    )
 
     component_order = [
-        "concentration", "yield_curve", "credit_conditions",
-        "size_factor", "equity_bond", "sector_rotation",
+        "concentration",
+        "yield_curve",
+        "credit_conditions",
+        "size_factor",
+        "equity_bond",
+        "sector_rotation",
     ]
 
     consistency = regime.get("consistency", {})
@@ -99,7 +114,7 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         comp_score = composite.get("component_scores", {}).get(key, {})
         comp_detail = components.get(key, {})
         score_val = comp_score.get("score", 0)
-        weight_pct = f"{comp_score.get('weight', 0)*100:.0f}%"
+        weight_pct = f"{comp_score.get('weight', 0) * 100:.0f}%"
         direction = comp_detail.get("direction", "N/A")
         mom_qual = comp_detail.get("momentum_qualifier", "")
         if mom_qual and mom_qual != "N/A":
@@ -118,14 +133,20 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         fit = consistency.get(key, "--")
         fit_str = "OK" if fit == "consistent" else "CONTRA" if fit == "contradicting" else "--"
 
-        lines.append(f"| {i} | **{comp_score.get('label', key)}** | {weight_pct} | "
-                     f"{bar} {score_val} | {direction} | {fit_str} | {cross_str} | {roc_str} |")
+        lines.append(
+            f"| {i} | **{comp_score.get('label', key)}** | {weight_pct} | "
+            f"{bar} {score_val} | {direction} | {fit_str} | {cross_str} | {roc_str} |"
+        )
 
     lines.append("")
-    lines.append(f"**Strongest Signal:** {composite.get('strongest_signal', {}).get('label', 'N/A')} "
-                 f"({composite.get('strongest_signal', {}).get('score', 0)}/100)")
-    lines.append(f"**Weakest Signal:** {composite.get('weakest_signal', {}).get('label', 'N/A')} "
-                 f"({composite.get('weakest_signal', {}).get('score', 0)}/100)")
+    lines.append(
+        f"**Strongest Signal:** {composite.get('strongest_signal', {}).get('label', 'N/A')} "
+        f"({composite.get('strongest_signal', {}).get('score', 0)}/100)"
+    )
+    lines.append(
+        f"**Weakest Signal:** {composite.get('weakest_signal', {}).get('label', 'N/A')} "
+        f"({composite.get('weakest_signal', {}).get('score', 0)}/100)"
+    )
     lines.append("")
 
     # ================================================================
@@ -201,7 +222,13 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         lines.append("| Regime | Evidence Score | Match |")
         lines.append("|--------|--------------|-------|")
         current = regime.get("current_regime", "")
-        for r_name in ["concentration", "broadening", "contraction", "inflationary", "transitional"]:
+        for r_name in [
+            "concentration",
+            "broadening",
+            "contraction",
+            "inflationary",
+            "transitional",
+        ]:
             r_score = regime_scores.get(r_name, 0)
             marker = " **CURRENT**" if r_name == current else ""
             lines.append(f"| {r_name.capitalize()} | {r_score} |{marker} |")
@@ -213,13 +240,16 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         lines.append("**Key Signals:**")
         lines.append("")
         for ev in evidence:
-            lines.append(f"- **{ev['component']}** (score {ev['score']}): "
-                         f"{ev['direction']} - {ev['signal']}")
+            lines.append(
+                f"- **{ev['component']}** (score {ev['score']}): {ev['direction']} - {ev['signal']}"
+            )
         lines.append("")
 
     if transition.get("ambiguous"):
-        lines.append("> **Note:** Regime classification is ambiguous. Multiple regimes show "
-                     "similar evidence scores. This often indicates a transitional period.")
+        lines.append(
+            "> **Note:** Regime classification is ambiguous. Multiple regimes show "
+            "similar evidence scores. This often indicates a transitional period."
+        )
         lines.append("")
 
     # ================================================================
@@ -264,12 +294,16 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
     lines.append("## Methodology")
     lines.append("")
-    lines.append("This analysis uses **monthly-frequency cross-asset ratio analysis** to detect "
-                 "structural regime transitions over 1-2 year horizons.")
+    lines.append(
+        "This analysis uses **monthly-frequency cross-asset ratio analysis** to detect "
+        "structural regime transitions over 1-2 year horizons."
+    )
     lines.append("")
     lines.append("**6 Components** (each scored 0-100 for transition signal strength):")
     lines.append("")
-    lines.append("1. **Market Concentration** (25%): RSP/SPY ratio - mega-cap concentration vs broadening")
+    lines.append(
+        "1. **Market Concentration** (25%): RSP/SPY ratio - mega-cap concentration vs broadening"
+    )
     lines.append("2. **Yield Curve** (20%): 10Y-2Y spread - interest rate cycle transitions")
     lines.append("3. **Credit Conditions** (15%): HYG/LQD ratio - credit cycle risk appetite")
     lines.append("4. **Size Factor** (15%): IWM/SPY ratio - small vs large cap rotation")
@@ -282,7 +316,9 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("2. Momentum Shift: 3-month ROC reversing against 12-month trend")
     lines.append("3. Cross-Component: Multiple components signaling simultaneously")
     lines.append("")
-    lines.append("**5 Regime Classifications:** Concentration, Broadening, Contraction, Inflationary, Transitional")
+    lines.append(
+        "**5 Regime Classifications:** Concentration, Broadening, Contraction, Inflationary, Transitional"
+    )
     lines.append("")
     lines.append("For detailed methodology, see `references/regime_detection_methodology.md`.")
     lines.append("")
@@ -290,15 +326,17 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     # Disclaimer
     lines.append("---")
     lines.append("")
-    lines.append("**Disclaimer:** This analysis is for educational and informational purposes only. "
-                 "Not investment advice. Regime detection is inherently uncertain and signals may "
-                 "produce false positives. Past regime patterns may not predict future transitions. "
-                 "Conduct your own research and consult a financial advisor before making "
-                 "investment decisions.")
+    lines.append(
+        "**Disclaimer:** This analysis is for educational and informational purposes only. "
+        "Not investment advice. Regime detection is inherently uncertain and signals may "
+        "produce false positives. Past regime patterns may not predict future transitions. "
+        "Conduct your own research and consult a financial advisor before making "
+        "investment decisions."
+    )
     lines.append("")
 
-    with open(output_file, 'w') as f:
-        f.write('\n'.join(lines))
+    with open(output_file, "w") as f:
+        f.write("\n".join(lines))
 
     print(f"Markdown report saved to: {output_file}")
 

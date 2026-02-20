@@ -6,11 +6,10 @@ Provides monthly downsampling, ratio calculation, moving averages,
 crossover detection, momentum computation, and transition scoring.
 """
 
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime
+from typing import Optional
 
 
-def downsample_to_monthly(daily_history: List[Dict]) -> List[Dict]:
+def downsample_to_monthly(daily_history: list[dict]) -> list[dict]:
     """
     Downsample daily OHLCV to monthly (last business day of each month).
 
@@ -45,8 +44,7 @@ def downsample_to_monthly(daily_history: List[Dict]) -> List[Dict]:
     return result
 
 
-def calculate_ratio(numerator_monthly: List[Dict],
-                    denominator_monthly: List[Dict]) -> List[Dict]:
+def calculate_ratio(numerator_monthly: list[dict], denominator_monthly: list[dict]) -> list[dict]:
     """
     Calculate ratio of two monthly series aligned by date.
 
@@ -73,7 +71,7 @@ def calculate_ratio(numerator_monthly: List[Dict],
     return result
 
 
-def compute_sma(values: List[float], period: int) -> Optional[float]:
+def compute_sma(values: list[float], period: int) -> Optional[float]:
     """
     Compute Simple Moving Average from a list of values (most recent first).
 
@@ -84,8 +82,7 @@ def compute_sma(values: List[float], period: int) -> Optional[float]:
     return sum(values[:period]) / period
 
 
-def detect_crossover(values: List[float], short_period: int = 6,
-                     long_period: int = 12) -> Dict:
+def detect_crossover(values: list[float], short_period: int = 6, long_period: int = 12) -> dict:
     """
     Detect SMA crossover between short and long periods.
 
@@ -157,7 +154,7 @@ def detect_crossover(values: List[float], short_period: int = 6,
     }
 
 
-def compute_roc(values: List[float], period: int) -> Optional[float]:
+def compute_roc(values: list[float], period: int) -> Optional[float]:
     """
     Compute Rate of Change (%) over `period` data points.
 
@@ -177,7 +174,7 @@ def compute_roc(values: List[float], period: int) -> Optional[float]:
     return (current - past) / past * 100
 
 
-def compute_percentile(values: List[float], current: float) -> Optional[float]:
+def compute_percentile(values: list[float], current: float) -> Optional[float]:
     """
     Compute percentile rank of current value within the series.
 
@@ -189,8 +186,9 @@ def compute_percentile(values: List[float], current: float) -> Optional[float]:
     return below / len(values) * 100
 
 
-def compute_rolling_correlation(series_a: List[float], series_b: List[float],
-                                window: int) -> Optional[float]:
+def compute_rolling_correlation(
+    series_a: list[float], series_b: list[float], window: int
+) -> Optional[float]:
     """
     Compute rolling Pearson correlation between two series over a window.
 
@@ -225,9 +223,13 @@ def compute_rolling_correlation(series_a: List[float], series_b: List[float],
 STALE_CROSSOVER_MONTHS = 3
 
 
-def determine_direction(crossover: Dict, roc_3m: Optional[float],
-                        positive_label: str, negative_label: str,
-                        neutral_label: str = "neutral") -> Tuple[str, str]:
+def determine_direction(
+    crossover: dict,
+    roc_3m: Optional[float],
+    positive_label: str,
+    negative_label: str,
+    neutral_label: str = "neutral",
+) -> tuple[str, str]:
     """
     Determine direction from crossover and momentum, accounting for stale crossovers.
 
@@ -250,21 +252,33 @@ def determine_direction(crossover: Dict, roc_3m: Optional[float],
     is_stale = bars_ago is not None and bars_ago >= STALE_CROSSOVER_MONTHS
 
     # Crossover direction
-    cross_dir = (positive_label if cross_type == "golden_cross"
-                 else negative_label if cross_type == "death_cross"
-                 else None)
+    cross_dir = (
+        positive_label
+        if cross_type == "golden_cross"
+        else negative_label
+        if cross_type == "death_cross"
+        else None
+    )
 
     # Momentum direction
-    mom_dir = (positive_label if roc_3m is not None and roc_3m > 0
-               else negative_label if roc_3m is not None and roc_3m < 0
-               else None)
+    mom_dir = (
+        positive_label
+        if roc_3m is not None and roc_3m > 0
+        else negative_label
+        if roc_3m is not None and roc_3m < 0
+        else None
+    )
 
     if cross_dir:
         if is_stale and mom_dir and mom_dir != cross_dir:
             return mom_dir, "reversing"
-        qualifier = ("confirmed" if mom_dir == cross_dir
-                     else "fading" if mom_dir and mom_dir != cross_dir
-                     else "N/A")
+        qualifier = (
+            "confirmed"
+            if mom_dir == cross_dir
+            else "fading"
+            if mom_dir and mom_dir != cross_dir
+            else "N/A"
+        )
         return cross_dir, qualifier
     elif mom_dir:
         return mom_dir, "N/A"
@@ -272,11 +286,13 @@ def determine_direction(crossover: Dict, roc_3m: Optional[float],
         return neutral_label, "N/A"
 
 
-def score_transition_signal(crossover: Dict,
-                            roc_short: Optional[float],
-                            roc_long: Optional[float],
-                            sma_short: Optional[float],
-                            sma_long: Optional[float]) -> int:
+def score_transition_signal(
+    crossover: dict,
+    roc_short: Optional[float],
+    roc_long: Optional[float],
+    sma_short: Optional[float],
+    sma_long: Optional[float],
+) -> int:
     """
     Score transition signal strength (0-100) from crossover, momentum, and MA data.
 

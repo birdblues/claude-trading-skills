@@ -25,8 +25,7 @@ Health Zone Mapping (100 = Healthy):
   0-19:   Critical  - Capital preservation
 """
 
-from typing import Dict, List, Optional
-
+from typing import Optional
 
 COMPONENT_WEIGHTS = {
     "breadth_level_trend": 0.25,
@@ -48,9 +47,9 @@ COMPONENT_LABELS = {
 
 
 def calculate_composite_score(
-    component_scores: Dict[str, float],
-    data_availability: Optional[Dict[str, bool]] = None,
-) -> Dict:
+    component_scores: dict[str, float],
+    data_availability: Optional[dict[str, bool]] = None,
+) -> dict:
     """
     Calculate weighted composite market breadth health score.
 
@@ -67,14 +66,10 @@ def calculate_composite_score(
         data_availability = {}
 
     # Determine which components are available
-    available = {
-        k: data_availability.get(k, True) for k in COMPONENT_WEIGHTS
-    }
+    available = {k: data_availability.get(k, True) for k in COMPONENT_WEIGHTS}
 
     # Calculate sum of available weights for redistribution
-    available_total_weight = sum(
-        w for k, w in COMPONENT_WEIGHTS.items() if available[k]
-    )
+    available_total_weight = sum(w for k, w in COMPONENT_WEIGHTS.items() if available[k])
 
     # Build effective weights
     effective_weights = {}
@@ -87,9 +82,7 @@ def calculate_composite_score(
             effective_weights[key] = 0.0
 
     # Excluded components
-    excluded_components = [
-        COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS if not available[k]
-    ]
+    excluded_components = [COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS if not available[k]]
 
     # Zero-division guard: all components unavailable
     if available_total_weight == 0:
@@ -98,8 +91,7 @@ def calculate_composite_score(
         # Override zone to Neutral with warning
         zone_info["zone"] = "Neutral"
         zone_info["guidance"] = (
-            "All component data is unavailable. "
-            "Score is a reference value only."
+            "All component data is unavailable. Score is a reference value only."
         )
     else:
         # Weighted composite using effective weights
@@ -127,23 +119,17 @@ def calculate_composite_score(
     # Data quality
     available_count = sum(1 for k in COMPONENT_WEIGHTS if available[k])
     total_components = len(COMPONENT_WEIGHTS)
-    missing_components = [
-        COMPONENT_LABELS[k]
-        for k in COMPONENT_WEIGHTS
-        if not available[k]
-    ]
+    missing_components = [COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS if not available[k]]
 
     if available_count == total_components:
         quality_label = f"Complete ({available_count}/{total_components} components)"
     elif available_count >= total_components - 2:
         quality_label = (
-            f"Partial ({available_count}/{total_components} components)"
-            " - interpret with caution"
+            f"Partial ({available_count}/{total_components} components) - interpret with caution"
         )
     else:
         quality_label = (
-            f"Limited ({available_count}/{total_components} components)"
-            " - low confidence"
+            f"Limited ({available_count}/{total_components} components) - low confidence"
         )
 
     data_quality = {
@@ -188,16 +174,14 @@ def calculate_composite_score(
     }
 
 
-def _interpret_zone(composite: float) -> Dict:
+def _interpret_zone(composite: float) -> dict:
     """Map composite score to health zone (100 = healthy)."""
     if composite >= 80:
         return {
             "zone": "Strong",
             "color": "green",
             "exposure_guidance": "90-100%",
-            "guidance": (
-                "Broad market participation. Maintain full equity exposure."
-            ),
+            "guidance": ("Broad market participation. Maintain full equity exposure."),
             "actions": [
                 "Full position sizing allowed",
                 "New entries on pullbacks encouraged",
@@ -210,9 +194,7 @@ def _interpret_zone(composite: float) -> Dict:
             "zone": "Healthy",
             "color": "blue",
             "exposure_guidance": "75-90%",
-            "guidance": (
-                "Above-average breadth. Normal operations with standard risk management."
-            ),
+            "guidance": ("Above-average breadth. Normal operations with standard risk management."),
             "actions": [
                 "Normal position sizing",
                 "Standard stop-loss levels",
@@ -240,9 +222,7 @@ def _interpret_zone(composite: float) -> Dict:
             "zone": "Weakening",
             "color": "orange",
             "exposure_guidance": "40-60%",
-            "guidance": (
-                "Breadth deteriorating. Begin profit-taking and raise cash allocation."
-            ),
+            "guidance": ("Breadth deteriorating. Begin profit-taking and raise cash allocation."),
             "actions": [
                 "Take profits on weakest 25-40% of positions",
                 "No new momentum entries",

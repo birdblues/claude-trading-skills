@@ -6,17 +6,16 @@ Generates JSON and Markdown reports for FTD detection analysis.
 """
 
 import json
-from typing import Dict
 
 
-def generate_json_report(analysis: Dict, output_file: str):
+def generate_json_report(analysis: dict, output_file: str):
     """Save full analysis as JSON."""
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(analysis, f, indent=2, default=str)
     print(f"  JSON report saved to: {output_file}")
 
 
-def generate_markdown_report(analysis: Dict, output_file: str):
+def generate_markdown_report(analysis: dict, output_file: str):
     """Generate comprehensive Markdown report."""
     lines = []
     metadata = analysis.get("metadata", {})
@@ -50,14 +49,14 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
 
     state_emoji = _state_emoji(combined_state)
-    lines.append(f"| Metric | Value |")
-    lines.append(f"|--------|-------|")
+    lines.append("| Metric | Value |")
+    lines.append("|--------|-------|")
     lines.append(f"| **Current State** | {state_emoji} **{_state_label(combined_state)}** |")
     lines.append(f"| **Quality Score** | **{total_score}/100** |")
     lines.append(f"| **Signal** | {signal} |")
     lines.append(f"| **Exposure Guidance** | {quality.get('exposure_range', 'N/A')} |")
     if ms.get("dual_confirmation"):
-        lines.append(f"| **Dual Confirmation** | YES (S&P 500 + NASDAQ) |")
+        lines.append("| **Dual Confirmation** | YES (S&P 500 + NASDAQ) |")
     elif ms.get("ftd_index"):
         lines.append(f"| **FTD Index** | {ms['ftd_index']} |")
     lines.append("")
@@ -77,7 +76,11 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         state = data.get("state", "N/A")
         current = f"${data['current_price']:.2f}" if data.get("current_price") else "N/A"
         high = f"${data['lookback_high']:.2f}" if data.get("lookback_high") else "N/A"
-        corr = f"{data['correction_depth_pct']:.1f}%" if data.get("correction_depth_pct") is not None else "N/A"
+        corr = (
+            f"{data['correction_depth_pct']:.1f}%"
+            if data.get("correction_depth_pct") is not None
+            else "N/A"
+        )
         swing = data.get("swing_low", {})
         sl_str = f"{swing.get('date', 'N/A')} (${swing.get('price', 0):.2f})" if swing else "None"
         lines.append(f"| {label} | {state} | {current} | {high} | {corr} | {sl_str} |")
@@ -105,8 +108,10 @@ def generate_markdown_report(analysis: Dict, output_file: str):
 
             lines.append(f"### {label}")
             lines.append("")
-            lines.append(f"- **Swing Low:** {swing.get('date', 'N/A')} "
-                         f"(${swing.get('price', 0):.2f}, {swing.get('decline_pct', 0):.1f}% decline)")
+            lines.append(
+                f"- **Swing Low:** {swing.get('date', 'N/A')} "
+                f"(${swing.get('price', 0):.2f}, {swing.get('decline_pct', 0):.1f}% decline)"
+            )
             lines.append(f"- **Rally Day 1:** {rally.get('day1_date', 'N/A')}")
             lines.append(f"- **Current Day Count:** {rally.get('current_day_count', 0)}")
 
@@ -131,12 +136,14 @@ def generate_markdown_report(analysis: Dict, output_file: str):
 
             lines.append(f"### {label} FTD")
             lines.append("")
-            lines.append(f"| Metric | Value |")
-            lines.append(f"|--------|-------|")
+            lines.append("| Metric | Value |")
+            lines.append("|--------|-------|")
             lines.append(f"| **FTD Date** | {ftd_data.get('ftd_date', 'N/A')} |")
             lines.append(f"| **Day Number** | Day {ftd_data.get('ftd_day_number', 'N/A')} |")
-            lines.append(f"| **Price Gain** | +{ftd_data.get('gain_pct', 0):.2f}% "
-                         f"({ftd_data.get('gain_tier', 'N/A')}) |")
+            lines.append(
+                f"| **Price Gain** | +{ftd_data.get('gain_pct', 0):.2f}% "
+                f"({ftd_data.get('gain_tier', 'N/A')}) |"
+            )
             vol_above = ftd_data.get("volume_above_avg")
             if vol_above is not None:
                 vol_str = "Above 50-day avg" if vol_above else "Below 50-day avg"
@@ -170,30 +177,42 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         if post_dist:
             dist_count = post_dist.get("distribution_count", 0)
             monitored = post_dist.get("days_monitored", 0)
-            lines.append(f"- **Distribution Days Since FTD:** {dist_count} "
-                         f"(in {monitored} days monitored)")
+            lines.append(
+                f"- **Distribution Days Since FTD:** {dist_count} (in {monitored} days monitored)"
+            )
             for d in post_dist.get("details", []):
-                lines.append(f"  - Day {d['day']}: {d['date']} "
-                             f"({d['change_pct']:+.2f}%, vol {d['volume_change_pct']:+.1f}%)")
+                lines.append(
+                    f"  - Day {d['day']}: {d['date']} "
+                    f"({d['change_pct']:+.2f}%, vol {d['volume_change_pct']:+.1f}%)"
+                )
 
         if inv:
             if inv.get("invalidated"):
-                lines.append(f"- **FTD INVALIDATED** on {inv.get('invalidation_date')} "
-                             f"(Day {inv.get('days_after_ftd')}, close ${inv.get('invalidation_close', 0):.2f} "
-                             f"below FTD low ${inv.get('ftd_low', 0):.2f})")
+                lines.append(
+                    f"- **FTD INVALIDATED** on {inv.get('invalidation_date')} "
+                    f"(Day {inv.get('days_after_ftd')}, close ${inv.get('invalidation_close', 0):.2f} "
+                    f"below FTD low ${inv.get('ftd_low', 0):.2f})"
+                )
             else:
-                lines.append(f"- **FTD Valid:** {inv.get('days_since_ftd', 0)} days since FTD "
-                             f"(FTD low: ${inv.get('ftd_low', 0):.2f})")
+                lines.append(
+                    f"- **FTD Valid:** {inv.get('days_since_ftd', 0)} days since FTD "
+                    f"(FTD low: ${inv.get('ftd_low', 0):.2f})"
+                )
 
         if pt:
             pt_status = "YES" if pt.get("power_trend") else "No"
-            lines.append(f"- **Power Trend:** {pt_status} "
-                         f"({pt.get('conditions_met', 0)}/3 conditions)")
+            lines.append(
+                f"- **Power Trend:** {pt_status} ({pt.get('conditions_met', 0)}/3 conditions)"
+            )
             if pt.get("ema_21") is not None:
-                lines.append(f"  - 21 EMA: ${pt['ema_21']:.2f} "
-                             f"({'>' if pt.get('ema_above_sma') else '<'} 50 SMA: ${pt.get('sma_50', 0):.2f})")
+                lines.append(
+                    f"  - 21 EMA: ${pt['ema_21']:.2f} "
+                    f"({'>' if pt.get('ema_above_sma') else '<'} 50 SMA: ${pt.get('sma_50', 0):.2f})"
+                )
                 lines.append(f"  - 50 SMA Rising: {'Yes' if pt.get('sma_50_rising') else 'No'}")
-                lines.append(f"  - Price above 21 EMA: {'Yes' if pt.get('price_above_21ema') else 'No'}")
+                lines.append(
+                    f"  - Price above 21 EMA: {'Yes' if pt.get('price_above_21ema') else 'No'}"
+                )
 
         lines.append("")
 
@@ -270,8 +289,7 @@ def generate_markdown_report(analysis: Dict, output_file: str):
 
         lines.append(f"**{label}:**")
         if swing:
-            lines.append(f"- Swing Low: ${swing.get('price', 0):.2f} "
-                         f"({swing.get('date', 'N/A')})")
+            lines.append(f"- Swing Low: ${swing.get('price', 0):.2f} ({swing.get('date', 'N/A')})")
         if ftd_data and ftd_data.get("ftd_detected"):
             lines.append(f"- FTD Day: {ftd_data.get('ftd_date', 'N/A')}")
         if data.get("lookback_high"):
@@ -283,19 +301,27 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
     lines.append("## Methodology")
     lines.append("")
-    lines.append("This analysis uses William O'Neil's Follow-Through Day (FTD) methodology "
-                 "to confirm market bottoms:")
+    lines.append(
+        "This analysis uses William O'Neil's Follow-Through Day (FTD) methodology "
+        "to confirm market bottoms:"
+    )
     lines.append("")
     lines.append("1. **Swing Low Detection:** 3%+ decline from recent high with 3+ down days")
     lines.append("2. **Rally Attempt:** Day 1 (first up close), Day 2-3 must hold Day 1 low")
     lines.append("3. **FTD (Day 4-10):** 1.25%+ gain on volume higher than previous day")
-    lines.append("4. **Quality Score:** Multi-factor 0-100 score (day timing, gain size, "
-                 "volume, dual-index, post-FTD health)")
-    lines.append("5. **Post-FTD Monitoring:** Distribution day tracking, invalidation check, "
-                 "Power Trend confirmation")
+    lines.append(
+        "4. **Quality Score:** Multi-factor 0-100 score (day timing, gain size, "
+        "volume, dual-index, post-FTD health)"
+    )
+    lines.append(
+        "5. **Post-FTD Monitoring:** Distribution day tracking, invalidation check, "
+        "Power Trend confirmation"
+    )
     lines.append("")
-    lines.append("Dual-index tracking (S&P 500 + NASDAQ) provides stronger confirmation "
-                 "than single-index analysis.")
+    lines.append(
+        "Dual-index tracking (S&P 500 + NASDAQ) provides stronger confirmation "
+        "than single-index analysis."
+    )
     lines.append("")
     lines.append("For detailed methodology, see `references/ftd_methodology.md`.")
     lines.append("")
@@ -303,14 +329,16 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     # ── Disclaimer ────────────────────────────────────────────────────────
     lines.append("---")
     lines.append("")
-    lines.append("**Disclaimer:** This analysis is for educational and informational purposes only. "
-                 "Not investment advice. Follow-Through Days have approximately a 25% success rate "
-                 "historically. Always use proper risk management and position sizing. "
-                 "Consult a financial advisor before making investment decisions.")
+    lines.append(
+        "**Disclaimer:** This analysis is for educational and informational purposes only. "
+        "Not investment advice. Follow-Through Days have approximately a 25% success rate "
+        "historically. Always use proper risk management and position sizing. "
+        "Consult a financial advisor before making investment decisions."
+    )
     lines.append("")
 
-    with open(output_file, 'w') as f:
-        f.write('\n'.join(lines))
+    with open(output_file, "w") as f:
+        f.write("\n".join(lines))
 
     print(f"  Markdown report saved to: {output_file}")
 

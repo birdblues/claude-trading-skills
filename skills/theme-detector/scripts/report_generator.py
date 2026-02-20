@@ -8,13 +8,12 @@ Generates JSON and Markdown reports for detected market themes.
 import json
 import os
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 
-def generate_json_report(themes: List[Dict],
-                          industry_rankings: Dict,
-                          sector_uptrend: Dict,
-                          metadata: Dict) -> Dict:
+def generate_json_report(
+    themes: list[dict], industry_rankings: dict, sector_uptrend: dict, metadata: dict
+) -> dict:
     """Create the full JSON output structure.
 
     Args:
@@ -38,13 +37,11 @@ def generate_json_report(themes: List[Dict],
     bearish.sort(key=lambda t: t.get("heat", 0), reverse=True)
 
     # Data quality flags
-    data_quality = _assess_data_quality(themes, industry_rankings,
-                                         sector_uptrend, metadata)
+    data_quality = _assess_data_quality(themes, industry_rankings, sector_uptrend, metadata)
 
     return {
         "report_type": "theme_detector",
-        "generated_at": metadata.get("generated_at",
-                                      datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+        "generated_at": metadata.get("generated_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
         "metadata": metadata,
         "summary": {
             "total_themes": len(themes),
@@ -64,8 +61,7 @@ def generate_json_report(themes: List[Dict],
     }
 
 
-def generate_markdown_report(json_data: Dict,
-                              top_n_detail: int = 3) -> str:
+def generate_markdown_report(json_data: dict, top_n_detail: int = 3) -> str:
     """Generate a formatted Markdown report from JSON data.
 
     Args:
@@ -93,9 +89,11 @@ def generate_markdown_report(json_data: Dict,
     lines.append("# Theme Detector Report")
     lines.append("")
     lines.append(f"**Generated:** {json_data.get('generated_at', 'N/A')}")
-    lines.append(f"**Themes Detected:** {summary.get('total_themes', 0)} "
-                 f"({summary.get('bullish_count', 0)} bullish, "
-                 f"{summary.get('bearish_count', 0)} bearish)")
+    lines.append(
+        f"**Themes Detected:** {summary.get('total_themes', 0)} "
+        f"({summary.get('bullish_count', 0)} bullish, "
+        f"{summary.get('bearish_count', 0)} bearish)"
+    )
     lines.append("")
 
     # Section 1: Theme Dashboard
@@ -247,20 +245,29 @@ def generate_markdown_report(json_data: Dict,
     lines.append("")
     lines.append("The Theme Detector identifies market themes by:")
     lines.append("")
-    lines.append("1. **Industry Ranking:** FINVIZ performance data ranked by "
-                 "multi-timeframe composite score (1W, 1M, 3M weighted)")
-    lines.append("2. **Theme Classification:** Industries grouped into "
-                 "thematic clusters (AI/Semiconductors, Energy Transition, etc.)")
-    lines.append("3. **Heat Scoring:** Theme strength measured by performance "
-                 "momentum, volume confirmation, and breadth")
-    lines.append("4. **Lifecycle Stage:** Theme maturity assessed via "
-                 "early/growth/mature/decline classification")
-    lines.append("5. **Uptrend Overlay:** Monty's sector uptrend ratios "
-                 "provide breadth context")
+    lines.append(
+        "1. **Industry Ranking:** FINVIZ performance data ranked by "
+        "multi-timeframe composite score (1W, 1M, 3M weighted)"
+    )
+    lines.append(
+        "2. **Theme Classification:** Industries grouped into "
+        "thematic clusters (AI/Semiconductors, Energy Transition, etc.)"
+    )
+    lines.append(
+        "3. **Heat Scoring:** Theme strength measured by performance "
+        "momentum, volume confirmation, and breadth"
+    )
+    lines.append(
+        "4. **Lifecycle Stage:** Theme maturity assessed via "
+        "early/growth/mature/decline classification"
+    )
+    lines.append("5. **Uptrend Overlay:** Monty's sector uptrend ratios provide breadth context")
     lines.append("")
-    lines.append("**Note on Confidence:** Script output confidence is capped at "
-                 "Medium. Claude's WebSearch narrative confirmation can elevate "
-                 "confidence to High.")
+    lines.append(
+        "**Note on Confidence:** Script output confidence is capped at "
+        "Medium. Claude's WebSearch narrative confirmation can elevate "
+        "confidence to High."
+    )
     lines.append("")
 
     data_quality = json_data.get("data_quality", {})
@@ -280,16 +287,17 @@ def generate_markdown_report(json_data: Dict,
     # Disclaimer
     lines.append("---")
     lines.append("")
-    lines.append("**Disclaimer:** This analysis is for educational and "
-                 "informational purposes only. Not investment advice. "
-                 "Past patterns may not predict future outcomes.")
+    lines.append(
+        "**Disclaimer:** This analysis is for educational and "
+        "informational purposes only. Not investment advice. "
+        "Past patterns may not predict future outcomes."
+    )
     lines.append("")
 
     return "\n".join(lines)
 
 
-def save_reports(json_data: Dict, markdown: str,
-                  output_dir: str) -> Dict[str, str]:
+def save_reports(json_data: dict, markdown: str, output_dir: str) -> dict[str, str]:
     """Save JSON and Markdown report files.
 
     Args:
@@ -317,10 +325,10 @@ def save_reports(json_data: Dict, markdown: str,
 
 # --- Private helpers ---
 
-def _assess_data_quality(themes: List[Dict],
-                          industry_rankings: Dict,
-                          sector_uptrend: Dict,
-                          metadata: Dict) -> Dict:
+
+def _assess_data_quality(
+    themes: list[dict], industry_rankings: dict, sector_uptrend: dict, metadata: dict
+) -> dict:
     """Assess data quality and return flags.
 
     Checks FINVIZ connectivity, uptrend data freshness, and scanner
@@ -346,9 +354,7 @@ def _assess_data_quality(themes: List[Dict],
                     latest = datetime.strptime(data["latest_date"], "%Y-%m-%d")
                     age = (datetime.now() - latest).days
                     if age > 3:
-                        flags.append(
-                            f"Uptrend data for {sector} is {age} days old"
-                        )
+                        flags.append(f"Uptrend data for {sector} is {age} days old")
                         break  # One warning is enough
                 except (ValueError, TypeError):
                     pass
@@ -377,15 +383,11 @@ def _assess_data_quality(themes: List[Dict],
     fmp_failures = scanner.get("fmp_failures", 0)
     if fmp_calls > 0 and fmp_failures / fmp_calls > 0.2 and "stock" not in scanner:
         pct = fmp_failures / fmp_calls
-        flags.append(
-            f"FMP API: {fmp_failures}/{fmp_calls} calls failed ({pct:.0%})"
-        )
+        flags.append(f"FMP API: {fmp_failures}/{fmp_calls} calls failed ({pct:.0%})")
 
     yf_fallbacks = scanner.get("yf_fallbacks", 0)
     if yf_fallbacks > 0:
-        flags.append(
-            f"yfinance fallback used {yf_fallbacks} time(s) for missing FMP data"
-        )
+        flags.append(f"yfinance fallback used {yf_fallbacks} time(s) for missing FMP data")
 
     return {
         "status": "warning" if flags else "ok",
@@ -468,7 +470,7 @@ _SOURCE_LABELS = {
 }
 
 
-def _format_stock_list(theme_data: Dict) -> str:
+def _format_stock_list(theme_data: dict) -> str:
     """Format stock list with optional source labels.
 
     When stock_details is present and contains non-static sources,
@@ -487,7 +489,7 @@ def _format_stock_list(theme_data: Dict) -> str:
     return ", ".join(parts) if parts else "N/A"
 
 
-def _add_theme_details(lines: List[str], themes: List[Dict]) -> None:
+def _add_theme_details(lines: list[str], themes: list[dict]) -> None:
     """Add detailed theme sections to the report lines."""
     if not themes:
         lines.append("No themes in this category.")
@@ -529,9 +531,11 @@ def _add_theme_details(lines: List[str], themes: List[Dict]) -> None:
             lines.append("**Maturity Breakdown:**")
             lines.append("")
             if t.get("lifecycle_data_quality") == "insufficient":
-                lines.append("- *Note: Maturity based on defaults (no stock "
-                             "metrics available). Values may not reflect "
-                             "actual lifecycle stage.*")
+                lines.append(
+                    "- *Note: Maturity based on defaults (no stock "
+                    "metrics available). Values may not reflect "
+                    "actual lifecycle stage.*"
+                )
             for key, val in mat_bd.items():
                 label = key.replace("_", " ").title()
                 if isinstance(val, float):

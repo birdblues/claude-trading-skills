@@ -21,9 +21,6 @@ Rating Bands:
   <50:    No VCP        - Not a VCP setup
 """
 
-from typing import Dict
-
-
 COMPONENT_WEIGHTS = {
     "trend_template": 0.25,
     "contraction_quality": 0.25,
@@ -48,7 +45,7 @@ def calculate_composite_score(
     pivot_score: float,
     rs_score: float,
     valid_vcp: bool = True,
-) -> Dict:
+) -> dict:
     """
     Calculate weighted composite VCP score.
 
@@ -115,7 +112,7 @@ def calculate_composite_score(
     }
 
 
-def _get_rating(composite: float) -> Dict:
+def _get_rating(composite: float) -> dict:
     """Map composite score to rating and guidance."""
     if composite >= 90:
         return {

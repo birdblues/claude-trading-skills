@@ -40,16 +40,15 @@ from datetime import datetime
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fmp_client import FMPClient
 from calculators.concentration_calculator import calculate_concentration
-from calculators.yield_curve_calculator import calculate_yield_curve
 from calculators.credit_conditions_calculator import calculate_credit_conditions
-from calculators.size_factor_calculator import calculate_size_factor
 from calculators.equity_bond_calculator import calculate_equity_bond
 from calculators.sector_rotation_calculator import calculate_sector_rotation
-from scorer import calculate_composite_score, classify_regime, check_regime_consistency
+from calculators.size_factor_calculator import calculate_size_factor
+from calculators.yield_curve_calculator import calculate_yield_curve
+from fmp_client import FMPClient
 from report_generator import generate_json_report, generate_markdown_report
-
+from scorer import calculate_composite_score, check_regime_consistency, classify_regime
 
 # ETF symbols needed for analysis
 REQUIRED_ETFS = ["RSP", "SPY", "IWM", "TLT", "SHY", "HYG", "LQD", "XLY", "XLP"]
@@ -61,16 +60,18 @@ def parse_arguments():
         description="Macro Regime Detector - Cross-Asset Ratio Analysis"
     )
     parser.add_argument(
-        "--api-key",
-        help="FMP API key (defaults to FMP_API_KEY environment variable)"
+        "--api-key", help="FMP API key (defaults to FMP_API_KEY environment variable)"
     )
     parser.add_argument(
-        "--output-dir", default=".",
-        help="Output directory for reports (default: current directory)"
+        "--output-dir",
+        default=".",
+        help="Output directory for reports (default: current directory)",
     )
     parser.add_argument(
-        "--days", type=int, default=HISTORY_DAYS,
-        help=f"Days of historical data to fetch (default: {HISTORY_DAYS})"
+        "--days",
+        type=int,
+        default=HISTORY_DAYS,
+        help=f"Days of historical data to fetch (default: {HISTORY_DAYS})",
     )
     return parser.parse_args()
 
@@ -103,8 +104,8 @@ def main():
     for etf in REQUIRED_ETFS:
         print(f"  Fetching {etf} ({args.days} days)...", end=" ", flush=True)
         data = client.get_historical_prices(etf, days=args.days)
-        if data and 'historical' in data:
-            historical[etf] = data['historical']
+        if data and "historical" in data:
+            historical[etf] = data["historical"]
             print(f"OK ({len(historical[etf])} bars)")
         else:
             print("FAILED")
@@ -116,7 +117,7 @@ def main():
         sys.exit(1)
 
     # Fetch treasury rates
-    print(f"  Fetching Treasury rates...", end=" ", flush=True)
+    print("  Fetching Treasury rates...", end=" ", flush=True)
     treasury_rates = client.get_treasury_rates(days=args.days)
     if treasury_rates:
         print(f"OK ({len(treasury_rates)} entries)")
@@ -218,9 +219,7 @@ def main():
     }
 
     regime = classify_regime(component_results)
-    regime["consistency"] = check_regime_consistency(
-        regime["current_regime"], component_results
-    )
+    regime["consistency"] = check_regime_consistency(regime["current_regime"], component_results)
 
     print(f"  Composite Score: {composite['composite_score']}/100")
     print(f"  Signal Zone: {composite['zone']}")
@@ -268,7 +267,7 @@ def main():
     print()
 
     stats = client.get_api_stats()
-    print(f"API Usage:")
+    print("API Usage:")
     print(f"  API calls made: {stats['api_calls_made']}")
     print(f"  Cache entries: {stats['cache_entries']}")
     print()

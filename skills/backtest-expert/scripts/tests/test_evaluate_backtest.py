@@ -17,89 +17,139 @@ class TestInputValidation:
         """win_rate > 100 raises ValueError."""
         with pytest.raises(ValueError, match="win_rate"):
             evaluator_module.evaluate(
-                total_trades=100, win_rate=110, avg_win_pct=2.0,
-                avg_loss_pct=1.0, max_drawdown_pct=15, years_tested=5,
-                num_parameters=3, slippage_tested=True,
+                total_trades=100,
+                win_rate=110,
+                avg_win_pct=2.0,
+                avg_loss_pct=1.0,
+                max_drawdown_pct=15,
+                years_tested=5,
+                num_parameters=3,
+                slippage_tested=True,
             )
 
     def test_win_rate_negative(self, evaluator_module):
         """win_rate < 0 raises ValueError."""
         with pytest.raises(ValueError, match="win_rate"):
             evaluator_module.evaluate(
-                total_trades=100, win_rate=-5, avg_win_pct=2.0,
-                avg_loss_pct=1.0, max_drawdown_pct=15, years_tested=5,
-                num_parameters=3, slippage_tested=True,
+                total_trades=100,
+                win_rate=-5,
+                avg_win_pct=2.0,
+                avg_loss_pct=1.0,
+                max_drawdown_pct=15,
+                years_tested=5,
+                num_parameters=3,
+                slippage_tested=True,
             )
 
     def test_negative_avg_win(self, evaluator_module):
         """Negative avg_win_pct raises ValueError."""
         with pytest.raises(ValueError, match="avg_win_pct"):
             evaluator_module.evaluate(
-                total_trades=100, win_rate=60, avg_win_pct=-1.0,
-                avg_loss_pct=1.0, max_drawdown_pct=15, years_tested=5,
-                num_parameters=3, slippage_tested=True,
+                total_trades=100,
+                win_rate=60,
+                avg_win_pct=-1.0,
+                avg_loss_pct=1.0,
+                max_drawdown_pct=15,
+                years_tested=5,
+                num_parameters=3,
+                slippage_tested=True,
             )
 
     def test_negative_avg_loss(self, evaluator_module):
         """Negative avg_loss_pct raises ValueError."""
         with pytest.raises(ValueError, match="avg_loss_pct"):
             evaluator_module.evaluate(
-                total_trades=100, win_rate=60, avg_win_pct=2.0,
-                avg_loss_pct=-1.0, max_drawdown_pct=15, years_tested=5,
-                num_parameters=3, slippage_tested=True,
+                total_trades=100,
+                win_rate=60,
+                avg_win_pct=2.0,
+                avg_loss_pct=-1.0,
+                max_drawdown_pct=15,
+                years_tested=5,
+                num_parameters=3,
+                slippage_tested=True,
             )
 
     def test_negative_total_trades(self, evaluator_module):
         """Negative total_trades raises ValueError."""
         with pytest.raises(ValueError, match="total_trades"):
             evaluator_module.evaluate(
-                total_trades=-10, win_rate=60, avg_win_pct=2.0,
-                avg_loss_pct=1.0, max_drawdown_pct=15, years_tested=5,
-                num_parameters=3, slippage_tested=True,
+                total_trades=-10,
+                win_rate=60,
+                avg_win_pct=2.0,
+                avg_loss_pct=1.0,
+                max_drawdown_pct=15,
+                years_tested=5,
+                num_parameters=3,
+                slippage_tested=True,
             )
 
     def test_negative_max_drawdown(self, evaluator_module):
         """Negative max_drawdown_pct raises ValueError."""
         with pytest.raises(ValueError, match="max_drawdown_pct"):
             evaluator_module.evaluate(
-                total_trades=100, win_rate=60, avg_win_pct=2.0,
-                avg_loss_pct=1.0, max_drawdown_pct=-5, years_tested=5,
-                num_parameters=3, slippage_tested=True,
+                total_trades=100,
+                win_rate=60,
+                avg_win_pct=2.0,
+                avg_loss_pct=1.0,
+                max_drawdown_pct=-5,
+                years_tested=5,
+                num_parameters=3,
+                slippage_tested=True,
             )
 
     def test_negative_years_tested(self, evaluator_module):
         """Negative years_tested raises ValueError."""
         with pytest.raises(ValueError, match="years_tested"):
             evaluator_module.evaluate(
-                total_trades=100, win_rate=60, avg_win_pct=2.0,
-                avg_loss_pct=1.0, max_drawdown_pct=15, years_tested=-1,
-                num_parameters=3, slippage_tested=True,
+                total_trades=100,
+                win_rate=60,
+                avg_win_pct=2.0,
+                avg_loss_pct=1.0,
+                max_drawdown_pct=15,
+                years_tested=-1,
+                num_parameters=3,
+                slippage_tested=True,
             )
 
     def test_negative_num_parameters(self, evaluator_module):
         """Negative num_parameters raises ValueError."""
         with pytest.raises(ValueError, match="num_parameters"):
             evaluator_module.evaluate(
-                total_trades=100, win_rate=60, avg_win_pct=2.0,
-                avg_loss_pct=1.0, max_drawdown_pct=15, years_tested=5,
-                num_parameters=-2, slippage_tested=True,
+                total_trades=100,
+                win_rate=60,
+                avg_win_pct=2.0,
+                avg_loss_pct=1.0,
+                max_drawdown_pct=15,
+                years_tested=5,
+                num_parameters=-2,
+                slippage_tested=True,
             )
 
     def test_boundary_win_rate_zero(self, evaluator_module):
         """win_rate=0 is valid (all losses)."""
         result = evaluator_module.evaluate(
-            total_trades=100, win_rate=0, avg_win_pct=2.0,
-            avg_loss_pct=1.0, max_drawdown_pct=15, years_tested=5,
-            num_parameters=3, slippage_tested=True,
+            total_trades=100,
+            win_rate=0,
+            avg_win_pct=2.0,
+            avg_loss_pct=1.0,
+            max_drawdown_pct=15,
+            years_tested=5,
+            num_parameters=3,
+            slippage_tested=True,
         )
         assert result["total_score"] >= 0
 
     def test_boundary_win_rate_100(self, evaluator_module):
         """win_rate=100 is valid (all wins)."""
         result = evaluator_module.evaluate(
-            total_trades=100, win_rate=100, avg_win_pct=2.0,
-            avg_loss_pct=1.0, max_drawdown_pct=15, years_tested=5,
-            num_parameters=3, slippage_tested=True,
+            total_trades=100,
+            win_rate=100,
+            avg_win_pct=2.0,
+            avg_loss_pct=1.0,
+            max_drawdown_pct=15,
+            years_tested=5,
+            num_parameters=3,
+            slippage_tested=True,
         )
         assert result["total_score"] >= 0
 
@@ -137,31 +187,23 @@ class TestSampleSizeScoring:
 class TestExpectancyCalculation:
     def test_positive_expectancy(self, evaluator_module):
         """Positive expectancy -> positive score."""
-        score = evaluator_module.score_expectancy(
-            win_rate=60, avg_win_pct=2.0, avg_loss_pct=1.0
-        )
+        score = evaluator_module.score_expectancy(win_rate=60, avg_win_pct=2.0, avg_loss_pct=1.0)
         assert score > 0
 
     def test_negative_expectancy(self, evaluator_module):
         """Negative expectancy -> 0 points."""
-        score = evaluator_module.score_expectancy(
-            win_rate=30, avg_win_pct=1.0, avg_loss_pct=2.0
-        )
+        score = evaluator_module.score_expectancy(win_rate=30, avg_win_pct=1.0, avg_loss_pct=2.0)
         assert score == 0
 
     def test_zero_expectancy(self, evaluator_module):
         """Break-even -> 0 points."""
         # win_rate=50, avg_win=1, avg_loss=1 => expectancy = 0
-        score = evaluator_module.score_expectancy(
-            win_rate=50, avg_win_pct=1.0, avg_loss_pct=1.0
-        )
+        score = evaluator_module.score_expectancy(win_rate=50, avg_win_pct=1.0, avg_loss_pct=1.0)
         assert score == 0
 
     def test_high_expectancy_capped(self, evaluator_module):
         """Very high expectancy still capped at 20."""
-        score = evaluator_module.score_expectancy(
-            win_rate=90, avg_win_pct=5.0, avg_loss_pct=0.5
-        )
+        score = evaluator_module.score_expectancy(win_rate=90, avg_win_pct=5.0, avg_loss_pct=0.5)
         assert score == 20
 
 
@@ -285,23 +327,17 @@ class TestOverallVerdict:
 class TestProfitFactor:
     def test_positive_profit_factor(self, evaluator_module):
         """win_rate=60, avg_win=2, avg_loss=1 -> PF = 3.0."""
-        pf = evaluator_module.calc_profit_factor(
-            win_rate=60, avg_win_pct=2.0, avg_loss_pct=1.0
-        )
+        pf = evaluator_module.calc_profit_factor(win_rate=60, avg_win_pct=2.0, avg_loss_pct=1.0)
         assert abs(pf - 3.0) < 0.01
 
     def test_breakeven_profit_factor(self, evaluator_module):
         """win_rate=50, avg_win=1, avg_loss=1 -> PF = 1.0."""
-        pf = evaluator_module.calc_profit_factor(
-            win_rate=50, avg_win_pct=1.0, avg_loss_pct=1.0
-        )
+        pf = evaluator_module.calc_profit_factor(win_rate=50, avg_win_pct=1.0, avg_loss_pct=1.0)
         assert abs(pf - 1.0) < 0.01
 
     def test_zero_loss_profit_factor(self, evaluator_module):
         """100% win rate -> PF = inf (capped)."""
-        pf = evaluator_module.calc_profit_factor(
-            win_rate=100, avg_win_pct=2.0, avg_loss_pct=1.0
-        )
+        pf = evaluator_module.calc_profit_factor(win_rate=100, avg_win_pct=2.0, avg_loss_pct=1.0)
         assert pf == float("inf")
 
 

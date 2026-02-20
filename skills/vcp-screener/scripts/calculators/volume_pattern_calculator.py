@@ -21,14 +21,14 @@ Modifiers:
 - Net distribution > 3 days: -10
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 def calculate_volume_pattern(
-    historical_prices: List[Dict],
+    historical_prices: list[dict],
     pivot_price: Optional[float] = None,
-    contractions: Optional[List[Dict]] = None,
-) -> Dict:
+    contractions: Optional[list[dict]] = None,
+) -> dict:
     """
     Analyze volume behavior near the VCP pivot point.
 
@@ -153,9 +153,9 @@ def calculate_volume_pattern(
 
 
 def _zone_volume_analysis(
-    volumes: List[int],
-    closes: List[float],
-    contractions: List[Dict],
+    volumes: list[int],
+    closes: list[float],
+    contractions: list[dict],
     pivot_price: Optional[float],
     avg_volume_50d: float,
 ) -> tuple:
@@ -176,7 +176,7 @@ def _zone_volume_analysis(
     zone_a_end_rev = n - 1 - last_c["high_idx"]
     zone_a_start = min(zone_a_start_rev, zone_a_end_rev)
     zone_a_end = max(zone_a_start_rev, zone_a_end_rev)
-    zone_a_vols = volumes[max(0, zone_a_start):min(n, zone_a_end + 1)]
+    zone_a_vols = volumes[max(0, zone_a_start) : min(n, zone_a_end + 1)]
     zone_a_avg = int(sum(zone_a_vols) / len(zone_a_vols)) if zone_a_vols else 0
 
     # Zone B: Pivot approach (most recent 5-10 bars before current)
@@ -208,15 +208,14 @@ def _zone_volume_analysis(
         c_end_rev = n - 1 - c["high_idx"]
         c_start = min(c_start_rev, c_end_rev)
         c_end = max(c_start_rev, c_end_rev)
-        c_vols = volumes[max(0, c_start):min(n, c_end + 1)]
+        c_vols = volumes[max(0, c_start) : min(n, c_end + 1)]
         if c_vols:
             contraction_avgs.append(int(sum(c_vols) / len(c_vols)))
 
     declining = False
     if len(contraction_avgs) >= 2:
         declining = all(
-            contraction_avgs[i] > contraction_avgs[i + 1]
-            for i in range(len(contraction_avgs) - 1)
+            contraction_avgs[i] > contraction_avgs[i + 1] for i in range(len(contraction_avgs) - 1)
         )
 
     contraction_volume_trend = {

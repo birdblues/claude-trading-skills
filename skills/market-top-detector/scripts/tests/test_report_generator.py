@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+
 from report_generator import _delta_arrow, generate_markdown_report
 
 
@@ -42,23 +43,46 @@ class TestMarkdownReportWithDelta:
                 "risk_budget": "60-75%",
                 "guidance": "Test guidance",
                 "actions": ["Action 1"],
-                "strongest_warning": {"label": "Distribution", "score": 80, "component": "distribution_days"},
+                "strongest_warning": {
+                    "label": "Distribution",
+                    "score": 80,
+                    "component": "distribution_days",
+                },
                 "weakest_warning": {"label": "Sentiment", "score": 10, "component": "sentiment"},
-                "data_quality": {"label": "Complete (6/6)", "available_count": 6,
-                                 "total_components": 6, "missing_components": []},
+                "data_quality": {
+                    "label": "Complete (6/6)",
+                    "available_count": 6,
+                    "total_components": 6,
+                    "missing_components": [],
+                },
                 "correlation_adjustment": [],
                 "component_scores": {
-                    k: {"score": 50, "adjusted_score": 50, "weight": w,
-                         "weighted_contribution": 50 * w, "label": k.replace("_", " ").title()}
-                    for k, w in [("distribution_days", 0.25), ("leading_stocks", 0.20),
-                                 ("defensive_rotation", 0.15), ("breadth_divergence", 0.15),
-                                 ("index_technical", 0.15), ("sentiment", 0.10)]
+                    k: {
+                        "score": 50,
+                        "adjusted_score": 50,
+                        "weight": w,
+                        "weighted_contribution": 50 * w,
+                        "label": k.replace("_", " ").title(),
+                    }
+                    for k, w in [
+                        ("distribution_days", 0.25),
+                        ("leading_stocks", 0.20),
+                        ("defensive_rotation", 0.15),
+                        ("breadth_divergence", 0.15),
+                        ("index_technical", 0.15),
+                        ("sentiment", 0.10),
+                    ]
                 },
             },
             "components": {
-                k: {"score": 50, "signal": "TEST"} for k in [
-                    "distribution_days", "leading_stocks", "defensive_rotation",
-                    "breadth_divergence", "index_technical", "sentiment"
+                k: {"score": 50, "signal": "TEST"}
+                for k in [
+                    "distribution_days",
+                    "leading_stocks",
+                    "defensive_rotation",
+                    "breadth_divergence",
+                    "index_technical",
+                    "sentiment",
                 ]
             },
             "follow_through_day": {"applicable": False},
@@ -116,8 +140,14 @@ class TestMarkdownReportWithDelta:
         delta = {
             "components": {
                 k: {"delta": 0, "direction": "first_run"}
-                for k in ["distribution_days", "leading_stocks", "defensive_rotation",
-                           "breadth_divergence", "index_technical", "sentiment"]
+                for k in [
+                    "distribution_days",
+                    "leading_stocks",
+                    "defensive_rotation",
+                    "breadth_divergence",
+                    "index_technical",
+                    "sentiment",
+                ]
             },
             "composite_delta": 0,
             "composite_direction": "first_run",
