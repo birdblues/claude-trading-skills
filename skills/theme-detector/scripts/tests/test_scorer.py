@@ -1,19 +1,16 @@
 """Tests for scorer.py - Theme Detector scoring and labeling"""
 
-import pytest
 from scorer import (
-    HEAT_LABELS,
-    get_heat_label,
     calculate_confidence,
     determine_data_mode,
+    get_heat_label,
     score_theme,
 )
 
-
 # ── get_heat_label ───────────────────────────────────────────────────
 
-class TestGetHeatLabel:
 
+class TestGetHeatLabel:
     def test_hot(self):
         assert get_heat_label(80) == "Hot"
         assert get_heat_label(90) == "Hot"
@@ -42,49 +39,84 @@ class TestGetHeatLabel:
 
 # ── calculate_confidence ─────────────────────────────────────────────
 
-class TestCalculateConfidence:
 
+class TestCalculateConfidence:
     def test_three_layers_high(self):
-        assert calculate_confidence(
-            quant_confirmed=True, breadth_confirmed=True,
-            narrative_confirmed=True, stale_data_penalty=False
-        ) == "High"
+        assert (
+            calculate_confidence(
+                quant_confirmed=True,
+                breadth_confirmed=True,
+                narrative_confirmed=True,
+                stale_data_penalty=False,
+            )
+            == "High"
+        )
 
     def test_two_layers_medium(self):
-        assert calculate_confidence(
-            quant_confirmed=True, breadth_confirmed=True,
-            narrative_confirmed=False, stale_data_penalty=False
-        ) == "Medium"
+        assert (
+            calculate_confidence(
+                quant_confirmed=True,
+                breadth_confirmed=True,
+                narrative_confirmed=False,
+                stale_data_penalty=False,
+            )
+            == "Medium"
+        )
 
     def test_one_layer_low(self):
-        assert calculate_confidence(
-            quant_confirmed=True, breadth_confirmed=False,
-            narrative_confirmed=False, stale_data_penalty=False
-        ) == "Low"
+        assert (
+            calculate_confidence(
+                quant_confirmed=True,
+                breadth_confirmed=False,
+                narrative_confirmed=False,
+                stale_data_penalty=False,
+            )
+            == "Low"
+        )
 
     def test_zero_layers_low(self):
-        assert calculate_confidence(
-            quant_confirmed=False, breadth_confirmed=False,
-            narrative_confirmed=False, stale_data_penalty=False
-        ) == "Low"
+        assert (
+            calculate_confidence(
+                quant_confirmed=False,
+                breadth_confirmed=False,
+                narrative_confirmed=False,
+                stale_data_penalty=False,
+            )
+            == "Low"
+        )
 
     def test_stale_penalty_downgrades_high_to_medium(self):
-        assert calculate_confidence(
-            quant_confirmed=True, breadth_confirmed=True,
-            narrative_confirmed=True, stale_data_penalty=True
-        ) == "Medium"
+        assert (
+            calculate_confidence(
+                quant_confirmed=True,
+                breadth_confirmed=True,
+                narrative_confirmed=True,
+                stale_data_penalty=True,
+            )
+            == "Medium"
+        )
 
     def test_stale_penalty_downgrades_medium_to_low(self):
-        assert calculate_confidence(
-            quant_confirmed=True, breadth_confirmed=True,
-            narrative_confirmed=False, stale_data_penalty=True
-        ) == "Low"
+        assert (
+            calculate_confidence(
+                quant_confirmed=True,
+                breadth_confirmed=True,
+                narrative_confirmed=False,
+                stale_data_penalty=True,
+            )
+            == "Low"
+        )
 
     def test_stale_penalty_low_stays_low(self):
-        assert calculate_confidence(
-            quant_confirmed=True, breadth_confirmed=False,
-            narrative_confirmed=False, stale_data_penalty=True
-        ) == "Low"
+        assert (
+            calculate_confidence(
+                quant_confirmed=True,
+                breadth_confirmed=False,
+                narrative_confirmed=False,
+                stale_data_penalty=True,
+            )
+            == "Low"
+        )
 
     def test_all_combinations_without_penalty(self):
         # 3 confirmed => High
@@ -101,8 +133,8 @@ class TestCalculateConfidence:
 
 # ── determine_data_mode ──────────────────────────────────────────────
 
-class TestDetermineDataMode:
 
+class TestDetermineDataMode:
     def test_both_available(self):
         result = determine_data_mode(fmp_available=True, finviz_elite=True)
         assert "FINVIZ" in result and "FMP" in result
@@ -125,8 +157,8 @@ class TestDetermineDataMode:
 
 # ── score_theme ──────────────────────────────────────────────────────
 
-class TestScoreTheme:
 
+class TestScoreTheme:
     def test_returns_complete_dict(self):
         result = score_theme(
             theme_heat=75.0,
@@ -172,8 +204,13 @@ class TestScoreTheme:
         assert result["data_mode"] == "FINVIZ-Public"
 
     def test_heat_label_matches_score(self):
-        for heat, expected_label in [(5, "Cold"), (25, "Cool"), (45, "Neutral"),
-                                      (65, "Warm"), (85, "Hot")]:
+        for heat, expected_label in [
+            (5, "Cold"),
+            (25, "Cool"),
+            (45, "Neutral"),
+            (65, "Warm"),
+            (85, "Hot"),
+        ]:
             result = score_theme(
                 theme_heat=heat,
                 lifecycle_maturity=50.0,

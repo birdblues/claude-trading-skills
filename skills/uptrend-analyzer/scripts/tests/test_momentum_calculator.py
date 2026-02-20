@@ -1,16 +1,16 @@
 """Tests for momentum calculator."""
 
 import pytest
-from helpers import make_timeseries_row, make_all_timeseries, make_sector_summary_row
 from calculators.momentum_calculator import (
-    calculate_momentum,
-    _score_slope,
     _score_acceleration_from_values,
     _score_sector_slope_breadth,
+    _score_slope,
+    calculate_momentum,
 )
-
+from helpers import make_sector_summary_row
 
 # ── _score_slope ────────────────────────────────────────────────────
+
 
 class TestScoreSlope:
     def test_slope_strong_bullish(self):
@@ -43,6 +43,7 @@ class TestScoreSlope:
 
 
 # ── _score_acceleration ────────────────────────────────────────────
+
 
 class TestScoreAcceleration:
     def _make_slope_list(self, prior_slope, recent_slope, window=5):
@@ -102,12 +103,21 @@ class TestScoreAcceleration:
 
 # ── _score_sector_slope_breadth ─────────────────────────────────────
 
+
 class TestSectorSlopeBreadth:
     def test_sector_breadth_all_positive(self):
         sectors = [
-            "Technology", "Consumer Cyclical", "Communication Services",
-            "Financial", "Industrials", "Utilities", "Consumer Defensive",
-            "Healthcare", "Real Estate", "Energy", "Basic Materials",
+            "Technology",
+            "Consumer Cyclical",
+            "Communication Services",
+            "Financial",
+            "Industrials",
+            "Utilities",
+            "Consumer Defensive",
+            "Healthcare",
+            "Real Estate",
+            "Energy",
+            "Basic Materials",
         ]
         summary = [make_sector_summary_row(sector=s, slope=0.003) for s in sectors]
         score, positive, total = _score_sector_slope_breadth(summary)
@@ -117,9 +127,17 @@ class TestSectorSlopeBreadth:
 
     def test_sector_breadth_none_positive(self):
         sectors = [
-            "Technology", "Consumer Cyclical", "Communication Services",
-            "Financial", "Industrials", "Utilities", "Consumer Defensive",
-            "Healthcare", "Real Estate", "Energy", "Basic Materials",
+            "Technology",
+            "Consumer Cyclical",
+            "Communication Services",
+            "Financial",
+            "Industrials",
+            "Utilities",
+            "Consumer Defensive",
+            "Healthcare",
+            "Real Estate",
+            "Energy",
+            "Basic Materials",
         ]
         summary = [make_sector_summary_row(sector=s, slope=-0.003) for s in sectors]
         score, positive, total = _score_sector_slope_breadth(summary)
@@ -139,6 +157,7 @@ class TestSectorSlopeBreadth:
 
 
 # ── Full momentum calculation ──────────────────────────────────────
+
 
 class TestFullMomentum:
     def test_full_momentum_no_data(self):

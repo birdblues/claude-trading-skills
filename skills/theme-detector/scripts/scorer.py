@@ -12,9 +12,6 @@ Design Note on Confidence Levels:
     After Claude confirms narrative alignment, confidence can reach "High".
 """
 
-from typing import Dict
-
-
 HEAT_LABELS = {
     80: "Hot",
     60: "Warm",
@@ -38,10 +35,12 @@ def get_heat_label(heat_score: float) -> str:
         return "Cold"
 
 
-def calculate_confidence(quant_confirmed: bool,
-                         breadth_confirmed: bool,
-                         narrative_confirmed: bool,
-                         stale_data_penalty: bool) -> str:
+def calculate_confidence(
+    quant_confirmed: bool,
+    breadth_confirmed: bool,
+    narrative_confirmed: bool,
+    stale_data_penalty: bool,
+) -> str:
     """Determine confidence level from confirmation layers.
 
     3 layers confirmed => High
@@ -76,12 +75,14 @@ def determine_data_mode(fmp_available: bool, finviz_elite: bool) -> str:
         return "FINVIZ-Public"
 
 
-def score_theme(theme_heat: float,
-                lifecycle_maturity: float,
-                lifecycle_stage: str,
-                direction: str,
-                confidence: str,
-                data_mode: str) -> Dict:
+def score_theme(
+    theme_heat: float,
+    lifecycle_maturity: float,
+    lifecycle_stage: str,
+    direction: str,
+    confidence: str,
+    data_mode: str,
+) -> dict:
     """Combine all dimensions into final theme score dict."""
     return {
         "theme_heat": theme_heat,

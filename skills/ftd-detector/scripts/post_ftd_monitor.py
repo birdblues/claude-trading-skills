@@ -9,10 +9,8 @@ Monitors the health of a confirmed Follow-Through Day by tracking:
 4. Quality score calculation (0-100)
 """
 
-from typing import Dict, List, Optional
 
-
-def count_post_ftd_distribution(history: List[Dict], ftd_idx: int) -> Dict:
+def count_post_ftd_distribution(history: list[dict], ftd_idx: int) -> dict:
     """
     Count distribution days (down days on higher volume) after FTD.
 
@@ -54,12 +52,14 @@ def count_post_ftd_distribution(history: List[Dict], ftd_idx: int) -> Dict:
         # Distribution day: down >= 0.2% on higher volume
         if change_pct <= -0.2 and curr_volume > prev_volume:
             day_num = i - ftd_idx
-            distributions.append({
-                "day": day_num,
-                "date": history[i].get("date", "N/A"),
-                "change_pct": round(change_pct, 2),
-                "volume_change_pct": round((curr_volume / prev_volume - 1) * 100, 1),
-            })
+            distributions.append(
+                {
+                    "day": day_num,
+                    "date": history[i].get("date", "N/A"),
+                    "change_pct": round(change_pct, 2),
+                    "volume_change_pct": round((curr_volume / prev_volume - 1) * 100, 1),
+                }
+            )
 
     earliest = distributions[0]["day"] if distributions else None
 
@@ -71,7 +71,7 @@ def count_post_ftd_distribution(history: List[Dict], ftd_idx: int) -> Dict:
     }
 
 
-def check_ftd_invalidation(history: List[Dict], ftd_idx: int) -> Dict:
+def check_ftd_invalidation(history: list[dict], ftd_idx: int) -> dict:
     """
     Check if FTD has been invalidated by a close below FTD day's low.
 
@@ -103,7 +103,7 @@ def check_ftd_invalidation(history: List[Dict], ftd_idx: int) -> Dict:
     }
 
 
-def detect_power_trend(history: List[Dict]) -> Dict:
+def detect_power_trend(history: list[dict]) -> dict:
     """
     Detect Power Trend confirmation signals.
 
@@ -147,17 +147,15 @@ def detect_power_trend(history: List[Dict]) -> Dict:
     price_above_21ema = current_price > ema_21
     ema_above_sma = ema_21 > sma_50_current
 
-    power_trend = (
-        ema_above_sma
-        and (sma_50_rising is True)
-        and price_above_21ema
-    )
+    power_trend = ema_above_sma and (sma_50_rising is True) and price_above_21ema
 
-    conditions_met = sum([
-        ema_above_sma,
-        sma_50_rising is True,
-        price_above_21ema,
-    ])
+    conditions_met = sum(
+        [
+            ema_above_sma,
+            sma_50_rising is True,
+            price_above_21ema,
+        ]
+    )
 
     return {
         "power_trend": power_trend,
@@ -171,7 +169,7 @@ def detect_power_trend(history: List[Dict]) -> Dict:
     }
 
 
-def calculate_ftd_quality_score(market_state: Dict) -> Dict:
+def calculate_ftd_quality_score(market_state: dict) -> dict:
     """
     Calculate FTD quality score (0-100) based on multiple factors.
 
@@ -284,7 +282,7 @@ def calculate_ftd_quality_score(market_state: Dict) -> Dict:
         breakdown["post_ftd"] = f"Distribution on Day {earliest_dist}: -30 (very bearish)"
     elif earliest_dist is not None and earliest_dist == 3:
         health_adj = -15
-        breakdown["post_ftd"] = f"Distribution on Day 3: -15 (moderately bearish)"
+        breakdown["post_ftd"] = "Distribution on Day 3: -15 (moderately bearish)"
     elif earliest_dist is not None and earliest_dist >= 4:
         health_adj = -5
         breakdown["post_ftd"] = f"Distribution on Day {earliest_dist}: -5 (mild negative)"
@@ -324,9 +322,9 @@ def calculate_ftd_quality_score(market_state: Dict) -> Dict:
     }
 
 
-def assess_post_ftd_health(market_state: Dict,
-                            sp500_history: List[Dict],
-                            nasdaq_history: List[Dict]) -> Dict:
+def assess_post_ftd_health(
+    market_state: dict, sp500_history: list[dict], nasdaq_history: list[dict]
+) -> dict:
     """
     Full post-FTD health assessment including distribution, invalidation,
     and power trend.
@@ -340,7 +338,7 @@ def assess_post_ftd_health(market_state: Dict,
         Enriched market_state with post-FTD analysis
     """
     # Find which index has the confirmed FTD
-    for label, idx_data, hist in [
+    for _label, idx_data, hist in [
         ("sp500", market_state.get("sp500", {}), sp500_history),
         ("nasdaq", market_state.get("nasdaq", {}), nasdaq_history),
     ]:
@@ -391,7 +389,7 @@ FTD_GAIN_RECOMMENDED = 1.5
 FTD_GAIN_MINIMUM = 1.25
 
 
-def _calculate_ema(prices: List[float], period: int) -> float:
+def _calculate_ema(prices: list[float], period: int) -> float:
     """Calculate EMA from chronological price list."""
     if len(prices) < period:
         return sum(prices) / len(prices) if prices else 0

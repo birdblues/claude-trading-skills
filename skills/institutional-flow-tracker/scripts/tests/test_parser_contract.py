@@ -5,15 +5,14 @@ Verifies that the shared module uses correct FMP API field names
 (totalShares/totalInvested).
 """
 
-import pytest
 from data_quality import (
-    classify_holder,
     calculate_filtered_metrics,
+    classify_holder,
     reliability_grade,
 )
 
-
 # --- Realistic FMP v3 holder records ---
+
 
 def _make_holder(holder, shares, change, date="2025-09-30"):
     """Create a holder record matching FMP v3 institutional-holder schema."""

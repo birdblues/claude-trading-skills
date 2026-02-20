@@ -1,19 +1,16 @@
 """Tests for historical_context_calculator.py"""
 
 import pytest
-from helpers import make_timeseries_row
 from calculators.historical_context_calculator import (
-    calculate_historical_context,
     _avg_last_n,
+    calculate_historical_context,
 )
+from helpers import make_timeseries_row
 
 
 def _make_ts(ratios):
     """Create timeseries from ratio list."""
-    return [
-        make_timeseries_row(ratio=r, date=f"2026-01-{i + 1:02d}")
-        for i, r in enumerate(ratios)
-    ]
+    return [make_timeseries_row(ratio=r, date=f"2026-01-{i + 1:02d}") for i, r in enumerate(ratios)]
 
 
 # --- _avg_last_n tests ---

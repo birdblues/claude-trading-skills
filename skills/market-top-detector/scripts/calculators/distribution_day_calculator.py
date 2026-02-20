@@ -18,11 +18,8 @@ Scoring:
   0 days -> 0
 """
 
-from typing import Dict, List, Optional
 
-
-def calculate_distribution_days(sp500_history: List[Dict],
-                                nasdaq_history: List[Dict]) -> Dict:
+def calculate_distribution_days(sp500_history: list[dict], nasdaq_history: list[dict]) -> dict:
     """
     Calculate distribution day count for S&P 500 and NASDAQ.
 
@@ -43,13 +40,9 @@ def calculate_distribution_days(sp500_history: List[Dict],
     if sp500_effective >= nasdaq_effective:
         primary = sp500_result
         primary_name = "S&P 500"
-        secondary = nasdaq_result
-        secondary_name = "NASDAQ"
     else:
         primary = nasdaq_result
         primary_name = "NASDAQ"
-        secondary = sp500_result
-        secondary_name = "S&P 500"
 
     effective_count = max(sp500_effective, nasdaq_effective)
     raw_score = _score_distribution_days(effective_count)
@@ -57,7 +50,7 @@ def calculate_distribution_days(sp500_history: List[Dict],
     # Clustering analysis: check if distribution days are concentrated recently
     primary_details = primary["details"]
     clustering = _calculate_clustering_factor(primary_details)
-    clustering_applied = (effective_count >= 2 and clustering["factor"] > 0.5)
+    clustering_applied = effective_count >= 2 and clustering["factor"] > 0.5
     if clustering_applied:
         score = min(100, round(raw_score * 1.15))
     else:
@@ -98,7 +91,7 @@ def calculate_distribution_days(sp500_history: List[Dict],
     }
 
 
-def _count_distribution_days(history: List[Dict], index_name: str) -> Dict:
+def _count_distribution_days(history: list[dict], index_name: str) -> dict:
     """Count distribution and stalling days in the last 25 trading days"""
     if not history or len(history) < 2:
         return {"distribution_days": 0, "stalling_days": 0, "details": []}
@@ -131,24 +124,28 @@ def _count_distribution_days(history: List[Dict], index_name: str) -> Dict:
         # Distribution day: price drops >= 0.2% AND volume increases
         if pct_change <= -0.2 and volume_increase:
             distribution_days += 1
-            details.append({
-                "date": date,
-                "type": "distribution",
-                "pct_change": round(pct_change, 2),
-                "volume_change": round((today_volume / yesterday_volume - 1) * 100, 1),
-                "window_index": i,
-            })
+            details.append(
+                {
+                    "date": date,
+                    "type": "distribution",
+                    "pct_change": round(pct_change, 2),
+                    "volume_change": round((today_volume / yesterday_volume - 1) * 100, 1),
+                    "window_index": i,
+                }
+            )
 
         # Stalling day: volume increases but price gain < 0.1%
         elif volume_increase and 0 <= pct_change < 0.1:
             stalling_days += 1
-            details.append({
-                "date": date,
-                "type": "stalling",
-                "pct_change": round(pct_change, 2),
-                "volume_change": round((today_volume / yesterday_volume - 1) * 100, 1),
-                "window_index": i,
-            })
+            details.append(
+                {
+                    "date": date,
+                    "type": "stalling",
+                    "pct_change": round(pct_change, 2),
+                    "volume_change": round((today_volume / yesterday_volume - 1) * 100, 1),
+                    "window_index": i,
+                }
+            )
 
     return {
         "distribution_days": distribution_days,

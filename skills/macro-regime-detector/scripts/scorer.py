@@ -24,8 +24,7 @@ Total: 100%
 - Transitional: 3+ components signaling, unclear pattern
 """
 
-from typing import Dict, List, Optional
-
+from typing import Optional
 
 COMPONENT_WEIGHTS = {
     "concentration": 0.25,
@@ -46,8 +45,9 @@ COMPONENT_LABELS = {
 }
 
 
-def calculate_composite_score(component_scores: Dict[str, float],
-                              data_availability: Optional[Dict[str, bool]] = None) -> Dict:
+def calculate_composite_score(
+    component_scores: dict[str, float], data_availability: Optional[dict[str, bool]] = None
+) -> dict:
     """
     Calculate weighted composite transition signal score.
 
@@ -69,8 +69,7 @@ def calculate_composite_score(component_scores: Dict[str, float],
     composite = round(composite, 1)
 
     # Identify strongest and weakest signals
-    valid_scores = {k: v for k, v in component_scores.items()
-                    if k in COMPONENT_WEIGHTS}
+    valid_scores = {k: v for k, v in component_scores.items() if k in COMPONENT_WEIGHTS}
 
     if valid_scores:
         strongest_signal = max(valid_scores, key=valid_scores.get)
@@ -83,24 +82,22 @@ def calculate_composite_score(component_scores: Dict[str, float],
     zone_info = _interpret_zone(composite)
 
     # Data quality
-    available_count = sum(
-        1 for k in COMPONENT_WEIGHTS
-        if data_availability.get(k, True)
-    )
+    available_count = sum(1 for k in COMPONENT_WEIGHTS if data_availability.get(k, True))
     total_components = len(COMPONENT_WEIGHTS)
     missing_components = [
-        COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS
-        if not data_availability.get(k, True)
+        COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS if not data_availability.get(k, True)
     ]
 
     if available_count == total_components:
         quality_label = f"Complete ({available_count}/{total_components} components)"
     elif available_count >= total_components - 2:
-        quality_label = (f"Partial ({available_count}/{total_components} components)"
-                         " - interpret with caution")
+        quality_label = (
+            f"Partial ({available_count}/{total_components} components) - interpret with caution"
+        )
     else:
-        quality_label = (f"Limited ({available_count}/{total_components} components)"
-                         " - low confidence")
+        quality_label = (
+            f"Limited ({available_count}/{total_components} components) - low confidence"
+        )
 
     # Count components with significant signals
     signaling_count = sum(1 for v in valid_scores.values() if v >= 40)
@@ -140,7 +137,7 @@ def calculate_composite_score(component_scores: Dict[str, float],
     }
 
 
-def classify_regime(component_results: Dict[str, Dict]) -> Dict:
+def classify_regime(component_results: dict[str, dict]) -> dict:
     """
     Classify current macro regime based on component directions and signals.
 
@@ -163,13 +160,12 @@ def classify_regime(component_results: Dict[str, Dict]) -> Dict:
 
     # Count available components for confidence adjustment
     available_count = sum(
-        1 for comp in [conc, yc, credit, size, eb, sector]
-        if comp.get("data_available", False)
+        1 for comp in [conc, yc, credit, size, eb, sector] if comp.get("data_available", False)
     )
 
     # Only use direction from components with available data;
     # unavailable components default to "unknown" (neutral, no scoring)
-    def _dir(comp: Dict) -> str:
+    def _dir(comp: dict) -> str:
         if not comp.get("data_available", False):
             return "unknown"
         return comp.get("direction", "unknown")
@@ -179,7 +175,9 @@ def classify_regime(component_results: Dict[str, Dict]) -> Dict:
     size_dir = _dir(size)
     eb_dir = _dir(eb)
     sector_dir = _dir(sector)
-    corr_regime = eb.get("correlation_regime", "unknown") if eb.get("data_available", False) else "unknown"
+    corr_regime = (
+        eb.get("correlation_regime", "unknown") if eb.get("data_available", False) else "unknown"
+    )
 
     # Score each regime hypothesis
     regime_scores = {
@@ -192,8 +190,12 @@ def classify_regime(component_results: Dict[str, Dict]) -> Dict:
 
     # Count signaling components
     all_scores = [
-        conc.get("score", 0), yc.get("score", 0), credit.get("score", 0),
-        size.get("score", 0), eb.get("score", 0), sector.get("score", 0),
+        conc.get("score", 0),
+        yc.get("score", 0),
+        credit.get("score", 0),
+        size.get("score", 0),
+        eb.get("score", 0),
+        sector.get("score", 0),
     ]
     signaling = sum(1 for s in all_scores if s >= 40)
 
@@ -205,11 +207,10 @@ def classify_regime(component_results: Dict[str, Dict]) -> Dict:
     best_score = sorted_regimes[0][1]
 
     # Tiebreak detection: top 2 regimes within 1 point
-    is_tied = (len(sorted_regimes) >= 2
-               and best_score > 0
-               and (best_score - sorted_regimes[1][1]) <= 1)
-    tied_regimes = ([sorted_regimes[0][0], sorted_regimes[1][0]]
-                    if is_tied else None)
+    is_tied = (
+        len(sorted_regimes) >= 2 and best_score > 0 and (best_score - sorted_regimes[1][1]) <= 1
+    )
+    tied_regimes = [sorted_regimes[0][0], sorted_regimes[1][0]] if is_tied else None
 
     # Quick composite for tiebreak resolution
     quick_composite = sum(
@@ -276,37 +277,37 @@ REGIME_DESCRIPTIONS = {
     "concentration": {
         "label": "Concentration",
         "description": "Market leadership concentrated in mega-cap stocks. RSP/SPY declining, "
-                       "small-caps underperforming. Credit conditions stable.",
+        "small-caps underperforming. Credit conditions stable.",
         "portfolio_posture": "Focus on mega-cap tech/growth leaders. "
-                             "Underweight small-caps and value.",
+        "Underweight small-caps and value.",
     },
     "broadening": {
         "label": "Broadening",
         "description": "Market participation expanding. RSP/SPY rising, small-caps catching up. "
-                       "Credit easing or stable.",
+        "Credit easing or stable.",
         "portfolio_posture": "Add small-cap/mid-cap exposure. Equal-weight strategies. "
-                             "Value and cyclical rotation.",
+        "Value and cyclical rotation.",
     },
     "contraction": {
         "label": "Contraction",
         "description": "Credit tightening, defensive rotation, equity-bond shift to risk-off. "
-                       "Classic late-cycle deterioration.",
+        "Classic late-cycle deterioration.",
         "portfolio_posture": "Raise cash. Increase Treasury allocation. "
-                             "Defensive sectors (Staples, Utilities, Healthcare).",
+        "Defensive sectors (Staples, Utilities, Healthcare).",
     },
     "inflationary": {
         "label": "Inflationary",
         "description": "Positive stock-bond correlation regime. Both equities and bonds under "
-                       "pressure. Traditional hedging breaks down.",
+        "pressure. Traditional hedging breaks down.",
         "portfolio_posture": "Real assets, commodities, energy. Short-duration bonds. "
-                             "TIPS. Reduce long-duration exposure.",
+        "TIPS. Reduce long-duration exposure.",
     },
     "transitional": {
         "label": "Transitional",
         "description": "Multiple components signaling change but no clear regime pattern. "
-                       "Market in flux between regimes.",
+        "Market in flux between regimes.",
         "portfolio_posture": "Increase diversification. Gradual repositioning. "
-                             "Avoid concentrated bets. Monitor weekly for regime clarity.",
+        "Avoid concentrated bets. Monitor weekly for regime clarity.",
     },
 }
 
@@ -326,8 +327,7 @@ def _score_concentration_regime(conc_dir: str, size_dir: str, credit_dir: str) -
     return score
 
 
-def _score_broadening_regime(conc_dir: str, size_dir: str,
-                             credit_dir: str, sector_dir: str) -> int:
+def _score_broadening_regime(conc_dir: str, size_dir: str, credit_dir: str, sector_dir: str) -> int:
     """Score evidence for Broadening regime."""
     score = 0
     if conc_dir == "broadening":
@@ -365,10 +365,13 @@ def _score_inflationary_regime(corr_regime: str, eb_dir: str) -> int:
     return score
 
 
-def _calculate_transition_probability(signaling: int, all_scores: List[float],
-                                      regime_scores: Dict[str, int],
-                                      current_regime: str,
-                                      sorted_regimes: Optional[List] = None) -> Dict:
+def _calculate_transition_probability(
+    signaling: int,
+    all_scores: list[float],
+    regime_scores: dict[str, int],
+    current_regime: str,
+    sorted_regimes: Optional[list] = None,
+) -> dict:
     """
     Calculate probability that a regime transition is underway.
 
@@ -409,8 +412,7 @@ def _calculate_transition_probability(signaling: int, all_scores: List[float],
         top = sorted_regimes[0][0]
         if current_regime == "transitional" and len(sorted_regimes) >= 2:
             to_regime = top
-            from_regime = (sorted_regimes[1][0]
-                           if sorted_regimes[1][1] > 0 else None)
+            from_regime = sorted_regimes[1][0] if sorted_regimes[1][1] > 0 else None
         elif top != current_regime:
             from_regime = current_regime
             to_regime = top
@@ -451,8 +453,9 @@ REGIME_CONSISTENCY = {
 }
 
 
-def check_regime_consistency(current_regime: str,
-                             component_results: Dict[str, Dict]) -> Dict[str, str]:
+def check_regime_consistency(
+    current_regime: str, component_results: dict[str, dict]
+) -> dict[str, str]:
     """
     Check whether each component's direction is consistent with the classified regime.
 
@@ -489,7 +492,7 @@ def check_regime_consistency(current_regime: str,
     return result
 
 
-def _build_evidence(component_results: Dict[str, Dict]) -> List[Dict]:
+def _build_evidence(component_results: dict[str, dict]) -> list[dict]:
     """Build evidence list from component results."""
     evidence = []
     for key in COMPONENT_WEIGHTS:
@@ -498,18 +501,20 @@ def _build_evidence(component_results: Dict[str, Dict]) -> List[Dict]:
             continue
         score = comp.get("score", 0)
         if score >= 40:
-            evidence.append({
-                "component": COMPONENT_LABELS.get(key, key),
-                "score": score,
-                "signal": comp.get("signal", ""),
-                "direction": comp.get("direction", "unknown"),
-            })
+            evidence.append(
+                {
+                    "component": COMPONENT_LABELS.get(key, key),
+                    "score": score,
+                    "signal": comp.get("signal", ""),
+                    "direction": comp.get("direction", "unknown"),
+                }
+            )
     # Sort by score descending
     evidence.sort(key=lambda x: x["score"], reverse=True)
     return evidence
 
 
-def _interpret_zone(composite: float) -> Dict:
+def _interpret_zone(composite: float) -> dict:
     """Map composite score to transition signal zone."""
     if composite <= 20:
         return {

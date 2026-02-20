@@ -18,15 +18,15 @@ Same data_date re-run overwrites the existing entry.
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
-def load_history(path: str) -> List[Dict]:
+def load_history(path: str) -> list[dict]:
     """Load history from JSON file. Returns [] on missing/corrupt file."""
     if not os.path.exists(path):
         return []
     try:
-        with open(path, "r") as f:
+        with open(path) as f:
             content = f.read().strip()
             if not content:
                 return []
@@ -41,9 +41,9 @@ def load_history(path: str) -> List[Dict]:
 def append_history(
     path: str,
     composite_score: float,
-    component_scores: Dict[str, Any],
+    component_scores: dict[str, Any],
     data_date: str,
-) -> List[Dict]:
+) -> list[dict]:
     """Append or overwrite an entry for *data_date*, then save.
 
     Returns the updated history list.
@@ -74,7 +74,7 @@ def append_history(
     return history
 
 
-def get_trend_summary(history: List[Dict], n: int = 5) -> Dict:
+def get_trend_summary(history: list[dict], n: int = 5) -> dict:
     """Compute trend direction from the last *n* entries.
 
     Returns:

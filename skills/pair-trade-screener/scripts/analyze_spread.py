@@ -25,7 +25,6 @@ import argparse
 import os
 import sys
 import time
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -34,16 +33,16 @@ from scipy import stats
 from statsmodels.tsa.ar_model import AutoReg
 from statsmodels.tsa.stattools import adfuller
 
-
 # =============================================================================
 # FMP API Functions
 # =============================================================================
+
 
 def get_api_key(args_api_key):
     """Get API key from args or environment variable"""
     if args_api_key:
         return args_api_key
-    api_key = os.environ.get('FMP_API_KEY')
+    api_key = os.environ.get("FMP_API_KEY")
     if not api_key:
         print("ERROR: FMP_API_KEY not found. Set environment variable or use --api-key")
         sys.exit(1)
@@ -53,26 +52,26 @@ def get_api_key(args_api_key):
 def fetch_historical_prices(symbol, api_key, lookback_days=365):
     """Fetch historical adjusted close prices for a symbol"""
     url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}"
-    params = {'apikey': api_key}
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
 
-        if 'historical' not in data:
+        if "historical" not in data:
             print(f"ERROR: No data found for {symbol}")
             return None
 
         # Extract historical prices
-        historical = data['historical'][:lookback_days]
+        historical = data["historical"][:lookback_days]
         historical = historical[::-1]  # Reverse to chronological order
 
         # Convert to pandas Series
         prices = pd.Series(
-            [item['adjClose'] for item in historical],
-            index=[pd.to_datetime(item['date']) for item in historical],
-            name=symbol
+            [item["adjClose"] for item in historical],
+            index=[pd.to_datetime(item["date"]) for item in historical],
+            name=symbol,
         )
 
         return prices
@@ -86,6 +85,7 @@ def fetch_historical_prices(symbol, api_key, lookback_days=365):
 # Statistical Analysis
 # =============================================================================
 
+
 def calculate_hedge_ratio(prices_a, prices_b):
     """Calculate hedge ratio using OLS regression"""
     # Align dates
@@ -97,24 +97,24 @@ def calculate_hedge_ratio(prices_a, prices_b):
     slope, intercept, r_value, p_value, std_err = stats.linregress(aligned_b, aligned_a)
 
     return {
-        'beta': slope,
-        'intercept': intercept,
-        'r_value': r_value,
-        'r_squared': r_value ** 2,
-        'aligned_a': aligned_a,
-        'aligned_b': aligned_b
+        "beta": slope,
+        "intercept": intercept,
+        "r_value": r_value,
+        "r_squared": r_value**2,
+        "aligned_a": aligned_a,
+        "aligned_b": aligned_b,
     }
 
 
 def test_cointegration(spread):
     """Test for cointegration using ADF test"""
     try:
-        result = adfuller(spread, maxlag=1, regression='c')
+        result = adfuller(spread, maxlag=1, regression="c")
         return {
-            'adf_statistic': result[0],
-            'p_value': result[1],
-            'critical_values': result[4],
-            'is_cointegrated': result[1] < 0.05
+            "adf_statistic": result[0],
+            "p_value": result[1],
+            "critical_values": result[4],
+            "is_cointegrated": result[1] < 0.05,
         }
     except Exception as e:
         print(f"ERROR: Cointegration test failed: {e}")
@@ -150,6 +150,7 @@ def calculate_zscore_series(spread, window=90):
 # Analysis & Reporting
 # =============================================================================
 
+
 def generate_ascii_chart(zscore, width=60, height=15):
     """Generate ASCII chart of z-score over time"""
     # Filter out NaN values
@@ -171,7 +172,7 @@ def generate_ascii_chart(zscore, width=60, height=15):
 
     for level in levels:
         if abs(level) < 0.1:
-            label = f" 0.0 |"
+            label = " 0.0 |"
         else:
             label = f"{level:4.1f} |"
 
@@ -185,17 +186,17 @@ def generate_ascii_chart(zscore, width=60, height=15):
             # Determine character
             if abs(z_value - level) < max_abs_z / height:
                 if abs(z_value) > 2.0:
-                    char = '*'  # Extreme values
+                    char = "*"  # Extreme values
                 elif abs(z_value) > 1.5:
-                    char = '+'  # High values
+                    char = "+"  # High values
                 else:
-                    char = '.'  # Normal values
+                    char = "."  # Normal values
             elif abs(level) < 0.1:
-                char = '-'  # Zero line
+                char = "-"  # Zero line
             elif abs(level - 2.0) < 0.1 or abs(level + 2.0) < 0.1:
-                char = '='  # Entry thresholds
+                char = "="  # Entry thresholds
             else:
-                char = ' '
+                char = " "
 
             row += char
 
@@ -207,14 +208,25 @@ def generate_ascii_chart(zscore, width=60, height=15):
     return "\n".join(lines)
 
 
-def print_analysis_report(symbol_a, symbol_b, prices_a, prices_b, beta_result, spread,
-                           coint_result, half_life, zscore, current_zscore,
-                           entry_zscore, exit_zscore):
+def print_analysis_report(
+    symbol_a,
+    symbol_b,
+    prices_a,
+    prices_b,
+    beta_result,
+    spread,
+    coint_result,
+    half_life,
+    zscore,
+    current_zscore,
+    entry_zscore,
+    exit_zscore,
+):
     """Print comprehensive analysis report"""
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f"PAIR TRADE ANALYSIS: {symbol_a} / {symbol_b}")
-    print("="*70)
+    print("=" * 70)
 
     # Basic Statistics
     print("\n[ PAIR STATISTICS ]")
@@ -230,31 +242,31 @@ def print_analysis_report(symbol_a, symbol_b, prices_a, prices_b, beta_result, s
     print("\n[ COINTEGRATION TEST ]")
     print(f"  ADF Statistic: {coint_result['adf_statistic']:.4f}")
     print(f"  P-value: {coint_result['p_value']:.4f}")
-    print(f"  Critical Values:")
-    for key, value in coint_result['critical_values'].items():
+    print("  Critical Values:")
+    for key, value in coint_result["critical_values"].items():
         print(f"    {key}: {value:.4f}")
 
-    if coint_result['is_cointegrated']:
-        print(f"  Result: ✅ COINTEGRATED (p < 0.05)")
-        if coint_result['p_value'] < 0.01:
-            print(f"  Strength: ★★★ Very Strong")
+    if coint_result["is_cointegrated"]:
+        print("  Result: ✅ COINTEGRATED (p < 0.05)")
+        if coint_result["p_value"] < 0.01:
+            print("  Strength: ★★★ Very Strong")
         else:
-            print(f"  Strength: ★★ Moderate")
+            print("  Strength: ★★ Moderate")
     else:
-        print(f"  Result: ❌ NOT COINTEGRATED (p ≥ 0.05)")
+        print("  Result: ❌ NOT COINTEGRATED (p ≥ 0.05)")
 
     # Mean Reversion
     print("\n[ MEAN REVERSION ]")
     if half_life:
         print(f"  Half-Life: {half_life:.1f} days")
         if half_life < 30:
-            print(f"  Speed: Fast (ideal for short-term trading)")
+            print("  Speed: Fast (ideal for short-term trading)")
         elif half_life < 60:
-            print(f"  Speed: Moderate (suitable for pair trading)")
+            print("  Speed: Moderate (suitable for pair trading)")
         else:
-            print(f"  Speed: Slow (requires patience)")
+            print("  Speed: Slow (requires patience)")
     else:
-        print(f"  Half-Life: N/A (spread may not be mean-reverting)")
+        print("  Half-Life: N/A (spread may not be mean-reverting)")
 
     # Spread Analysis
     print("\n[ SPREAD ANALYSIS ]")
@@ -272,79 +284,99 @@ def print_analysis_report(symbol_a, symbol_b, prices_a, prices_b, beta_result, s
 
     valid_z = zscore.dropna()
     print(f"  Historical Range: [{valid_z.min():.2f}, {valid_z.max():.2f}]")
-    print(f"  Times above +{entry_zscore}: {sum(valid_z > entry_zscore)} days ({sum(valid_z > entry_zscore)/len(valid_z)*100:.1f}%)")
-    print(f"  Times below -{entry_zscore}: {sum(valid_z < -entry_zscore)} days ({sum(valid_z < -entry_zscore)/len(valid_z)*100:.1f}%)")
+    print(
+        f"  Times above +{entry_zscore}: {sum(valid_z > entry_zscore)} days ({sum(valid_z > entry_zscore) / len(valid_z) * 100:.1f}%)"
+    )
+    print(
+        f"  Times below -{entry_zscore}: {sum(valid_z < -entry_zscore)} days ({sum(valid_z < -entry_zscore) / len(valid_z) * 100:.1f}%)"
+    )
 
     # Trade Signal
     print("\n[ TRADE SIGNAL ]")
-    if not coint_result['is_cointegrated']:
-        print(f"  Signal: ⚠️ NO TRADE (pair not cointegrated)")
+    if not coint_result["is_cointegrated"]:
+        print("  Signal: ⚠️ NO TRADE (pair not cointegrated)")
     elif abs(current_zscore) < entry_zscore:
         print(f"  Signal: ⏸ WAIT (|z| < {entry_zscore})")
-        print(f"  Status: Spread within normal range, no trade signal")
+        print("  Status: Spread within normal range, no trade signal")
     elif current_zscore > entry_zscore:
-        print(f"  Signal: 🔻 SHORT SPREAD")
+        print("  Signal: 🔻 SHORT SPREAD")
         print(f"  Action: Short {symbol_a}, Long {symbol_b}")
-        print(f"  Rationale: Z-score = {current_zscore:.2f} (>{entry_zscore}) → {symbol_a} expensive relative to {symbol_b}")
+        print(
+            f"  Rationale: Z-score = {current_zscore:.2f} (>{entry_zscore}) → {symbol_a} expensive relative to {symbol_b}"
+        )
     else:  # current_zscore < -entry_zscore
-        print(f"  Signal: 🔺 LONG SPREAD")
+        print("  Signal: 🔺 LONG SPREAD")
         print(f"  Action: Long {symbol_a}, Short {symbol_b}")
-        print(f"  Rationale: Z-score = {current_zscore:.2f} (<-{entry_zscore}) → {symbol_a} cheap relative to {symbol_b}")
+        print(
+            f"  Rationale: Z-score = {current_zscore:.2f} (<-{entry_zscore}) → {symbol_a} cheap relative to {symbol_b}"
+        )
 
     # Position Sizing (if signal exists)
-    if coint_result['is_cointegrated'] and abs(current_zscore) >= entry_zscore:
-        print(f"\n[ POSITION SIZING ]")
+    if coint_result["is_cointegrated"] and abs(current_zscore) >= entry_zscore:
+        print("\n[ POSITION SIZING ]")
         portfolio_allocation = 10000  # Example $10k allocation
         print(f"  Example Allocation: ${portfolio_allocation:,}")
 
         if current_zscore > entry_zscore:
             # Short A, Long B
             short_a = portfolio_allocation / 2
-            long_b = short_a * beta_result['beta']
-            print(f"  SHORT {symbol_a}: ${short_a:,.0f} ({short_a / prices_a.iloc[-1]:.0f} shares @ ${prices_a.iloc[-1]:.2f})")
-            print(f"  LONG {symbol_b}: ${long_b:,.0f} ({long_b / prices_b.iloc[-1]:.0f} shares @ ${prices_b.iloc[-1]:.2f})")
+            long_b = short_a * beta_result["beta"]
+            print(
+                f"  SHORT {symbol_a}: ${short_a:,.0f} ({short_a / prices_a.iloc[-1]:.0f} shares @ ${prices_a.iloc[-1]:.2f})"
+            )
+            print(
+                f"  LONG {symbol_b}: ${long_b:,.0f} ({long_b / prices_b.iloc[-1]:.0f} shares @ ${prices_b.iloc[-1]:.2f})"
+            )
         else:
             # Long A, Short B
             long_a = portfolio_allocation / 2
-            short_b = long_a * beta_result['beta']
-            print(f"  LONG {symbol_a}: ${long_a:,.0f} ({long_a / prices_a.iloc[-1]:.0f} shares @ ${prices_a.iloc[-1]:.2f})")
-            print(f"  SHORT {symbol_b}: ${short_b:,.0f} ({short_b / prices_b.iloc[-1]:.0f} shares @ ${prices_b.iloc[-1]:.2f})")
+            short_b = long_a * beta_result["beta"]
+            print(
+                f"  LONG {symbol_a}: ${long_a:,.0f} ({long_a / prices_a.iloc[-1]:.0f} shares @ ${prices_a.iloc[-1]:.2f})"
+            )
+            print(
+                f"  SHORT {symbol_b}: ${short_b:,.0f} ({short_b / prices_b.iloc[-1]:.0f} shares @ ${prices_b.iloc[-1]:.2f})"
+            )
 
-        print(f"\n  Exit Conditions:")
+        print("\n  Exit Conditions:")
         print(f"    - Primary: Z-score crosses {exit_zscore} (mean reversion)")
-        print(f"    - Stop Loss: Z-score > ±3.0 (extreme divergence)")
-        print(f"    - Time-based: No reversion after 90 days")
+        print("    - Stop Loss: Z-score > ±3.0 (extreme divergence)")
+        print("    - Time-based: No reversion after 90 days")
 
     # ASCII Chart
     if len(zscore.dropna()) > 0:
         print("\n[ Z-SCORE CHART ]")
         print(generate_ascii_chart(zscore))
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
 
 
 # =============================================================================
 # Main
 # =============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description='Analyze spread behavior for a specific stock pair',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Analyze spread behavior for a specific stock pair",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument('--stock-a', type=str, required=True,
-                        help='First stock ticker symbol')
-    parser.add_argument('--stock-b', type=str, required=True,
-                        help='Second stock ticker symbol')
-    parser.add_argument('--lookback-days', type=int, default=365,
-                        help='Historical data lookback period (default: 365)')
-    parser.add_argument('--entry-zscore', type=float, default=2.0,
-                        help='Z-score threshold for entry (default: 2.0)')
-    parser.add_argument('--exit-zscore', type=float, default=0.0,
-                        help='Z-score threshold for exit (default: 0.0)')
-    parser.add_argument('--api-key', type=str,
-                        help='FMP API key (or set FMP_API_KEY env variable)')
+    parser.add_argument("--stock-a", type=str, required=True, help="First stock ticker symbol")
+    parser.add_argument("--stock-b", type=str, required=True, help="Second stock ticker symbol")
+    parser.add_argument(
+        "--lookback-days",
+        type=int,
+        default=365,
+        help="Historical data lookback period (default: 365)",
+    )
+    parser.add_argument(
+        "--entry-zscore", type=float, default=2.0, help="Z-score threshold for entry (default: 2.0)"
+    )
+    parser.add_argument(
+        "--exit-zscore", type=float, default=0.0, help="Z-score threshold for exit (default: 0.0)"
+    )
+    parser.add_argument("--api-key", type=str, help="FMP API key (or set FMP_API_KEY env variable)")
 
     args = parser.parse_args()
 
@@ -365,7 +397,7 @@ def main():
     beta_result = calculate_hedge_ratio(prices_a, prices_b)
 
     # Calculate spread
-    spread = beta_result['aligned_a'] - (beta_result['beta'] * beta_result['aligned_b'])
+    spread = beta_result["aligned_a"] - (beta_result["beta"] * beta_result["aligned_b"])
 
     # Test cointegration
     coint_result = test_cointegration(spread)
@@ -381,14 +413,20 @@ def main():
 
     # Print report
     print_analysis_report(
-        args.stock_a, args.stock_b,
-        prices_a, prices_b,
-        beta_result, spread,
-        coint_result, half_life,
-        zscore, current_zscore,
-        args.entry_zscore, args.exit_zscore
+        args.stock_a,
+        args.stock_b,
+        prices_a,
+        prices_b,
+        beta_result,
+        spread,
+        coint_result,
+        half_life,
+        zscore,
+        current_zscore,
+        args.entry_zscore,
+        args.exit_zscore,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

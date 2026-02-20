@@ -12,10 +12,11 @@ import csv
 import io
 import sys
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Optional
 
 try:
     import requests
+
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
@@ -26,8 +27,7 @@ TIMESERIES_URL = (
     "main/data/uptrend_ratio_timeseries.csv"
 )
 SECTOR_SUMMARY_URL = (
-    "https://raw.githubusercontent.com/tradermonty/uptrend-dashboard/"
-    "main/data/sector_summary.csv"
+    "https://raw.githubusercontent.com/tradermonty/uptrend-dashboard/main/data/sector_summary.csv"
 )
 
 # Map FINVIZ sector names to uptrend worksheet names
@@ -59,7 +59,7 @@ def _safe_float(value) -> Optional[float]:
         return None
 
 
-def _calculate_slope(values: List[float]) -> Optional[float]:
+def _calculate_slope(values: list[float]) -> Optional[float]:
     """Calculate slope from a list of values using simple linear regression.
 
     Uses least-squares fit: slope = sum((x-xbar)(y-ybar)) / sum((x-xbar)^2)
@@ -115,7 +115,7 @@ def is_data_stale(latest_date_str: str, threshold_bdays: int = 2) -> bool:
         return True
 
 
-def fetch_sector_uptrend_data() -> Dict[str, Dict]:
+def fetch_sector_uptrend_data() -> dict[str, dict]:
     """Fetch sector uptrend ratio data from timeseries CSV.
 
     Downloads the full timeseries, extracts the latest row per sector,
@@ -140,12 +140,11 @@ def fetch_sector_uptrend_data() -> Dict[str, Dict]:
         response = requests.get(TIMESERIES_URL, timeout=30)
         response.raise_for_status()
     except Exception as e:
-        print(f"WARNING: Failed to fetch uptrend timeseries: {e}",
-              file=sys.stderr)
+        print(f"WARNING: Failed to fetch uptrend timeseries: {e}", file=sys.stderr)
         return {}
 
     # Parse all rows, grouped by worksheet
-    sector_rows: Dict[str, List[Dict]] = {}
+    sector_rows: dict[str, list[dict]] = {}
     reader = csv.DictReader(io.StringIO(response.text))
     for row in reader:
         ws = row.get("worksheet", "").strip()
@@ -162,13 +161,15 @@ def fetch_sector_uptrend_data() -> Dict[str, Dict]:
 
         if ws not in sector_rows:
             sector_rows[ws] = []
-        sector_rows[ws].append({
-            "date": date_str,
-            "ratio": ratio,
-            "ma_10": ma_10,
-            "slope_csv": slope_csv,
-            "trend": trend,
-        })
+        sector_rows[ws].append(
+            {
+                "date": date_str,
+                "ratio": ratio,
+                "ma_10": ma_10,
+                "slope_csv": slope_csv,
+                "trend": trend,
+            }
+        )
 
     # For each sector: sort by date, get latest, calculate slope from last 5
     result = {}
@@ -196,7 +197,7 @@ def fetch_sector_uptrend_data() -> Dict[str, Dict]:
     return result
 
 
-def build_summary_from_timeseries(sector_timeseries: Dict[str, Dict]) -> List[Dict]:
+def build_summary_from_timeseries(sector_timeseries: dict[str, dict]) -> list[dict]:
     """Build a sector summary list from timeseries data.
 
     Fallback when sector_summary.csv is unavailable.
@@ -213,22 +214,27 @@ def build_summary_from_timeseries(sector_timeseries: Dict[str, Dict]) -> List[Di
     rows = []
     for sector_name, data in sector_timeseries.items():
         ratio = data.get("ratio")
-        status = ("Overbought" if ratio is not None and ratio > OVERBOUGHT else
-                  "Oversold" if ratio is not None and ratio < OVERSOLD else
-                  "Normal")
-        rows.append({
-            "Sector": sector_name,
-            "Ratio": ratio,
-            "10MA": data.get("ma_10"),
-            "Trend": (data.get("trend") or "").capitalize(),
-            "Slope": data.get("slope"),
-            "Status": status,
-        })
+        status = (
+            "Overbought"
+            if ratio is not None and ratio > OVERBOUGHT
+            else "Oversold"
+            if ratio is not None and ratio < OVERSOLD
+            else "Normal"
+        )
+        rows.append(
+            {
+                "Sector": sector_name,
+                "Ratio": ratio,
+                "10MA": data.get("ma_10"),
+                "Trend": (data.get("trend") or "").capitalize(),
+                "Slope": data.get("slope"),
+                "Status": status,
+            }
+        )
     return rows
 
 
-def get_sector_uptrend_3point(sector_name: str,
-                               all_data: Dict[str, Dict]) -> Optional[Dict]:
+def get_sector_uptrend_3point(sector_name: str, all_data: dict[str, dict]) -> Optional[dict]:
     """Get ratio + ma_10 + slope for a specific sector.
 
     Args:

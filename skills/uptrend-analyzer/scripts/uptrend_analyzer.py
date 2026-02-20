@@ -29,14 +29,14 @@ from datetime import datetime
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from data_fetcher import UptrendDataFetcher
+from calculators.historical_context_calculator import calculate_historical_context
 from calculators.market_breadth_calculator import calculate_market_breadth
+from calculators.momentum_calculator import calculate_momentum
 from calculators.sector_participation_calculator import calculate_sector_participation
 from calculators.sector_rotation_calculator import calculate_sector_rotation
-from calculators.momentum_calculator import calculate_momentum
-from calculators.historical_context_calculator import calculate_historical_context
-from scorer import calculate_composite_score
+from data_fetcher import UptrendDataFetcher
 from report_generator import generate_json_report, generate_markdown_report
+from scorer import calculate_composite_score
 
 
 def parse_arguments():
@@ -44,9 +44,7 @@ def parse_arguments():
         description="Uptrend Analyzer - Market Breadth Health Diagnosis"
     )
     parser.add_argument(
-        "--output-dir",
-        default="reports/",
-        help="Output directory for reports (default: reports/)"
+        "--output-dir", default="reports/", help="Output directory for reports (default: reports/)"
     )
     return parser.parse_args()
 
@@ -90,9 +88,13 @@ def main():
     sector_latest = fetcher.get_all_sector_latest()
 
     if latest_all:
-        ratio_pct = round(latest_all["ratio"] * 100, 1) if latest_all.get("ratio") is not None else "N/A"
-        print(f"  Latest data: {latest_all.get('date', 'N/A')}, "
-              f"ratio={ratio_pct}%, trend={latest_all.get('trend', 'N/A')}")
+        ratio_pct = (
+            round(latest_all["ratio"] * 100, 1) if latest_all.get("ratio") is not None else "N/A"
+        )
+        print(
+            f"  Latest data: {latest_all.get('date', 'N/A')}, "
+            f"ratio={ratio_pct}%, trend={latest_all.get('trend', 'N/A')}"
+        )
     print()
 
     # ========================================================================
@@ -158,7 +160,9 @@ def main():
     }
 
     composite = calculate_composite_score(
-        component_scores, data_availability, warning_flags,
+        component_scores,
+        data_availability,
+        warning_flags,
         historical_data_points=comp5.get("data_points"),
     )
 
@@ -166,12 +170,18 @@ def main():
     print(f"  Zone: {composite['zone']} ({composite.get('zone_detail', '')})")
     print(f"  Exposure Guidance: {composite['exposure_guidance']}")
     if composite.get("warning_penalty", 0) != 0:
-        print(f"  Warning Penalty: {composite['warning_penalty']} "
-              f"(raw score: {composite.get('composite_score_raw', 'N/A')})")
-    print(f"  Strongest: {composite['strongest_component']['label']} "
-          f"({composite['strongest_component']['score']})")
-    print(f"  Weakest: {composite['weakest_component']['label']} "
-          f"({composite['weakest_component']['score']})")
+        print(
+            f"  Warning Penalty: {composite['warning_penalty']} "
+            f"(raw score: {composite.get('composite_score_raw', 'N/A')})"
+        )
+    print(
+        f"  Strongest: {composite['strongest_component']['label']} "
+        f"({composite['strongest_component']['score']})"
+    )
+    print(
+        f"  Weakest: {composite['weakest_component']['label']} "
+        f"({composite['weakest_component']['score']})"
+    )
     print()
 
     # ========================================================================

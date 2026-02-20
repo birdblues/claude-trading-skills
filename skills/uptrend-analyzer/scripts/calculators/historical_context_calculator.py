@@ -11,10 +11,10 @@ Score = percentile rank of current ratio in historical distribution
 Additional context: min, max, median, 30d avg, 90d avg
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 
-def calculate_historical_context(all_timeseries: List[Dict]) -> Dict:
+def calculate_historical_context(all_timeseries: list[dict]) -> dict:
     """
     Calculate historical context score via percentile rank.
 
@@ -106,7 +106,7 @@ def calculate_historical_context(all_timeseries: List[Dict]) -> Dict:
     }
 
 
-def _assess_confidence(ratios: List[float]) -> Dict:
+def _assess_confidence(ratios: list[float]) -> dict:
     """Assess confidence level of percentile analysis.
 
     Evaluates:
@@ -185,7 +185,7 @@ def _assess_confidence(ratios: List[float]) -> Dict:
     }
 
 
-def _avg_last_n(values: List[float], n: int) -> Optional[float]:
+def _avg_last_n(values: list[float], n: int) -> Optional[float]:
     """Average of the last n values, or all if fewer than n."""
     if not values:
         return None

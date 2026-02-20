@@ -9,8 +9,8 @@ Verifies:
 
 import inspect
 import re
-import pytest
 
+import pytest
 from analyze_single_stock import SingleStockAnalyzer
 
 
@@ -56,34 +56,42 @@ class TestAnalyzeStockOutput:
             holders = []
             # Q4 2025: 100 genuine holders + 10 new_full + 5 exited
             for i in range(100):
-                holders.append({
-                    "holder": f"Fund{i}",
-                    "shares": 10_000 + i * 100,
-                    "change": 500 if i % 2 == 0 else -200,
-                    "dateReported": "2025-12-31",
-                })
+                holders.append(
+                    {
+                        "holder": f"Fund{i}",
+                        "shares": 10_000 + i * 100,
+                        "change": 500 if i % 2 == 0 else -200,
+                        "dateReported": "2025-12-31",
+                    }
+                )
             for i in range(10):
-                holders.append({
-                    "holder": f"NewFund{i}",
-                    "shares": 5_000,
-                    "change": 5_000,
-                    "dateReported": "2025-12-31",
-                })
+                holders.append(
+                    {
+                        "holder": f"NewFund{i}",
+                        "shares": 5_000,
+                        "change": 5_000,
+                        "dateReported": "2025-12-31",
+                    }
+                )
             for i in range(5):
-                holders.append({
-                    "holder": f"ExitFund{i}",
-                    "shares": 0,
-                    "change": -3_000,
-                    "dateReported": "2025-12-31",
-                })
+                holders.append(
+                    {
+                        "holder": f"ExitFund{i}",
+                        "shares": 0,
+                        "change": -3_000,
+                        "dateReported": "2025-12-31",
+                    }
+                )
             # Q3 2025: 95 holders (subset)
             for i in range(95):
-                holders.append({
-                    "holder": f"Fund{i}",
-                    "shares": 9_500 + i * 100,
-                    "change": 300,
-                    "dateReported": "2025-09-30",
-                })
+                holders.append(
+                    {
+                        "holder": f"Fund{i}",
+                        "shares": 9_500 + i * 100,
+                        "change": 300,
+                        "dateReported": "2025-09-30",
+                    }
+                )
             return holders
 
         monkeypatch.setattr(analyzer, "get_company_profile", mock_profile)
@@ -148,27 +156,33 @@ class TestAnalyzeStockOutput:
             holders = []
             # Q4: mostly new_full (low genuine ratio)
             for i in range(10):
-                holders.append({
-                    "holder": f"Fund{i}",
-                    "shares": 10_000,
-                    "change": 500,
-                    "dateReported": "2025-12-31",
-                })
+                holders.append(
+                    {
+                        "holder": f"Fund{i}",
+                        "shares": 10_000,
+                        "change": 500,
+                        "dateReported": "2025-12-31",
+                    }
+                )
             for i in range(90):
-                holders.append({
-                    "holder": f"NewFund{i}",
-                    "shares": 1_000,
-                    "change": 1_000,
-                    "dateReported": "2025-12-31",
-                })
+                holders.append(
+                    {
+                        "holder": f"NewFund{i}",
+                        "shares": 1_000,
+                        "change": 1_000,
+                        "dateReported": "2025-12-31",
+                    }
+                )
             # Q3: minimal data
             for i in range(5):
-                holders.append({
-                    "holder": f"Fund{i}",
-                    "shares": 9_500,
-                    "change": 200,
-                    "dateReported": "2025-09-30",
-                })
+                holders.append(
+                    {
+                        "holder": f"Fund{i}",
+                        "shares": 9_500,
+                        "change": 200,
+                        "dateReported": "2025-09-30",
+                    }
+                )
             return holders
 
         monkeypatch.setattr(analyzer, "get_company_profile", mock_profile)

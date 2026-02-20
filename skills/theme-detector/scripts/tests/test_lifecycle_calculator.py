@@ -2,20 +2,19 @@
 
 import pytest
 from calculators.lifecycle_calculator import (
+    calculate_lifecycle_maturity,
+    classify_stage,
     estimate_duration_score,
+    etf_proliferation_score,
     extremity_clustering_score,
     price_extreme_saturation_score,
     valuation_premium_score,
-    etf_proliferation_score,
-    classify_stage,
-    calculate_lifecycle_maturity,
 )
-
 
 # ── estimate_duration_score ──────────────────────────────────────────
 
-class TestEstimateDurationScore:
 
+class TestEstimateDurationScore:
     def test_bullish_all_active(self):
         # All 4 horizons > 2% => 100
         score = estimate_duration_score(3.0, 5.0, 10.0, 20.0, is_bearish=False)
@@ -62,8 +61,8 @@ class TestEstimateDurationScore:
 
 # ── extremity_clustering_score ───────────────────────────────────────
 
-class TestExtremityClusteringScore:
 
+class TestExtremityClusteringScore:
     def _make_stocks(self, rsi_values):
         return [{"rsi": r} for r in rsi_values]
 
@@ -114,18 +113,21 @@ class TestExtremityClusteringScore:
 
 # ── price_extreme_saturation_score ───────────────────────────────────
 
-class TestPriceExtremeSaturationScore:
 
+class TestPriceExtremeSaturationScore:
     def test_bullish_50pct_near_high(self):
         # 5 out of 10 within 5% of 52w high
-        stocks = [{"dist_from_52w_high": d} for d in
-                  [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]]
+        stocks = [
+            {"dist_from_52w_high": d}
+            for d in [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
+        ]
         score = price_extreme_saturation_score(stocks, is_bearish=False)
         assert score == pytest.approx(100.0)
 
     def test_bullish_25pct_near_high(self):
-        stocks = [{"dist_from_52w_high": d} for d in
-                  [0.01, 0.02, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35]]
+        stocks = [
+            {"dist_from_52w_high": d} for d in [0.01, 0.02, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35]
+        ]
         score = price_extreme_saturation_score(stocks, is_bearish=False)
         assert score == pytest.approx(50.0)
 
@@ -135,8 +137,10 @@ class TestPriceExtremeSaturationScore:
         assert score == pytest.approx(0.0)
 
     def test_bearish_50pct_near_low(self):
-        stocks = [{"dist_from_52w_low": d} for d in
-                  [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]]
+        stocks = [
+            {"dist_from_52w_low": d}
+            for d in [0.01, 0.02, 0.03, 0.04, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
+        ]
         score = price_extreme_saturation_score(stocks, is_bearish=True)
         assert score == pytest.approx(100.0)
 
@@ -158,8 +162,8 @@ class TestPriceExtremeSaturationScore:
 
 # ── valuation_premium_score ──────────────────────────────────────────
 
-class TestValuationPremiumScore:
 
+class TestValuationPremiumScore:
     def _make_stocks(self, pe_values):
         return [{"pe_ratio": p} for p in pe_values]
 
@@ -207,8 +211,8 @@ class TestValuationPremiumScore:
 
 # ── etf_proliferation_score ──────────────────────────────────────────
 
-class TestEtfProliferationScore:
 
+class TestEtfProliferationScore:
     def test_zero(self):
         assert etf_proliferation_score(0) == pytest.approx(0.0)
 
@@ -238,8 +242,8 @@ class TestEtfProliferationScore:
 
 # ── classify_stage ───────────────────────────────────────────────────
 
-class TestClassifyStage:
 
+class TestClassifyStage:
     def test_emerging(self):
         assert classify_stage(0) == "Emerging"
         assert classify_stage(10) == "Emerging"
@@ -268,8 +272,8 @@ class TestClassifyStage:
 
 # ── calculate_lifecycle_maturity ─────────────────────────────────────
 
-class TestCalculateLifecycleMaturity:
 
+class TestCalculateLifecycleMaturity:
     def test_weighted_sum(self):
         # 60*0.25 + 80*0.25 + 40*0.25 + 50*0.15 + 30*0.10
         # = 15 + 20 + 10 + 7.5 + 3 = 55.5

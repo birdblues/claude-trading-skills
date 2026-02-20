@@ -1,37 +1,50 @@
 """Tests for report_generator.py"""
 
 import json
-import os
-import pytest
 
 from report_generator import generate_json_report, generate_markdown_report
 
 
 def _build_analysis(
-    score=65, zone="High Conviction", zone_color="light_green",
-    pattern="policy_pivot_anticipation", match_strength=75,
+    score=65,
+    zone="High Conviction",
+    zone_color="light_green",
+    pattern="policy_pivot_anticipation",
+    match_strength=75,
     include_optional=True,
 ):
     """Build a minimal but complete analysis dict for report generation."""
     component_scores = {
         "market_structure": {
-            "score": 70, "weight": 0.18, "effective_weight": 0.18,
-            "available": True, "weighted_contribution": 12.6,
+            "score": 70,
+            "weight": 0.18,
+            "effective_weight": 0.18,
+            "available": True,
+            "weighted_contribution": 12.6,
             "label": "Market Structure (Breadth + Uptrend)",
         },
         "distribution_risk": {
-            "score": 60, "weight": 0.18, "effective_weight": 0.18,
-            "available": True, "weighted_contribution": 10.8,
+            "score": 60,
+            "weight": 0.18,
+            "effective_weight": 0.18,
+            "available": True,
+            "weighted_contribution": 10.8,
             "label": "Distribution Risk (Market Top, inverted)",
         },
         "bottom_confirmation": {
-            "score": 80, "weight": 0.12, "effective_weight": 0.12,
-            "available": True, "weighted_contribution": 9.6,
+            "score": 80,
+            "weight": 0.12,
+            "effective_weight": 0.12,
+            "available": True,
+            "weighted_contribution": 9.6,
             "label": "Bottom Confirmation (FTD Detector)",
         },
         "macro_alignment": {
-            "score": 75, "weight": 0.18, "effective_weight": 0.18,
-            "available": True, "weighted_contribution": 13.5,
+            "score": 75,
+            "weight": 0.18,
+            "effective_weight": 0.18,
+            "available": True,
+            "weighted_contribution": 13.5,
             "label": "Macro Alignment (Regime)",
         },
         "theme_quality": {
@@ -51,8 +64,11 @@ def _build_analysis(
             "label": "Setup Availability (VCP + CANSLIM)",
         },
         "signal_convergence": {
-            "score": 72, "weight": 0.12, "effective_weight": 0.12,
-            "available": True, "weighted_contribution": 8.6,
+            "score": 72,
+            "weight": 0.12,
+            "effective_weight": 0.12,
+            "available": True,
+            "weighted_contribution": 8.6,
             "label": "Signal Convergence (Cross-Skill Agreement)",
         },
     }
@@ -62,15 +78,28 @@ def _build_analysis(
         "uptrend_analysis": {"composite_score": 70, "zone": "Bull"},
         "market_top": {"composite_score": 40, "zone": "Yellow"},
         "macro_regime": {
-            "composite_score": 60, "regime": "broadening",
+            "composite_score": 60,
+            "regime": "broadening",
             "confidence": "medium",
         },
         "ftd_detector": {"state": "FTD_CONFIRMED", "quality_score": 80},
     }
     if include_optional:
-        input_summary["vcp_screener"] = {"derived_score": 55, "textbook_count": 1, "strong_count": 2}
-        input_summary["theme_detector"] = {"derived_score": 50, "hot_count": 3, "exhaustion_count": 1}
-        input_summary["canslim_screener"] = {"derived_score": 60, "m_score": 80, "exceptional_count": 2}
+        input_summary["vcp_screener"] = {
+            "derived_score": 55,
+            "textbook_count": 1,
+            "strong_count": 2,
+        }
+        input_summary["theme_detector"] = {
+            "derived_score": 50,
+            "hot_count": 3,
+            "exhaustion_count": 1,
+        }
+        input_summary["canslim_screener"] = {
+            "derived_score": 60,
+            "m_score": 80,
+            "exceptional_count": 2,
+        }
 
     return {
         "metadata": {
@@ -88,7 +117,10 @@ def _build_analysis(
             "zone_color": zone_color,
             "exposure_range": "70-90%",
             "guidance": "Multiple signals confirm.",
-            "actions": ["Above-average equity allocation (70-90%)", "New entries on quality setups"],
+            "actions": [
+                "Above-average equity allocation (70-90%)",
+                "New entries on quality setups",
+            ],
             "strongest_component": {
                 "component": "bottom_confirmation",
                 "label": "Bottom Confirmation (FTD Detector)",
@@ -148,8 +180,14 @@ class TestJsonReport:
         generate_json_report(analysis, out)
         with open(out) as f:
             data = json.load(f)
-        for key in ["metadata", "conviction", "pattern", "allocation",
-                     "position_sizing", "input_summary"]:
+        for key in [
+            "metadata",
+            "conviction",
+            "pattern",
+            "allocation",
+            "position_sizing",
+            "input_summary",
+        ]:
             assert key in data, f"Missing top-level key: {key}"
 
     def test_json_empty_input(self, tmp_path):
@@ -228,8 +266,12 @@ class TestMarkdownReport:
     def test_pattern_scores_table(self, tmp_path):
         """All 4 pattern scores should appear."""
         md = self._generate_md(tmp_path)
-        for pattern_name in ["Policy Pivot Anticipation", "Unsustainable Distortion",
-                             "Extreme Sentiment Contrarian", "Wait And Observe"]:
+        for pattern_name in [
+            "Policy Pivot Anticipation",
+            "Unsustainable Distortion",
+            "Extreme Sentiment Contrarian",
+            "Wait And Observe",
+        ]:
             assert pattern_name in md
 
     def test_druckenmiller_quote(self, tmp_path):

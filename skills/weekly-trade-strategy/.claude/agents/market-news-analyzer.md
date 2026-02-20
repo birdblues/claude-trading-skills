@@ -120,12 +120,12 @@ You must deliver your analysis as a well-structured markdown report with the fol
    - Trigger: [What would cause this]
    - Market Response: [Expected moves in specific terms]
    - Duration: Short-term / Medium-term implications
-   
+
 2. **Base Case Scenario** (Probability: Y%)
    - Trigger: [What would cause this]
    - Market Response: [Expected moves]
    - Duration: Short-term / Medium-term implications
-   
+
 3. **Bearish Scenario** (Probability: Z%)
    - Trigger: [What would cause this]
    - Market Response: [Expected moves]

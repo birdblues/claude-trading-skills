@@ -307,7 +307,15 @@ def evaluate(
     slippage_tested: bool,
 ) -> dict:
     """Run full 5-dimension evaluation and return structured result."""
-    validate_inputs(total_trades, win_rate, avg_win_pct, avg_loss_pct, max_drawdown_pct, years_tested, num_parameters)
+    validate_inputs(
+        total_trades,
+        win_rate,
+        avg_win_pct,
+        avg_loss_pct,
+        max_drawdown_pct,
+        years_tested,
+        num_parameters,
+    )
     d1 = score_sample_size(total_trades)
     d2 = score_expectancy(win_rate, avg_win_pct, avg_loss_pct)
     d3 = score_risk_management(max_drawdown_pct, win_rate, avg_win_pct, avg_loss_pct)
@@ -437,15 +445,36 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate backtest quality using a 5-dimension scoring framework."
     )
-    parser.add_argument("--total-trades", type=int, required=True, help="Number of trades in backtest")
-    parser.add_argument("--win-rate", type=float, required=True, help="Win rate in percent (e.g. 58)")
-    parser.add_argument("--avg-win-pct", type=float, required=True, help="Average winning trade in percent")
-    parser.add_argument("--avg-loss-pct", type=float, required=True, help="Average losing trade in percent (positive number)")
-    parser.add_argument("--max-drawdown-pct", type=float, required=True, help="Maximum drawdown in percent")
-    parser.add_argument("--years-tested", type=int, required=True, help="Number of years in backtest period")
-    parser.add_argument("--num-parameters", type=int, required=True, help="Number of tunable parameters in strategy")
-    parser.add_argument("--slippage-tested", action="store_true", help="Whether slippage/friction was modeled")
-    parser.add_argument("--output-dir", default="reports/", help="Output directory (default: reports/)")
+    parser.add_argument(
+        "--total-trades", type=int, required=True, help="Number of trades in backtest"
+    )
+    parser.add_argument(
+        "--win-rate", type=float, required=True, help="Win rate in percent (e.g. 58)"
+    )
+    parser.add_argument(
+        "--avg-win-pct", type=float, required=True, help="Average winning trade in percent"
+    )
+    parser.add_argument(
+        "--avg-loss-pct",
+        type=float,
+        required=True,
+        help="Average losing trade in percent (positive number)",
+    )
+    parser.add_argument(
+        "--max-drawdown-pct", type=float, required=True, help="Maximum drawdown in percent"
+    )
+    parser.add_argument(
+        "--years-tested", type=int, required=True, help="Number of years in backtest period"
+    )
+    parser.add_argument(
+        "--num-parameters", type=int, required=True, help="Number of tunable parameters in strategy"
+    )
+    parser.add_argument(
+        "--slippage-tested", action="store_true", help="Whether slippage/friction was modeled"
+    )
+    parser.add_argument(
+        "--output-dir", default="reports/", help="Output directory (default: reports/)"
+    )
     return parser.parse_args()
 
 

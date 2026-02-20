@@ -21,8 +21,7 @@ Risk Zone Mapping:
   81-100:Critical(Top Formation)      - Risk Budget: 20-35%
 """
 
-from typing import Dict, List, Optional
-
+from typing import Optional
 
 COMPONENT_WEIGHTS = {
     "distribution_days": 0.25,
@@ -48,7 +47,7 @@ CORRELATION_THRESHOLD = 80
 CORRELATION_DISCOUNT = 0.8
 
 
-def _apply_correlation_adjustment(component_scores: Dict[str, float]) -> Dict:
+def _apply_correlation_adjustment(component_scores: dict[str, float]) -> dict:
     """
     Discount correlated components when both are extreme.
 
@@ -75,19 +74,22 @@ def _apply_correlation_adjustment(component_scores: Dict[str, float]) -> Dict:
                 discounted = comp_a
                 original = score_a
             adjusted[discounted] = original * CORRELATION_DISCOUNT
-            adjustments.append({
-                "pair": [comp_a, comp_b],
-                "discounted_component": discounted,
-                "original_score": original,
-                "adjusted_score": adjusted[discounted],
-                "discount_factor": CORRELATION_DISCOUNT,
-            })
+            adjustments.append(
+                {
+                    "pair": [comp_a, comp_b],
+                    "discounted_component": discounted,
+                    "original_score": original,
+                    "adjusted_score": adjusted[discounted],
+                    "discount_factor": CORRELATION_DISCOUNT,
+                }
+            )
 
     return {"adjusted_scores": adjusted, "adjustments": adjustments}
 
 
-def calculate_composite_score(component_scores: Dict[str, float],
-                              data_availability: Optional[Dict[str, bool]] = None) -> Dict:
+def calculate_composite_score(
+    component_scores: dict[str, float], data_availability: Optional[dict[str, bool]] = None
+) -> dict:
     """
     Calculate weighted composite market top probability score.
 
@@ -129,8 +131,7 @@ def calculate_composite_score(component_scores: Dict[str, float],
     composite = round(composite, 1)
 
     # Identify strongest and weakest warning signals (use original scores)
-    valid_scores = {k: v for k, v in component_scores.items()
-                    if k in COMPONENT_WEIGHTS}
+    valid_scores = {k: v for k, v in component_scores.items() if k in COMPONENT_WEIGHTS}
 
     if valid_scores:
         strongest_warning = max(valid_scores, key=valid_scores.get)
@@ -144,23 +145,25 @@ def calculate_composite_score(component_scores: Dict[str, float],
 
     # Calculate data quality
     available_count = sum(
-        1 for k in COMPONENT_WEIGHTS
+        1
+        for k in COMPONENT_WEIGHTS
         if data_availability.get(k, True)  # Default True for backward compat
     )
     total_components = len(COMPONENT_WEIGHTS)
     missing_components = [
-        COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS
-        if not data_availability.get(k, True)
+        COMPONENT_LABELS[k] for k in COMPONENT_WEIGHTS if not data_availability.get(k, True)
     ]
 
     if available_count == total_components:
         quality_label = f"Complete ({available_count}/{total_components} components)"
     elif available_count >= total_components - 2:
-        quality_label = (f"Partial ({available_count}/{total_components} components)"
-                        " - interpret with caution")
+        quality_label = (
+            f"Partial ({available_count}/{total_components} components) - interpret with caution"
+        )
     else:
-        quality_label = (f"Limited ({available_count}/{total_components} components)"
-                        " - low confidence")
+        quality_label = (
+            f"Limited ({available_count}/{total_components} components) - low confidence"
+        )
 
     data_quality = {
         "available_count": available_count,
@@ -201,7 +204,7 @@ def calculate_composite_score(component_scores: Dict[str, float],
     }
 
 
-def _interpret_zone(composite: float) -> Dict:
+def _interpret_zone(composite: float) -> dict:
     """Map composite score to risk zone"""
     if composite <= 20:
         return {
@@ -272,8 +275,7 @@ def _interpret_zone(composite: float) -> Dict:
         }
 
 
-def detect_follow_through_day(index_history: List[Dict],
-                              composite_score: float) -> Dict:
+def detect_follow_through_day(index_history: list[dict], composite_score: float) -> dict:
     """
     Detect Follow-Through Day (FTD) signal for bottom confirmation.
     Only relevant when composite > 40 (Orange zone or worse).
@@ -311,7 +313,7 @@ def detect_follow_through_day(index_history: List[Dict],
 
     # Only look at the most recent 40 trading days
     lookback = min(40, n)
-    history = history[n - lookback:]
+    history = history[n - lookback :]
     n = len(history)
 
     # Step 1: Find swing low within the lookback window
@@ -392,20 +394,17 @@ def detect_follow_through_day(index_history: List[Dict],
     rally_day_count = 0
     ftd_detected = False
     ftd_day = None
-    rally_reset = False
 
     for i in range(rally_day_1_idx, n):
         curr_close = history[i].get("close", 0)
 
         # Check for rally reset: price closes below swing low
         if curr_close < swing_low_price:
-            rally_reset = True
             # Try to find a new swing low from here
             swing_low_idx = i
             swing_low_price = curr_close
             rally_day_count = 0
             ftd_detected = False
-            rally_reset = False
             # Look for new rally day 1
             continue
 
@@ -437,11 +436,15 @@ def detect_follow_through_day(index_history: List[Dict],
     if ftd_detected:
         reason = f"Follow-Through Day detected on {ftd_day} (Day {rally_day_count} of rally from {swing_low_date} low)"
     elif rally_day_count >= 7:
-        reason = (f"Rally attempt: Day {rally_day_count} from {swing_low_date} low - "
-                 "FTD window (Day 4-7) passed without qualifying day")
+        reason = (
+            f"Rally attempt: Day {rally_day_count} from {swing_low_date} low - "
+            "FTD window (Day 4-7) passed without qualifying day"
+        )
     else:
-        reason = (f"Rally attempt: Day {rally_day_count} from {swing_low_date} low "
-                 f"(FTD requires Day 4-7 with >= 1.5% gain on higher volume)")
+        reason = (
+            f"Rally attempt: Day {rally_day_count} from {swing_low_date} low "
+            f"(FTD requires Day 4-7 with >= 1.5% gain on higher volume)"
+        )
 
     return {
         "ftd_detected": ftd_detected,
@@ -469,12 +472,14 @@ if __name__ == "__main__":
     }
 
     result = calculate_composite_score(test_scores)
-    print(f"Test 1 - Moderate Risk:")
+    print("Test 1 - Moderate Risk:")
     print(f"  Composite: {result['composite_score']}/100")
     print(f"  Zone: {result['zone']}")
     print(f"  Risk Budget: {result['risk_budget']}")
-    print(f"  Strongest Warning: {result['strongest_warning']['label']} "
-          f"({result['strongest_warning']['score']})")
+    print(
+        f"  Strongest Warning: {result['strongest_warning']['label']} "
+        f"({result['strongest_warning']['score']})"
+    )
     print()
 
     # Test 2: Healthy market
@@ -487,7 +492,7 @@ if __name__ == "__main__":
         "sentiment": 15,
     }
     result2 = calculate_composite_score(healthy)
-    print(f"Test 2 - Healthy Market:")
+    print("Test 2 - Healthy Market:")
     print(f"  Composite: {result2['composite_score']}/100")
     print(f"  Zone: {result2['zone']}")
     print()
@@ -502,7 +507,7 @@ if __name__ == "__main__":
         "sentiment": 70,
     }
     result3 = calculate_composite_score(crisis)
-    print(f"Test 3 - Crisis:")
+    print("Test 3 - Crisis:")
     print(f"  Composite: {result3['composite_score']}/100")
     print(f"  Zone: {result3['zone']}")
     print()
@@ -525,7 +530,7 @@ if __name__ == "__main__":
         "sentiment": False,
     }
     result4 = calculate_composite_score(partial_scores, partial_availability)
-    print(f"Test 4 - Partial Data:")
+    print("Test 4 - Partial Data:")
     print(f"  Composite: {result4['composite_score']}/100")
     print(f"  Data Quality: {result4['data_quality']['label']}")
     print(f"  Missing: {result4['data_quality']['missing_components']}")

@@ -2,17 +2,15 @@
 
 import os
 import tempfile
-import pytest
 
+import pytest
 from report_generator import (
-    _zone_emoji,
     _format_slope,
     _score_bar,
-    _format_distance,
+    _zone_emoji,
     generate_json_report,
     generate_markdown_report,
 )
-
 
 # --- _zone_emoji ---
 
@@ -222,7 +220,7 @@ def _generate_report(with_warnings=True):
         tmp_path = f.name
     try:
         generate_markdown_report(analysis, tmp_path)
-        with open(tmp_path, "r") as f:
+        with open(tmp_path) as f:
             return f.read()
     finally:
         os.unlink(tmp_path)

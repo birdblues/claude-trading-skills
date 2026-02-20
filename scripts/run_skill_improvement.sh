@@ -13,4 +13,10 @@
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:${HOME}/.local/bin:/usr/local/bin:$PATH"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}/.." || exit 1
+
+# Load project-level .envrc (sets GH_TOKEN for the correct GitHub account)
+if command -v direnv &>/dev/null && [ -f .envrc ]; then
+    eval "$(direnv export bash 2>/dev/null)"
+fi
+
 python3 scripts/run_skill_improvement_loop.py "$@"

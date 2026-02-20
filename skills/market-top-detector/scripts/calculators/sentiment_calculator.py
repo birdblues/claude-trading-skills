@@ -33,8 +33,7 @@ Scoring (additive, max 100):
     <= 10% -> +0pt
 """
 
-from typing import Dict, Optional
-
+from typing import Optional
 
 # VIX term structure states
 STEEP_CONTANGO = "steep_contango"
@@ -43,10 +42,12 @@ FLAT = "flat"
 BACKWARDATION = "backwardation"
 
 
-def calculate_sentiment(vix_level: Optional[float] = None,
-                        put_call_ratio: Optional[float] = None,
-                        vix_term_structure: Optional[str] = None,
-                        margin_debt_yoy_pct: Optional[float] = None) -> Dict:
+def calculate_sentiment(
+    vix_level: Optional[float] = None,
+    put_call_ratio: Optional[float] = None,
+    vix_term_structure: Optional[str] = None,
+    margin_debt_yoy_pct: Optional[float] = None,
+) -> dict:
     """
     Calculate sentiment and speculation score.
 

@@ -12,18 +12,16 @@ Data source:
 import csv
 import io
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Optional
 
 import requests
 
-DEFAULT_DETAIL_URL = (
-    "https://tradermonty.github.io/market-breadth-analysis/market_breadth_data.csv"
-)
+DEFAULT_DETAIL_URL = "https://tradermonty.github.io/market-breadth-analysis/market_breadth_data.csv"
 
 TIMEOUT = 30
 
 
-def fetch_breadth_200dma(url: str = DEFAULT_DETAIL_URL) -> Optional[Dict]:
+def fetch_breadth_200dma(url: str = DEFAULT_DETAIL_URL) -> Optional[dict]:
     """
     Fetch the latest 200DMA breadth value from TraderMonty CSV.
 
@@ -77,7 +75,7 @@ def _fetch_detail_csv(url: str) -> list:
     return rows
 
 
-def _check_data_freshness(date_str: str, max_stale_days: int = 5) -> Dict:
+def _check_data_freshness(date_str: str, max_stale_days: int = 5) -> dict:
     """Check if data date is within acceptable freshness window."""
     try:
         data_date = datetime.strptime(date_str, "%Y-%m-%d")
@@ -91,7 +89,7 @@ def _check_data_freshness(date_str: str, max_stale_days: int = 5) -> Dict:
     }
 
 
-def _parse_detail_row(raw: Dict) -> Dict:
+def _parse_detail_row(raw: dict) -> dict:
     """Convert a raw CSV row dict to properly typed values."""
     return {
         "Date": raw["Date"].strip(),

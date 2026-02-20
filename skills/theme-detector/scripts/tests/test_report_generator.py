@@ -3,21 +3,19 @@
 import json
 import os
 import tempfile
-from datetime import datetime
 
 import pytest
-
 from report_generator import (
-    generate_json_report,
-    generate_markdown_report,
-    save_reports,
     _fmt_pct,
     _format_stock_list,
     _origin_label,
+    generate_json_report,
+    generate_markdown_report,
+    save_reports,
 )
 
-
 # --- Fixtures ---
+
 
 @pytest.fixture
 def sample_themes():
@@ -30,8 +28,11 @@ def sample_themes():
             "maturity": 62.0,
             "stage": "growth",
             "confidence": "High",
-            "industries": ["Semiconductors", "Software - Infrastructure",
-                           "Information Technology Services"],
+            "industries": [
+                "Semiconductors",
+                "Software - Infrastructure",
+                "Information Technology Services",
+            ],
             "heat_breakdown": {
                 "performance_momentum": 75.0,
                 "volume_confirmation": 80.0,
@@ -87,16 +88,36 @@ def sample_industry_rankings():
     """Sample industry rankings (perf values in percent, score is momentum_score)."""
     return {
         "top": [
-            {"name": "Semiconductors", "perf_1w": 5.0, "perf_1m": 12.0,
-             "perf_3m": 25.0, "momentum_score": 0.89},
-            {"name": "Software - Infrastructure", "perf_1w": 3.0,
-             "perf_1m": 8.0, "perf_3m": 18.0, "momentum_score": 0.75},
+            {
+                "name": "Semiconductors",
+                "perf_1w": 5.0,
+                "perf_1m": 12.0,
+                "perf_3m": 25.0,
+                "momentum_score": 0.89,
+            },
+            {
+                "name": "Software - Infrastructure",
+                "perf_1w": 3.0,
+                "perf_1m": 8.0,
+                "perf_3m": 18.0,
+                "momentum_score": 0.75,
+            },
         ],
         "bottom": [
-            {"name": "Department Stores", "perf_1w": -4.0, "perf_1m": -10.0,
-             "perf_3m": -15.0, "momentum_score": -0.65},
-            {"name": "Specialty Retail", "perf_1w": -3.0, "perf_1m": -7.0,
-             "perf_3m": -12.0, "momentum_score": -0.50},
+            {
+                "name": "Department Stores",
+                "perf_1w": -4.0,
+                "perf_1m": -10.0,
+                "perf_3m": -15.0,
+                "momentum_score": -0.65,
+            },
+            {
+                "name": "Specialty Retail",
+                "perf_1w": -3.0,
+                "perf_1m": -7.0,
+                "perf_3m": -12.0,
+                "momentum_score": -0.50,
+            },
         ],
     }
 
@@ -135,24 +156,33 @@ def sample_metadata():
 
 
 @pytest.fixture
-def sample_json_report(sample_themes, sample_industry_rankings,
-                        sample_sector_uptrend, sample_metadata):
+def sample_json_report(
+    sample_themes, sample_industry_rankings, sample_sector_uptrend, sample_metadata
+):
     """Full JSON report generated from sample data."""
     return generate_json_report(
-        sample_themes, sample_industry_rankings,
-        sample_sector_uptrend, sample_metadata,
+        sample_themes,
+        sample_industry_rankings,
+        sample_sector_uptrend,
+        sample_metadata,
     )
 
 
 # --- Tests for generate_json_report ---
 
-class TestGenerateJsonReport:
 
+class TestGenerateJsonReport:
     def test_report_structure(self, sample_json_report):
         """JSON report has all required top-level keys."""
         required_keys = [
-            "report_type", "generated_at", "metadata", "summary",
-            "themes", "industry_rankings", "sector_uptrend", "data_quality",
+            "report_type",
+            "generated_at",
+            "metadata",
+            "summary",
+            "themes",
+            "industry_rankings",
+            "sector_uptrend",
+            "data_quality",
         ]
         for key in required_keys:
             assert key in sample_json_report, f"Missing key: {key}"
@@ -187,12 +217,13 @@ class TestGenerateJsonReport:
         assert dq["status"] == "ok"
         assert dq["flags"] == []
 
-    def test_empty_themes(self, sample_industry_rankings,
-                          sample_sector_uptrend, sample_metadata):
+    def test_empty_themes(self, sample_industry_rankings, sample_sector_uptrend, sample_metadata):
         """Empty themes list produces warning, not error."""
         report = generate_json_report(
-            [], sample_industry_rankings,
-            sample_sector_uptrend, sample_metadata,
+            [],
+            sample_industry_rankings,
+            sample_sector_uptrend,
+            sample_metadata,
         )
         assert report["summary"]["total_themes"] == 0
         assert report["summary"]["top_bullish"] is None
@@ -208,8 +239,8 @@ class TestGenerateJsonReport:
 
 # --- Tests for generate_markdown_report ---
 
-class TestGenerateMarkdownReport:
 
+class TestGenerateMarkdownReport:
     def test_contains_all_sections(self, sample_json_report):
         """Markdown contains all 7 required sections."""
         md = generate_markdown_report(sample_json_report)
@@ -255,22 +286,26 @@ class TestGenerateMarkdownReport:
         assert "Methodology" in md
         assert "Disclaimer" in md
 
-    def test_empty_themes_warning(self, sample_industry_rankings,
-                                   sample_sector_uptrend, sample_metadata):
+    def test_empty_themes_warning(
+        self, sample_industry_rankings, sample_sector_uptrend, sample_metadata
+    ):
         """Empty themes show warning, not crash."""
         report = generate_json_report(
-            [], sample_industry_rankings,
-            sample_sector_uptrend, sample_metadata,
+            [],
+            sample_industry_rankings,
+            sample_sector_uptrend,
+            sample_metadata,
         )
         md = generate_markdown_report(report)
         assert "WARNING" in md or "No themes" in md
 
-    def test_no_industry_data(self, sample_themes, sample_sector_uptrend,
-                               sample_metadata):
+    def test_no_industry_data(self, sample_themes, sample_sector_uptrend, sample_metadata):
         """Missing industry rankings handled gracefully."""
         report = generate_json_report(
-            sample_themes, {"top": [], "bottom": []},
-            sample_sector_uptrend, sample_metadata,
+            sample_themes,
+            {"top": [], "bottom": []},
+            sample_sector_uptrend,
+            sample_metadata,
         )
         md = generate_markdown_report(report)
         assert "## 5. Industry Rankings" in md
@@ -300,8 +335,8 @@ class TestGenerateMarkdownReport:
 
 # --- Tests for save_reports ---
 
-class TestSaveReports:
 
+class TestSaveReports:
     def test_save_creates_files(self, sample_json_report):
         """save_reports creates both JSON and MD files."""
         md = generate_markdown_report(sample_json_report)
@@ -342,6 +377,7 @@ class TestSaveReports:
 
 # --- Tests for _fmt_pct ---
 
+
 class TestFmtPct:
     """_fmt_pct formats percent values directly (no *100 conversion)."""
 
@@ -366,6 +402,7 @@ class TestFmtPct:
 
 # --- Tests for Industry Rankings key usage ---
 
+
 class TestIndustryRankingsKey:
     """Verify industry rankings use momentum_score, not composite_score."""
 
@@ -388,8 +425,8 @@ class TestIndustryRankingsKey:
 
 # --- Tests for _format_stock_list ---
 
-class TestFormatStockList:
 
+class TestFormatStockList:
     def test_no_details_uses_tickers(self):
         """Without stock_details, plain tickers are shown."""
         theme = {"representative_stocks": ["NVDA", "AMD", "AVGO"]}
@@ -464,7 +501,6 @@ class TestFormatStockList:
 
 
 class TestMarkdownWithStockDetails:
-
     def test_markdown_shows_source_labels(self):
         """Markdown report includes source labels when stock_details present."""
         themes = [
@@ -519,8 +555,8 @@ class TestMarkdownWithStockDetails:
 
 # --- Tests for theme origin display ---
 
-class TestOriginLabel:
 
+class TestOriginLabel:
     def test_seed_label(self):
         assert _origin_label("seed") == "Seed"
 
@@ -538,7 +574,6 @@ class TestOriginLabel:
 
 
 class TestOriginInDashboard:
-
     def test_dashboard_shows_origin_column(self):
         themes = [
             {

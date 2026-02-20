@@ -11,8 +11,7 @@ All sub-scores are direction-aware.
 """
 
 import statistics
-from typing import List, Dict, Optional
-
+from typing import Optional
 
 LIFECYCLE_WEIGHTS = {
     "duration": 0.25,
@@ -23,11 +22,13 @@ LIFECYCLE_WEIGHTS = {
 }
 
 
-def estimate_duration_score(perf_1m: Optional[float],
-                            perf_3m: Optional[float],
-                            perf_6m: Optional[float],
-                            perf_1y: Optional[float],
-                            is_bearish: bool) -> float:
+def estimate_duration_score(
+    perf_1m: Optional[float],
+    perf_3m: Optional[float],
+    perf_6m: Optional[float],
+    perf_1y: Optional[float],
+    is_bearish: bool,
+) -> float:
     """Count horizons where trend is active. Each active = 25 points.
 
     Bullish: perf > 2%
@@ -46,8 +47,7 @@ def estimate_duration_score(perf_1m: Optional[float],
     return float(count * 25)
 
 
-def extremity_clustering_score(stock_metrics: List[Dict],
-                               is_bearish: bool) -> float:
+def extremity_clustering_score(stock_metrics: list[dict], is_bearish: bool) -> float:
     """Proportion of stocks at RSI extremes.
 
     Bullish: count RSI > 70
@@ -71,8 +71,7 @@ def extremity_clustering_score(stock_metrics: List[Dict],
     return min(100.0, pct * 200.0)
 
 
-def price_extreme_saturation_score(stock_metrics: List[Dict],
-                                   is_bearish: bool) -> float:
+def price_extreme_saturation_score(stock_metrics: list[dict], is_bearish: bool) -> float:
     """Proportion of stocks near 52-week extremes.
 
     Bullish: dist_from_52w_high <= 0.05
@@ -93,15 +92,16 @@ def price_extreme_saturation_score(stock_metrics: List[Dict],
     return min(100.0, pct * 200.0)
 
 
-def valuation_premium_score(stock_metrics: List[Dict]) -> float:
+def valuation_premium_score(stock_metrics: list[dict]) -> float:
     """Score based on median P/E relative to market average (22).
 
     premium_ratio = median_PE / 22.0
     Score: min(100, max(0, (premium_ratio - 0.5) * 32))
     Needs 3+ valid P/E values, else returns 50.0.
     """
-    valid_pe = [s["pe_ratio"] for s in stock_metrics
-                if s.get("pe_ratio") is not None and s["pe_ratio"] > 0]
+    valid_pe = [
+        s["pe_ratio"] for s in stock_metrics if s.get("pe_ratio") is not None and s["pe_ratio"] > 0
+    ]
 
     if len(valid_pe) < 3:
         return 50.0
@@ -130,9 +130,9 @@ def etf_proliferation_score(etf_count: int) -> float:
         return 100.0
 
 
-def has_sufficient_lifecycle_data(extremity: Optional[float],
-                                  price_extreme: Optional[float],
-                                  valuation: Optional[float]) -> bool:
+def has_sufficient_lifecycle_data(
+    extremity: Optional[float], price_extreme: Optional[float], valuation: Optional[float]
+) -> bool:
     """Check whether stock-derived lifecycle sub-scores have real data.
 
     Returns False if all three stock-based sub-scores are None (indicating
@@ -160,11 +160,13 @@ def classify_stage(maturity: float) -> str:
         return "Exhausting"
 
 
-def calculate_lifecycle_maturity(duration: Optional[float],
-                                 extremity: Optional[float],
-                                 price_extreme: Optional[float],
-                                 valuation: Optional[float],
-                                 etf_prolif: Optional[float]) -> float:
+def calculate_lifecycle_maturity(
+    duration: Optional[float],
+    extremity: Optional[float],
+    price_extreme: Optional[float],
+    valuation: Optional[float],
+    etf_prolif: Optional[float],
+) -> float:
     """Weighted sum of lifecycle sub-scores, clamped 0-100.
 
     Any None input defaults to 50.0.
@@ -175,10 +177,12 @@ def calculate_lifecycle_maturity(duration: Optional[float],
     v = valuation if valuation is not None else 50.0
     et = etf_prolif if etf_prolif is not None else 50.0
 
-    raw = (d * LIFECYCLE_WEIGHTS["duration"]
-           + e * LIFECYCLE_WEIGHTS["extremity"]
-           + p * LIFECYCLE_WEIGHTS["price_extreme"]
-           + v * LIFECYCLE_WEIGHTS["valuation"]
-           + et * LIFECYCLE_WEIGHTS["etf_proliferation"])
+    raw = (
+        d * LIFECYCLE_WEIGHTS["duration"]
+        + e * LIFECYCLE_WEIGHTS["extremity"]
+        + p * LIFECYCLE_WEIGHTS["price_extreme"]
+        + v * LIFECYCLE_WEIGHTS["valuation"]
+        + et * LIFECYCLE_WEIGHTS["etf_proliferation"]
+    )
 
     return float(min(100.0, max(0.0, raw)))

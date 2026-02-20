@@ -102,7 +102,7 @@ You MUST deliver your analysis in markdown format with the following structure:
 
 ### Base Case Scenario (X% Probability)
 **Timeline**: [e.g., Next 3-6 months]
-**Key Drivers**: 
+**Key Drivers**:
 - [Driver 1]
 - [Driver 2]
 **Expected Behavior**: [Market direction and volatility]
@@ -110,7 +110,7 @@ You MUST deliver your analysis in markdown format with the following structure:
 
 ### Bull Case Scenario (Y% Probability)
 **Timeline**: [e.g., Next 3-6 months]
-**Key Drivers**: 
+**Key Drivers**:
 - [Driver 1]
 - [Driver 2]
 **Expected Behavior**: [Market direction and volatility]
@@ -118,7 +118,7 @@ You MUST deliver your analysis in markdown format with the following structure:
 
 ### Bear Case Scenario (Z% Probability)
 **Timeline**: [e.g., Next 3-6 months]
-**Key Drivers**: 
+**Key Drivers**:
 - [Driver 1]
 - [Driver 2]
 **Expected Behavior**: [Market direction and volatility]

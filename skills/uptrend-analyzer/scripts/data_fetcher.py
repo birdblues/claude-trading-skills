@@ -13,18 +13,16 @@ Data Sources:
 import csv
 import io
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 import requests
-
 
 TIMESERIES_URL = (
     "https://raw.githubusercontent.com/tradermonty/uptrend-dashboard/"
     "main/data/uptrend_ratio_timeseries.csv"
 )
 SECTOR_SUMMARY_URL = (
-    "https://raw.githubusercontent.com/tradermonty/uptrend-dashboard/"
-    "main/data/sector_summary.csv"
+    "https://raw.githubusercontent.com/tradermonty/uptrend-dashboard/main/data/sector_summary.csv"
 )
 
 
@@ -47,7 +45,7 @@ OVERBOUGHT_THRESHOLD = 0.37
 OVERSOLD_THRESHOLD = 0.097
 
 
-def build_summary_from_timeseries(sector_timeseries: Dict[str, Dict]) -> List[Dict]:
+def build_summary_from_timeseries(sector_timeseries: dict[str, dict]) -> list[dict]:
     """Build sector_summary-compatible list from timeseries latest rows.
 
     Used as fallback when sector_summary.csv is unavailable.
@@ -64,17 +62,23 @@ def build_summary_from_timeseries(sector_timeseries: Dict[str, Dict]) -> List[Di
     for ws_name, row in sector_timeseries.items():
         display_name = WORKSHEET_TO_DISPLAY.get(ws_name, ws_name)
         ratio = row.get("ratio")
-        status = ("Overbought" if ratio is not None and ratio > OVERBOUGHT_THRESHOLD else
-                  "Oversold" if ratio is not None and ratio < OVERSOLD_THRESHOLD else
-                  "Normal")
-        rows.append({
-            "Sector": display_name,
-            "Ratio": ratio,
-            "10MA": row.get("ma_10"),
-            "Trend": (row.get("trend") or "").capitalize(),
-            "Slope": row.get("slope"),
-            "Status": status,
-        })
+        status = (
+            "Overbought"
+            if ratio is not None and ratio > OVERBOUGHT_THRESHOLD
+            else "Oversold"
+            if ratio is not None and ratio < OVERSOLD_THRESHOLD
+            else "Normal"
+        )
+        rows.append(
+            {
+                "Sector": display_name,
+                "Ratio": ratio,
+                "10MA": row.get("ma_10"),
+                "Trend": (row.get("trend") or "").capitalize(),
+                "Slope": row.get("slope"),
+                "Status": status,
+            }
+        )
     return rows
 
 
@@ -83,10 +87,10 @@ class UptrendDataFetcher:
 
     def __init__(self):
         self.session = requests.Session()
-        self._timeseries_cache: Optional[List[Dict]] = None
-        self._sector_summary_cache: Optional[List[Dict]] = None
+        self._timeseries_cache: Optional[list[dict]] = None
+        self._sector_summary_cache: Optional[list[dict]] = None
 
-    def fetch_timeseries(self) -> List[Dict]:
+    def fetch_timeseries(self) -> list[dict]:
         """Download and parse the timeseries CSV.
 
         Returns:
@@ -100,8 +104,7 @@ class UptrendDataFetcher:
             response = self.session.get(TIMESERIES_URL, timeout=30)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            print(f"WARNING: Failed to fetch timeseries CSV: {e}",
-                  file=sys.stderr)
+            print(f"WARNING: Failed to fetch timeseries CSV: {e}", file=sys.stderr)
             return []
 
         rows = []
@@ -114,7 +117,7 @@ class UptrendDataFetcher:
         self._timeseries_cache = rows
         return rows
 
-    def fetch_sector_summary(self) -> List[Dict]:
+    def fetch_sector_summary(self) -> list[dict]:
         """Download and parse the sector summary CSV.
 
         Returns:
@@ -128,8 +131,7 @@ class UptrendDataFetcher:
             response = self.session.get(SECTOR_SUMMARY_URL, timeout=30)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            print(f"WARNING: Failed to fetch sector summary CSV: {e}",
-                  file=sys.stderr)
+            print(f"WARNING: Failed to fetch sector summary CSV: {e}", file=sys.stderr)
             return []
 
         rows = []
@@ -142,33 +144,33 @@ class UptrendDataFetcher:
         self._sector_summary_cache = rows
         return rows
 
-    def get_all_timeseries(self) -> List[Dict]:
+    def get_all_timeseries(self) -> list[dict]:
         """Get timeseries filtered to worksheet=='all', sorted by date ascending."""
         data = self.fetch_timeseries()
         filtered = [r for r in data if r["worksheet"] == "all"]
         filtered.sort(key=lambda r: r["date"])
         return filtered
 
-    def get_sector_timeseries(self, sector: str) -> List[Dict]:
+    def get_sector_timeseries(self, sector: str) -> list[dict]:
         """Get timeseries for a specific sector worksheet, sorted by date ascending."""
         data = self.fetch_timeseries()
         filtered = [r for r in data if r["worksheet"] == sector]
         filtered.sort(key=lambda r: r["date"])
         return filtered
 
-    def get_latest_all(self) -> Optional[Dict]:
+    def get_latest_all(self) -> Optional[dict]:
         """Get the most recent 'all' row."""
         ts = self.get_all_timeseries()
         return ts[-1] if ts else None
 
-    def get_all_sector_latest(self) -> Dict[str, Dict]:
+    def get_all_sector_latest(self) -> dict[str, dict]:
         """Get latest row for each sector (excluding 'all').
 
         Returns:
             Dict mapping sector name -> latest timeseries row
         """
         data = self.fetch_timeseries()
-        sectors: Dict[str, Dict] = {}
+        sectors: dict[str, dict] = {}
         for row in data:
             ws = row["worksheet"]
             if ws == "all":
@@ -178,7 +180,7 @@ class UptrendDataFetcher:
         return sectors
 
 
-def _parse_timeseries_row(row: Dict) -> Optional[Dict]:
+def _parse_timeseries_row(row: dict) -> Optional[dict]:
     """Parse a timeseries CSV row, casting numeric fields."""
     try:
         return {
@@ -195,7 +197,7 @@ def _parse_timeseries_row(row: Dict) -> Optional[Dict]:
         return None
 
 
-def _parse_sector_summary_row(row: Dict) -> Optional[Dict]:
+def _parse_sector_summary_row(row: dict) -> Optional[dict]:
     """Parse a sector summary CSV row, casting numeric fields."""
     try:
         return {

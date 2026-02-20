@@ -16,10 +16,10 @@ Scoring:
 - 20: >25% from 52-week high (lacks momentum)
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 
-def calculate_newness(quote: Dict, historical_prices: Optional[Dict] = None) -> Dict:
+def calculate_newness(quote: dict, historical_prices: Optional[dict] = None) -> dict:
     """
     Calculate N component score based on price position and momentum
 
@@ -43,7 +43,7 @@ def calculate_newness(quote: Dict, historical_prices: Optional[Dict] = None) -> 
             "score": 0,
             "error": "Quote data missing",
             "distance_from_high_pct": None,
-            "interpretation": "Data unavailable"
+            "interpretation": "Data unavailable",
         }
 
     # Extract price data
@@ -58,7 +58,7 @@ def calculate_newness(quote: Dict, historical_prices: Optional[Dict] = None) -> 
             "score": 0,
             "error": "Price or 52-week high data missing",
             "distance_from_high_pct": None,
-            "interpretation": "Data unavailable"
+            "interpretation": "Data unavailable",
         }
 
     # Calculate distance from 52-week high
@@ -88,7 +88,7 @@ def calculate_newness(quote: Dict, historical_prices: Optional[Dict] = None) -> 
         "avg_volume": avg_volume,
         "volume_ratio": round(current_volume / avg_volume, 2) if avg_volume else None,
         "interpretation": interpretation,
-        "error": None
+        "error": None,
     }
 
 
@@ -113,13 +113,13 @@ def score_newness(distance_from_high_pct: float, breakout_detected: bool) -> int
     if distance_from_high_pct >= -5 and breakout_detected:
         return 100  # Perfect setup - at new highs with volume
     elif distance_from_high_pct >= -10 and breakout_detected:
-        return 80   # Strong momentum
+        return 80  # Strong momentum
     elif distance_from_high_pct >= -15 or breakout_detected:
-        return 60   # Acceptable
+        return 60  # Acceptable
     elif distance_from_high_pct >= -25:
-        return 40   # Weak momentum
+        return 40  # Weak momentum
     else:
-        return 20   # Too far from highs, lacks sponsorship
+        return 20  # Too far from highs, lacks sponsorship
 
 
 def interpret_newness_score(score: int, distance: float, breakout: bool) -> str:
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         "yearHigh": 496.00,
         "yearLow": 280.00,
         "volume": 60000000,
-        "avgVolume": 40000000
+        "avgVolume": 40000000,
     }
     result1 = calculate_newness(test_quote_1)
     print(f"Test 1: New High + Breakout - Score: {result1['score']}")
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         "yearHigh": 490.00,
         "yearLow": 320.00,
         "volume": 15000000,
-        "avgVolume": 16000000
+        "avgVolume": 16000000,
     }
     result2 = calculate_newness(test_quote_2)
     print(f"Test 2: Near High, No Breakout - Score: {result2['score']}")
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         "yearHigh": 80.00,
         "yearLow": 45.00,
         "volume": 1000000,
-        "avgVolume": 1200000
+        "avgVolume": 1200000,
     }
     result3 = calculate_newness(test_quote_3)
     print(f"Test 3: Far from High - Score: {result3['score']}")

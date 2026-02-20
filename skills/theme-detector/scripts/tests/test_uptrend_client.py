@@ -3,8 +3,6 @@
 from datetime import datetime
 from unittest.mock import patch
 
-import pytest
-
 from uptrend_client import is_data_stale
 
 

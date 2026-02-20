@@ -14,10 +14,8 @@ Total: 100%
 """
 
 import math
-from typing import Dict, List
 
-
-TIMEFRAME_WEIGHTS: Dict[str, float] = {
+TIMEFRAME_WEIGHTS: dict[str, float] = {
     "perf_1w": 0.10,
     "perf_1m": 0.25,
     "perf_3m": 0.35,
@@ -42,7 +40,7 @@ def momentum_strength_score(weighted_return_pct: float) -> float:
     return 100.0 / (1.0 + math.exp(-0.15 * (x - 5.0)))
 
 
-def rank_industries(industries: List[Dict]) -> List[Dict]:
+def rank_industries(industries: list[dict]) -> list[dict]:
     """
     Rank industries by momentum strength score.
 
@@ -58,8 +56,7 @@ def rank_industries(industries: List[Dict]) -> List[Dict]:
     scored = []
     for ind in industries:
         weighted_return = sum(
-            ind.get(key, 0.0) * weight
-            for key, weight in TIMEFRAME_WEIGHTS.items()
+            ind.get(key, 0.0) * weight for key, weight in TIMEFRAME_WEIGHTS.items()
         )
         score = momentum_strength_score(weighted_return)
         direction = "bullish" if weighted_return > 0 else "bearish"
@@ -80,7 +77,7 @@ def rank_industries(industries: List[Dict]) -> List[Dict]:
     return scored
 
 
-def get_top_bottom_industries(ranked: List[Dict], n: int = 5) -> Dict[str, List[Dict]]:
+def get_top_bottom_industries(ranked: list[dict], n: int = 5) -> dict[str, list[dict]]:
     """
     Extract top N and bottom N industries from a ranked list.
 

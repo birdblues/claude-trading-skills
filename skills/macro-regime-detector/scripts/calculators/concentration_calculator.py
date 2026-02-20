@@ -16,21 +16,21 @@ Scoring (0-100 = Transition Signal Strength):
   80-100: Strong confirmed transition (crossover + momentum + acceleration aligned)
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
+
 from .utils import (
-    downsample_to_monthly,
+    STALE_CROSSOVER_MONTHS,
     calculate_ratio,
+    compute_percentile,
+    compute_roc,
     compute_sma,
     detect_crossover,
-    compute_roc,
-    compute_percentile,
+    downsample_to_monthly,
     score_transition_signal,
-    STALE_CROSSOVER_MONTHS,
 )
 
 
-def calculate_concentration(rsp_history: List[Dict],
-                            spy_history: List[Dict]) -> Dict:
+def calculate_concentration(rsp_history: list[dict], spy_history: list[dict]) -> dict:
     """
     Calculate market concentration transition signal from RSP/SPY ratio.
 
@@ -104,9 +104,13 @@ def calculate_concentration(rsp_history: List[Dict],
     momentum_qualifier = "N/A"
     if crossover["type"] in ("golden_cross", "death_cross"):
         cross_dir = "broadening" if crossover["type"] == "golden_cross" else "concentrating"
-        mom_dir = ("broadening" if roc_3m is not None and roc_3m > 0
-                   else "concentrating" if roc_3m is not None and roc_3m < 0
-                   else None)
+        mom_dir = (
+            "broadening"
+            if roc_3m is not None and roc_3m > 0
+            else "concentrating"
+            if roc_3m is not None and roc_3m < 0
+            else None
+        )
         if is_stale and mom_dir and mom_dir != cross_dir:
             direction = mom_dir
             momentum_qualifier = "reversing"
@@ -133,21 +137,22 @@ def calculate_concentration(rsp_history: List[Dict],
     }
 
 
-def _describe_signal(score: int, crossover: Dict, roc_3m: Optional[float],
-                     roc_12m: Optional[float], ratio: float) -> str:
+def _describe_signal(
+    score: int, crossover: dict, roc_3m: Optional[float], roc_12m: Optional[float], ratio: float
+) -> str:
     if score >= 80:
         return f"STRONG TRANSITION: RSP/SPY {crossover['type'].replace('_', ' ')} confirmed with aligned momentum"
     elif score >= 60:
-        return f"TRANSITION SIGNAL: RSP/SPY crossover or sharp momentum reversal detected"
+        return "TRANSITION SIGNAL: RSP/SPY crossover or sharp momentum reversal detected"
     elif score >= 40:
-        return f"TRANSITION ZONE: RSP/SPY MAs converging, potential crossover ahead"
+        return "TRANSITION ZONE: RSP/SPY MAs converging, potential crossover ahead"
     elif score >= 20:
         return f"MINOR SHIFT: RSP/SPY ratio showing slight change ({ratio:.4f})"
     else:
         return f"STABLE: RSP/SPY ratio in established trend ({ratio:.4f})"
 
 
-def _insufficient_data(reason: str) -> Dict:
+def _insufficient_data(reason: str) -> dict:
     return {
         "score": 0,
         "signal": f"INSUFFICIENT DATA: {reason}",

@@ -135,7 +135,7 @@ Total profit secured: $15,000 (+50% equivalent)
 def calculate_trailing_stop(current_price, atr_20d, bubble_phase):
     """
     Calculate trailing stop based on bubble phase
-    
+
     bubble_phase: 'normal', 'caution', 'euphoria', 'critical'
     """
     multipliers = {
@@ -154,10 +154,10 @@ def calculate_trailing_stop(current_price, atr_20d, bubble_phase):
 ```
 Stage 1 (Boom):
   → Stair-step reduces 50% of position
-  
+
 Stage 2 (Euphoria):
   → Apply ATR trailing to remaining 50%, ride upside
-  
+
 Stage 3 (Panic signals):
   → Exit immediately when ATR stop hit
 ```
@@ -207,7 +207,7 @@ Conditions check:
 
 ### Failure 1: "Too late" mentality, perpetual waiting
 
-**Psychology:** Regret aversion (FOMO about missing out)  
+**Psychology:** Regret aversion (FOMO about missing out)
 **Solution:**
 - Run Bubble-O-Meter when feeling too late
 - If score ≤8, small entry OK
@@ -215,21 +215,21 @@ Conditions check:
 
 ### Failure 2: Re-entry after taking profits (buying high)
 
-**Psychology:** Hindsight bias ("I knew it would go up")  
+**Psychology:** Hindsight bias ("I knew it would go up")
 **Solution:**
 - 72-hour re-entry ban after profit-taking
 - Re-entry only after Bubble-O-Meter check
 
 ### Failure 3: "Still going up" paralysis on profit-taking
 
-**Psychology:** Greed + Overconfidence  
+**Psychology:** Greed + Overconfidence
 **Solution:**
 - Automate stair-step (preset limit orders)
 - Target "satisfaction" not "perfection"
 
 ### Failure 4: Premature short selling
 
-**Psychology:** Subjective "obviously too high"  
+**Psychology:** Subjective "obviously too high"
 **Solution:**
 - Mechanically check composite conditions
 - Wait for minimum 3 conditions
@@ -248,17 +248,17 @@ Q: Down -5%+ ?
 Q: ATR stop hit?
     ↓YES
 → Sell immediately (no debate)
-    
+
     ↓NO (stop not hit)
 Q: Bubble-O-Meter 13+?
     ↓YES
 → Consider 75%+ profit-taking
-    
+
     ↓NO (score ≤12)
 Q: VIX spike +30%+?
     ↓YES
 → Take 50% profits, tighten stops on rest
-    
+
     ↓NO
 → Normal monitoring, stay calm
 ```
@@ -338,5 +338,5 @@ current_vix = vix.history(period='1d')['Close'].iloc[-1]
 
 ---
 
-**Last Updated:** 2025 Edition  
+**Last Updated:** 2025 Edition
 **License:** Educational/personal use only

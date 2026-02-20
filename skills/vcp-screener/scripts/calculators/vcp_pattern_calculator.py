@@ -16,16 +16,16 @@ VCP Characteristics:
 - Pattern duration: 15-325 trading days
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 
 def calculate_vcp_pattern(
-    historical_prices: List[Dict],
+    historical_prices: list[dict],
     lookback_days: int = 120,
     atr_multiplier: float = 1.5,
     atr_period: int = 14,
     min_contraction_days: int = 5,
-) -> Dict:
+) -> dict:
     """
     Detect Volatility Contraction Pattern in price data.
 
@@ -71,9 +71,7 @@ def calculate_vcp_pattern(
 
     # Step A: Find swing points using ZigZag (primary) with fixed-window fallback
     atr_val = _calculate_atr(highs, lows, closes, atr_period)
-    zz_highs, zz_lows = _zigzag_swing_points(
-        highs, lows, closes, dates, atr_multiplier, atr_period
-    )
+    zz_highs, zz_lows = _zigzag_swing_points(highs, lows, closes, dates, atr_multiplier, atr_period)
 
     # Use ZigZag results if they have enough points, otherwise fallback
     if len(zz_highs) >= 1 and len(zz_lows) >= 1:
@@ -95,7 +93,12 @@ def calculate_vcp_pattern(
 
     for start_high in sorted_highs[:3]:
         candidate = _build_contractions_from(
-            start_high, swing_highs, swing_lows, highs, lows, dates,
+            start_high,
+            swing_highs,
+            swing_lows,
+            highs,
+            lows,
+            dates,
             min_contraction_days=min_contraction_days,
         )
         if len(candidate) > len(best_contractions) or (
@@ -149,9 +152,9 @@ def calculate_vcp_pattern(
 
 
 def _calculate_atr(
-    highs: List[float],
-    lows: List[float],
-    closes: List[float],
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
     period: int = 14,
 ) -> float:
     """Calculate Average True Range.
@@ -186,10 +189,10 @@ def _calculate_atr(
 
 
 def _zigzag_swing_points(
-    highs: List[float],
-    lows: List[float],
-    closes: List[float],
-    dates: List[str],
+    highs: list[float],
+    lows: list[float],
+    closes: list[float],
+    dates: list[str],
     atr_multiplier: float = 1.5,
     atr_period: int = 14,
 ) -> tuple:
@@ -263,7 +266,7 @@ def _zigzag_swing_points(
     return swing_highs, swing_lows
 
 
-def _find_swing_highs(highs: List[float], window: int = 5) -> List[Tuple[int, float]]:
+def _find_swing_highs(highs: list[float], window: int = 5) -> list[tuple[int, float]]:
     """Find swing high points using fixed window. Returns list of (index, value)."""
     swing_highs = []
     for i in range(window, len(highs) - window):
@@ -277,7 +280,7 @@ def _find_swing_highs(highs: List[float], window: int = 5) -> List[Tuple[int, fl
     return swing_highs
 
 
-def _find_swing_lows(lows: List[float], window: int = 5) -> List[Tuple[int, float]]:
+def _find_swing_lows(lows: list[float], window: int = 5) -> list[tuple[int, float]]:
     """Find swing low points using fixed window. Returns list of (index, value)."""
     swing_lows = []
     for i in range(window, len(lows) - window):
@@ -292,12 +295,12 @@ def _find_swing_lows(lows: List[float], window: int = 5) -> List[Tuple[int, floa
 
 
 def _identify_contractions(
-    swing_highs: List[Tuple[int, float]],
-    swing_lows: List[Tuple[int, float]],
-    highs: List[float],
-    lows: List[float],
-    dates: List[str],
-) -> List[Dict]:
+    swing_highs: list[tuple[int, float]],
+    swing_lows: list[tuple[int, float]],
+    highs: list[float],
+    lows: list[float],
+    dates: list[str],
+) -> list[dict]:
     """
     Identify successive contractions from swing points.
     Each contraction is defined by a swing high followed by a swing low.
@@ -325,18 +328,22 @@ def _identify_contractions(
             break
 
         low_idx, low_val = next_low
-        depth_pct = (current_high_val - low_val) / current_high_val * 100 if current_high_val > 0 else 0
+        depth_pct = (
+            (current_high_val - low_val) / current_high_val * 100 if current_high_val > 0 else 0
+        )
 
-        contractions.append({
-            "label": f"T{len(contractions) + 1}",
-            "high_idx": current_high_idx,
-            "high_price": round(current_high_val, 2),
-            "high_date": dates[current_high_idx] if current_high_idx < len(dates) else "N/A",
-            "low_idx": low_idx,
-            "low_price": round(low_val, 2),
-            "low_date": dates[low_idx] if low_idx < len(dates) else "N/A",
-            "depth_pct": round(depth_pct, 2),
-        })
+        contractions.append(
+            {
+                "label": f"T{len(contractions) + 1}",
+                "high_idx": current_high_idx,
+                "high_price": round(current_high_val, 2),
+                "high_date": dates[current_high_idx] if current_high_idx < len(dates) else "N/A",
+                "low_idx": low_idx,
+                "low_price": round(low_val, 2),
+                "low_date": dates[low_idx] if low_idx < len(dates) else "N/A",
+                "depth_pct": round(depth_pct, 2),
+            }
+        )
 
         # Find next swing high after this low (for the next contraction)
         next_high = None
@@ -354,14 +361,14 @@ def _identify_contractions(
 
 
 def _build_contractions_from(
-    start_high: Tuple[int, float],
-    swing_highs: List[Tuple[int, float]],
-    swing_lows: List[Tuple[int, float]],
-    highs: List[float],
-    lows: List[float],
-    dates: List[str],
+    start_high: tuple[int, float],
+    swing_highs: list[tuple[int, float]],
+    swing_lows: list[tuple[int, float]],
+    highs: list[float],
+    lows: list[float],
+    dates: list[str],
     min_contraction_days: int = 5,
-) -> List[Dict]:
+) -> list[dict]:
     """Build contraction sequence from a specific swing high starting point.
 
     Args:
@@ -406,7 +413,9 @@ def _build_contractions_from(
             if not found_valid:
                 break
 
-        depth_pct = (current_high_val - low_val) / current_high_val * 100 if current_high_val > 0 else 0
+        depth_pct = (
+            (current_high_val - low_val) / current_high_val * 100 if current_high_val > 0 else 0
+        )
 
         # Right-shoulder validation: subsequent highs within 5% of H1
         if contractions:
@@ -414,17 +423,19 @@ def _build_contractions_from(
             if pct_from_h1 > 5:
                 break
 
-        contractions.append({
-            "label": f"T{len(contractions) + 1}",
-            "high_idx": current_high_idx,
-            "high_price": round(current_high_val, 2),
-            "high_date": dates[current_high_idx] if current_high_idx < len(dates) else "N/A",
-            "low_idx": low_idx,
-            "low_price": round(low_val, 2),
-            "low_date": dates[low_idx] if low_idx < len(dates) else "N/A",
-            "depth_pct": round(depth_pct, 2),
-            "duration_days": duration,
-        })
+        contractions.append(
+            {
+                "label": f"T{len(contractions) + 1}",
+                "high_idx": current_high_idx,
+                "high_price": round(current_high_val, 2),
+                "high_date": dates[current_high_idx] if current_high_idx < len(dates) else "N/A",
+                "low_idx": low_idx,
+                "low_price": round(low_val, 2),
+                "low_date": dates[low_idx] if low_idx < len(dates) else "N/A",
+                "depth_pct": round(depth_pct, 2),
+                "duration_days": duration,
+            }
+        )
 
         # Find next swing high after this low
         next_high = None
@@ -441,7 +452,7 @@ def _build_contractions_from(
     return contractions
 
 
-def _validate_vcp(contractions: List[Dict], total_days: int) -> Dict:
+def _validate_vcp(contractions: list[dict], total_days: int) -> dict:
     """Validate whether the contraction pattern qualifies as a VCP."""
     issues = []
     valid = True
@@ -469,7 +480,7 @@ def _validate_vcp(contractions: List[Dict], total_days: int) -> Dict:
             if ratio > 0.75:
                 issues.append(
                     f"{contractions[i]['label']} ({curr_depth:.1f}%) does not contract "
-                    f"25%+ vs {contractions[i-1]['label']} ({prev_depth:.1f}%), "
+                    f"25%+ vs {contractions[i - 1]['label']} ({prev_depth:.1f}%), "
                     f"ratio={ratio:.2f} (need <= 0.75)"
                 )
                 valid = False
@@ -477,10 +488,16 @@ def _validate_vcp(contractions: List[Dict], total_days: int) -> Dict:
     # Check successive highs within 5% of each other
     for i in range(1, len(contractions)):
         prev_high = contractions[i - 1]["high_price"]
-        curr_high = contractions[i]["high_price"] if i < len(contractions) else contractions[-1]["high_price"]
+        curr_high = (
+            contractions[i]["high_price"]
+            if i < len(contractions)
+            else contractions[-1]["high_price"]
+        )
         # The high of subsequent contraction should be near the first
         if prev_high > 0:
-            pct_diff = abs(curr_high - contractions[0]["high_price"]) / contractions[0]["high_price"] * 100
+            pct_diff = (
+                abs(curr_high - contractions[0]["high_price"]) / contractions[0]["high_price"] * 100
+            )
             if pct_diff > 5:
                 issues.append(
                     f"{contractions[i]['label']} high ${curr_high:.2f} is "
@@ -505,9 +522,9 @@ def _validate_vcp(contractions: List[Dict], total_days: int) -> Dict:
 
 
 def _get_pivot_price(
-    contractions: List[Dict],
-    highs: List[float],
-    swing_highs: List[Tuple[int, float]],
+    contractions: list[dict],
+    highs: list[float],
+    swing_highs: list[tuple[int, float]],
 ) -> Optional[float]:
     """Get the pivot (breakout) price - high of the last contraction."""
     if contractions:
@@ -517,7 +534,7 @@ def _get_pivot_price(
     return None
 
 
-def _score_vcp(contractions: List[Dict], validation: Dict) -> int:
+def _score_vcp(contractions: list[dict], validation: dict) -> int:
     """Score the VCP pattern quality (0-100)."""
     if not validation["valid"]:
         # Even invalid patterns get partial credit for structure

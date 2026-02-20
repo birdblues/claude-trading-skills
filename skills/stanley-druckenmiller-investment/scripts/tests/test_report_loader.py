@@ -1,14 +1,12 @@
 """Tests for report_loader.py"""
 
 import os
-import pytest
 
+import pytest
 from report_loader import (
+    extract_signal,
     find_latest_report,
     load_all_reports,
-    extract_signal,
-    REQUIRED_SKILLS,
-    OPTIONAL_SKILLS,
 )
 
 
@@ -85,10 +83,16 @@ class TestLoadAllReports:
         assert "canslim_screener" not in reports
         assert len(reports) == 5
 
-    def test_stale_required_raises(self, tmp_reports, sample_breadth,
-                                   sample_uptrend, sample_market_top,
-                                   sample_macro_regime, sample_ftd,
-                                   make_report_fn):
+    def test_stale_required_raises(
+        self,
+        tmp_reports,
+        sample_breadth,
+        sample_uptrend,
+        sample_market_top,
+        sample_macro_regime,
+        sample_ftd,
+        make_report_fn,
+    ):
         """Should raise if required report exceeds max_age_hours."""
         make_report_fn("market_breadth_", sample_breadth, tmp_reports, age_hours=100)
         make_report_fn("uptrend_analysis_", sample_uptrend, tmp_reports)
@@ -151,9 +155,12 @@ class TestExtractSignal:
 
     def test_vcp_empty_results(self):
         """VCP with no results should yield low score."""
-        data = {"metadata": {"funnel": {"universe": 500, "trend_template_passed": 0,
-                                        "vcp_candidates": 0}},
-                "results": []}
+        data = {
+            "metadata": {
+                "funnel": {"universe": 500, "trend_template_passed": 0, "vcp_candidates": 0}
+            },
+            "results": [],
+        }
         sig = extract_signal("vcp_screener", data)
         assert sig["derived_score"] <= 15
 
@@ -161,11 +168,31 @@ class TestExtractSignal:
         """Themes all in exhaustion should get penalty."""
         data = {
             "summary": {"total_themes": 3, "bullish_count": 3, "bearish_count": 0},
-            "themes": {"all": [
-                {"name": "T1", "direction": "bullish", "heat": 90, "stage": "Exhausting", "confidence": "Low"},
-                {"name": "T2", "direction": "bullish", "heat": 80, "stage": "Exhausting", "confidence": "Low"},
-                {"name": "T3", "direction": "bullish", "heat": 70, "stage": "Exhausting", "confidence": "Low"},
-            ]},
+            "themes": {
+                "all": [
+                    {
+                        "name": "T1",
+                        "direction": "bullish",
+                        "heat": 90,
+                        "stage": "Exhausting",
+                        "confidence": "Low",
+                    },
+                    {
+                        "name": "T2",
+                        "direction": "bullish",
+                        "heat": 80,
+                        "stage": "Exhausting",
+                        "confidence": "Low",
+                    },
+                    {
+                        "name": "T3",
+                        "direction": "bullish",
+                        "heat": 70,
+                        "stage": "Exhausting",
+                        "confidence": "Low",
+                    },
+                ]
+            },
         }
         sig = extract_signal("theme_detector", data)
         assert sig["derived_score"] < 60  # Exhaustion penalty applied

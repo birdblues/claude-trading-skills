@@ -1,10 +1,10 @@
 """Tests for Historical Top Pattern Comparator"""
 
 from historical_comparator import (
-    compare_to_historical,
-    _compute_ssd,
-    HISTORICAL_TOPS,
     COMPONENT_KEYS,
+    HISTORICAL_TOPS,
+    _compute_ssd,
+    compare_to_historical,
 )
 
 

@@ -13,11 +13,10 @@ Sub-scores:
   - Sector Slope Breadth (20%): Count of sectors with positive slope
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 
-def calculate_momentum(all_timeseries: List[Dict],
-                       sector_summary: List[Dict]) -> Dict:
+def calculate_momentum(all_timeseries: list[dict], sector_summary: list[dict]) -> dict:
     """
     Calculate momentum score from slope, acceleration, and sector breadth.
 
@@ -60,9 +59,7 @@ def calculate_momentum(all_timeseries: List[Dict],
     accel_score, accel_value, accel_label = _score_acceleration_smoothed(smoothed_slopes)
 
     # Sub-score 3: Sector Slope Breadth (20%)
-    breadth_score, positive_slope_count, total_sectors = _score_sector_slope_breadth(
-        sector_summary
-    )
+    breadth_score, positive_slope_count, total_sectors = _score_sector_slope_breadth(sector_summary)
 
     # Composite
     raw_score = slope_score * 0.50 + accel_score * 0.30 + breadth_score * 0.20
@@ -89,7 +86,7 @@ def calculate_momentum(all_timeseries: List[Dict],
     }
 
 
-def _ema(values: List[float], span: int = 3) -> List[float]:
+def _ema(values: list[float], span: int = 3) -> list[float]:
     """Calculate Exponential Moving Average.
 
     Args:
@@ -126,7 +123,7 @@ def _classify_acceleration(acceleration: float) -> tuple:
         return 10, "strong_decelerating"
 
 
-def _score_acceleration_smoothed(smoothed_slopes: List[float]) -> tuple:
+def _score_acceleration_smoothed(smoothed_slopes: list[float]) -> tuple:
     """Calculate acceleration from smoothed slopes using 10v10 window.
 
     Compares recent 10-point average vs prior 10-point average of smoothed slopes.
@@ -151,13 +148,13 @@ def _score_acceleration_smoothed(smoothed_slopes: List[float]) -> tuple:
     return score, round(acceleration, 6), label
 
 
-def _score_acceleration_from_values(slopes: List[float], window: int = 5) -> tuple:
+def _score_acceleration_from_values(slopes: list[float], window: int = 5) -> tuple:
     """Fallback acceleration using smaller window."""
     if len(slopes) < window * 2:
         return 50, None, "insufficient_data"
 
     recent_avg = sum(slopes[-window:]) / window
-    prior_avg = sum(slopes[-window * 2:-window]) / window
+    prior_avg = sum(slopes[-window * 2 : -window]) / window
     acceleration = recent_avg - prior_avg
     score, label = _classify_acceleration(acceleration)
 
@@ -191,7 +188,7 @@ def _score_slope(slope: float) -> float:
         return max(0, 9 + (slope + 0.02) / 0.01 * 9)
 
 
-def _score_sector_slope_breadth(sector_summary: List[Dict]) -> tuple:
+def _score_sector_slope_breadth(sector_summary: list[dict]) -> tuple:
     """Score based on count of sectors with positive slope.
 
     Returns: (score, positive_count, total_count)
@@ -200,10 +197,7 @@ def _score_sector_slope_breadth(sector_summary: List[Dict]) -> tuple:
         return 50, 0, 0
 
     total = len(sector_summary)
-    positive = sum(
-        1 for s in sector_summary
-        if s.get("Slope") is not None and s["Slope"] > 0
-    )
+    positive = sum(1 for s in sector_summary if s.get("Slope") is not None and s["Slope"] > 0)
 
     if total == 0:
         return 50, 0, 0

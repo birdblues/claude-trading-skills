@@ -1,11 +1,11 @@
 """Shared fixtures for Druckenmiller Strategy Synthesizer tests."""
 
+import json
 import os
 import sys
-import json
-import pytest
 from datetime import datetime, timedelta
 
+import pytest
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 
@@ -13,8 +13,7 @@ FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
-def make_report(prefix: str, data: dict, reports_dir: str,
-                age_hours: int = 0) -> str:
+def make_report(prefix: str, data: dict, reports_dir: str, age_hours: int = 0) -> str:
     """Write a JSON report file with a given age offset.
 
     Sets both the filename timestamp and the file mtime so that
@@ -138,14 +137,10 @@ def sample_vcp():
             },
         },
         "results": [
-            {"symbol": "DG", "composite_score": 81.0, "rating": "Strong VCP",
-             "valid_vcp": True},
-            {"symbol": "PLTR", "composite_score": 75.0, "rating": "Strong VCP",
-             "valid_vcp": True},
-            {"symbol": "AXON", "composite_score": 70.0, "rating": "Good VCP",
-             "valid_vcp": True},
-            {"symbol": "META", "composite_score": 55.0, "rating": "Developing",
-             "valid_vcp": True},
+            {"symbol": "DG", "composite_score": 81.0, "rating": "Strong VCP", "valid_vcp": True},
+            {"symbol": "PLTR", "composite_score": 75.0, "rating": "Strong VCP", "valid_vcp": True},
+            {"symbol": "AXON", "composite_score": 70.0, "rating": "Good VCP", "valid_vcp": True},
+            {"symbol": "META", "composite_score": 55.0, "rating": "Developing", "valid_vcp": True},
         ],
     }
 
@@ -161,15 +156,27 @@ def sample_theme():
         },
         "themes": {
             "all": [
-                {"name": "AI & Semiconductors", "direction": "bullish",
-                 "heat": 92.0, "stage": "Mid",
-                 "confidence": "High"},
-                {"name": "Oil & Gas", "direction": "bullish",
-                 "heat": 85.0, "stage": "Exhausting",
-                 "confidence": "Medium"},
-                {"name": "Biotech", "direction": "bullish",
-                 "heat": 60.0, "stage": "Early",
-                 "confidence": "Low"},
+                {
+                    "name": "AI & Semiconductors",
+                    "direction": "bullish",
+                    "heat": 92.0,
+                    "stage": "Mid",
+                    "confidence": "High",
+                },
+                {
+                    "name": "Oil & Gas",
+                    "direction": "bullish",
+                    "heat": 85.0,
+                    "stage": "Exhausting",
+                    "confidence": "Medium",
+                },
+                {
+                    "name": "Biotech",
+                    "direction": "bullish",
+                    "heat": 60.0,
+                    "stage": "Early",
+                    "confidence": "Low",
+                },
             ],
         },
     }
@@ -187,12 +194,24 @@ def sample_canslim():
             "candidates_analyzed": 35,
         },
         "results": [
-            {"symbol": "NVDA", "composite_score": 97.2,
-             "rating": "Exceptional+", "m_component": {"score": 100, "trend": "strong_uptrend"}},
-            {"symbol": "PLTR", "composite_score": 82.0,
-             "rating": "Exceptional", "m_component": {"score": 100, "trend": "strong_uptrend"}},
-            {"symbol": "CRWD", "composite_score": 71.0,
-             "rating": "Strong", "m_component": {"score": 80, "trend": "uptrend"}},
+            {
+                "symbol": "NVDA",
+                "composite_score": 97.2,
+                "rating": "Exceptional+",
+                "m_component": {"score": 100, "trend": "strong_uptrend"},
+            },
+            {
+                "symbol": "PLTR",
+                "composite_score": 82.0,
+                "rating": "Exceptional",
+                "m_component": {"score": 100, "trend": "strong_uptrend"},
+            },
+            {
+                "symbol": "CRWD",
+                "composite_score": 71.0,
+                "rating": "Strong",
+                "m_component": {"score": 80, "trend": "uptrend"},
+            },
         ],
         "summary": {
             "total_stocks": 35,
@@ -203,8 +222,9 @@ def sample_canslim():
 
 
 @pytest.fixture
-def all_required_reports(tmp_reports, sample_breadth, sample_uptrend,
-                         sample_market_top, sample_macro_regime, sample_ftd):
+def all_required_reports(
+    tmp_reports, sample_breadth, sample_uptrend, sample_market_top, sample_macro_regime, sample_ftd
+):
     """Create all 5 required reports in tmp dir and return the dir."""
     make_report("market_breadth_", sample_breadth, tmp_reports)
     make_report("uptrend_analysis_", sample_uptrend, tmp_reports)

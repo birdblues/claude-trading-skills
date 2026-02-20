@@ -13,21 +13,19 @@ Transition signals:
 - HYG/LQD turning down from top = credit cycle tightening
 """
 
-from typing import Dict, List, Optional
 from .utils import (
-    downsample_to_monthly,
     calculate_ratio,
+    compute_percentile,
+    compute_roc,
     compute_sma,
     detect_crossover,
-    compute_roc,
-    compute_percentile,
-    score_transition_signal,
     determine_direction,
+    downsample_to_monthly,
+    score_transition_signal,
 )
 
 
-def calculate_credit_conditions(hyg_history: List[Dict],
-                                lqd_history: List[Dict]) -> Dict:
+def calculate_credit_conditions(hyg_history: list[dict], lqd_history: list[dict]) -> dict:
     """
     Calculate credit conditions transition signal from HYG/LQD ratio.
 
@@ -72,8 +70,10 @@ def calculate_credit_conditions(hyg_history: List[Dict],
 
     # Direction
     direction, momentum_qualifier = determine_direction(
-        crossover, roc_3m,
-        positive_label="easing", negative_label="tightening",
+        crossover,
+        roc_3m,
+        positive_label="easing",
+        negative_label="tightening",
         neutral_label="stable",
     )
 
@@ -106,7 +106,7 @@ def _describe_signal(score: int, direction: str, ratio: float) -> str:
         return f"STABLE: Credit conditions stable (HYG/LQD={ratio:.4f})"
 
 
-def _insufficient_data(reason: str) -> Dict:
+def _insufficient_data(reason: str) -> dict:
     return {
         "score": 0,
         "signal": f"INSUFFICIENT DATA: {reason}",

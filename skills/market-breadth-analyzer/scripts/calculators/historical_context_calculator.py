@@ -16,13 +16,13 @@ Scoring (100 = healthy):
     Current <= avg_trough * 1.05 -> +10 (oversold zone)
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 def calculate_historical_percentile(
-    rows: List[Dict],
-    summary: Dict[str, str],
-) -> Dict:
+    rows: list[dict],
+    summary: dict[str, str],
+) -> dict:
     """
     Calculate historical percentile score.
 

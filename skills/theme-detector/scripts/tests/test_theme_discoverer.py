@@ -4,26 +4,24 @@ Covers unmatched industry extraction, proximity clustering with perf vectors,
 auto-naming, duplicate detection, and full discover_themes flow.
 """
 
-import pytest
-
 from calculators.theme_discoverer import (
-    discover_themes,
-    _get_unmatched_industries,
-    _cluster_by_proximity,
-    _perf_vector_distance,
-    _compute_ranges,
     _auto_name_cluster,
-    _is_duplicate_of_existing,
     _build_theme_dict,
+    _cluster_by_proximity,
+    _get_unmatched_industries,
+    _is_duplicate_of_existing,
+    _perf_vector_distance,
+    discover_themes,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _ind(name, weighted_return, direction="bullish", sector="Tech",
-         perf_1w=0.0, perf_1m=0.0, perf_3m=0.0):
+
+def _ind(
+    name, weighted_return, direction="bullish", sector="Tech", perf_1w=0.0, perf_1m=0.0, perf_3m=0.0
+):
     return {
         "name": name,
         "weighted_return": weighted_return,
@@ -41,11 +39,14 @@ def _ind(name, weighted_return, direction="bullish", sector="Tech",
 
 
 class TestGetUnmatchedIndustries:
-
     def test_excludes_matched_names(self):
         ranked = [
-            _ind("A", 10.0, "bullish"), _ind("B", 8.0, "bullish"), _ind("C", 6.0, "bullish"),
-            _ind("D", -5.0, "bearish"), _ind("E", -8.0, "bearish"), _ind("F", -10.0, "bearish"),
+            _ind("A", 10.0, "bullish"),
+            _ind("B", 8.0, "bullish"),
+            _ind("C", 6.0, "bullish"),
+            _ind("D", -5.0, "bearish"),
+            _ind("E", -8.0, "bearish"),
+            _ind("F", -10.0, "bearish"),
         ]
         matched = {"A", "E"}
         bull, bear = _get_unmatched_industries(ranked, matched, top_n=3)
@@ -58,8 +59,10 @@ class TestGetUnmatchedIndustries:
 
     def test_separates_bullish_and_bearish(self):
         ranked = [
-            _ind("A", 10.0, "bullish"), _ind("B", 8.0, "bullish"),
-            _ind("C", -5.0, "bearish"), _ind("D", -10.0, "bearish"),
+            _ind("A", 10.0, "bullish"),
+            _ind("B", 8.0, "bullish"),
+            _ind("C", -5.0, "bearish"),
+            _ind("D", -10.0, "bearish"),
         ]
         bull, bear = _get_unmatched_industries(ranked, set(), top_n=2)
         assert all(i["direction"] == "bullish" for i in bull)
@@ -83,7 +86,6 @@ class TestGetUnmatchedIndustries:
 
 
 class TestClusterByProximity:
-
     def test_adjacent_within_both_thresholds_grouped(self):
         # Use 3+ items so range is wider than pairwise diff
         industries = [
@@ -92,8 +94,7 @@ class TestClusterByProximity:
             _ind("C", 13.0, perf_1w=15.0, perf_1m=20.0, perf_3m=25.0),
         ]
         # A-B gap=1.5 within 3.0, C far in perf space; A&B should cluster
-        clusters = _cluster_by_proximity(industries, gap_threshold=3.0,
-                                          vector_threshold=0.5)
+        clusters = _cluster_by_proximity(industries, gap_threshold=3.0, vector_threshold=0.5)
         assert len(clusters) >= 1
         cluster_names = [set(i["name"] for i in c) for c in clusters]
         assert {"A", "B"} in cluster_names or any("A" in c and "B" in c for c in cluster_names)
@@ -103,8 +104,7 @@ class TestClusterByProximity:
             _ind("A", 10.0, perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
             _ind("B", 20.0, perf_1w=6.0, perf_1m=11.0, perf_3m=16.0),
         ]
-        clusters = _cluster_by_proximity(industries, gap_threshold=3.0,
-                                          vector_threshold=0.5)
+        clusters = _cluster_by_proximity(industries, gap_threshold=3.0, vector_threshold=0.5)
         # Gap is 10.0 > 3.0, so separate clusters; each < min_size so empty
         assert len(clusters) == 0
 
@@ -114,15 +114,13 @@ class TestClusterByProximity:
             _ind("A", 10.0, perf_1w=20.0, perf_1m=5.0, perf_3m=1.0),
             _ind("B", 11.0, perf_1w=1.0, perf_1m=5.0, perf_3m=20.0),
         ]
-        clusters = _cluster_by_proximity(industries, gap_threshold=3.0,
-                                          vector_threshold=0.3)
+        clusters = _cluster_by_proximity(industries, gap_threshold=3.0, vector_threshold=0.3)
         # Vector distance should be high despite close weighted_return
         assert len(clusters) == 0
 
     def test_single_industry_not_a_cluster(self):
         industries = [_ind("A", 10.0)]
-        clusters = _cluster_by_proximity(industries, gap_threshold=3.0,
-                                          vector_threshold=0.5)
+        clusters = _cluster_by_proximity(industries, gap_threshold=3.0, vector_threshold=0.5)
         assert len(clusters) == 0
 
     def test_all_within_thresholds_single_cluster(self):
@@ -133,8 +131,7 @@ class TestClusterByProximity:
             _ind("C", 12.0, perf_1w=6.0, perf_1m=11.0, perf_3m=16.0),
             _ind("Far", 30.0, perf_1w=50.0, perf_1m=60.0, perf_3m=70.0),
         ]
-        clusters = _cluster_by_proximity(industries, gap_threshold=3.0,
-                                          vector_threshold=0.5)
+        clusters = _cluster_by_proximity(industries, gap_threshold=3.0, vector_threshold=0.5)
         # A, B, C should form a single cluster (close in both gap and perf)
         abc_cluster = [c for c in clusters if len(c) >= 3]
         assert len(abc_cluster) >= 1
@@ -142,8 +139,7 @@ class TestClusterByProximity:
         assert {"A", "B", "C"}.issubset(names)
 
     def test_empty_input_returns_empty(self):
-        clusters = _cluster_by_proximity([], gap_threshold=3.0,
-                                          vector_threshold=0.5)
+        clusters = _cluster_by_proximity([], gap_threshold=3.0, vector_threshold=0.5)
         assert clusters == []
 
 
@@ -153,7 +149,6 @@ class TestClusterByProximity:
 
 
 class TestPerfVectorDistance:
-
     def test_identical_returns_zero(self):
         a = _ind("A", 10.0, perf_1w=5.0, perf_1m=10.0, perf_3m=15.0)
         b = _ind("B", 10.0, perf_1w=5.0, perf_1m=10.0, perf_3m=15.0)
@@ -174,7 +169,6 @@ class TestPerfVectorDistance:
 
 
 class TestAutoNameCluster:
-
     def test_top_two_tokens(self):
         industries = [
             _ind("Oil & Gas E&P", 10.0),
@@ -227,13 +221,18 @@ class TestAutoNameCluster:
 
 
 class TestDiscoverThemes:
-
     def test_discovers_cross_sector_cluster(self):
         ranked = [
-            _ind("UnmatchedA", 15.0, "bullish", "Tech",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
-            _ind("UnmatchedB", 14.0, "bullish", "Industrials",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind("UnmatchedA", 15.0, "bullish", "Tech", perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind(
+                "UnmatchedB",
+                14.0,
+                "bullish",
+                "Industrials",
+                perf_1w=5.0,
+                perf_1m=10.0,
+                perf_3m=15.0,
+            ),
             _ind("MatchedC", 13.0, "bullish"),
             _ind("Bottom1", -10.0, "bearish"),
             _ind("Bottom2", -11.0, "bearish"),
@@ -246,21 +245,37 @@ class TestDiscoverThemes:
     def test_single_sector_with_no_vertical_overlap_kept(self):
         """Single-sector cluster not overlapping vertical should be kept."""
         ranked = [
-            _ind("Drug Manufacturers - General", 15.0, "bullish", "Healthcare",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
-            _ind("Drug Manufacturers - Specialty & Generic", 14.0, "bullish", "Healthcare",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind(
+                "Drug Manufacturers - General",
+                15.0,
+                "bullish",
+                "Healthcare",
+                perf_1w=5.0,
+                perf_1m=10.0,
+                perf_3m=15.0,
+            ),
+            _ind(
+                "Drug Manufacturers - Specialty & Generic",
+                14.0,
+                "bullish",
+                "Healthcare",
+                perf_1w=5.0,
+                perf_1m=10.0,
+                perf_3m=15.0,
+            ),
         ] + [_ind(f"Filler{i}", -10.0 - i, "bearish") for i in range(8)]
         matched = set()
-        existing_vertical = [{
-            "theme_name": "Healthcare Sector Concentration",
-            "direction": "bullish",
-            "matching_industries": [
-                {"name": "Medical Devices"},
-                {"name": "Healthcare Plans"},
-                {"name": "Medical Care Facilities"},
-            ],
-        }]
+        existing_vertical = [
+            {
+                "theme_name": "Healthcare Sector Concentration",
+                "direction": "bullish",
+                "matching_industries": [
+                    {"name": "Medical Devices"},
+                    {"name": "Healthcare Plans"},
+                    {"name": "Medical Care Facilities"},
+                ],
+            }
+        ]
         discovered = discover_themes(ranked, matched, existing_vertical, top_n=5)
         # GLP-1 like cluster (Drug Manufacturers) should not overlap Healthcare Vertical
         if discovered:
@@ -270,21 +285,37 @@ class TestDiscoverThemes:
     def test_single_sector_with_vertical_overlap_excluded(self):
         """Single-sector cluster overlapping existing vertical should be excluded."""
         ranked = [
-            _ind("Medical Devices", 15.0, "bullish", "Healthcare",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
-            _ind("Healthcare Plans", 14.0, "bullish", "Healthcare",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind(
+                "Medical Devices",
+                15.0,
+                "bullish",
+                "Healthcare",
+                perf_1w=5.0,
+                perf_1m=10.0,
+                perf_3m=15.0,
+            ),
+            _ind(
+                "Healthcare Plans",
+                14.0,
+                "bullish",
+                "Healthcare",
+                perf_1w=5.0,
+                perf_1m=10.0,
+                perf_3m=15.0,
+            ),
         ] + [_ind(f"Filler{i}", -10.0 - i, "bearish") for i in range(8)]
         matched = set()
-        existing_vertical = [{
-            "theme_name": "Healthcare Sector Concentration",
-            "direction": "bullish",
-            "matching_industries": [
-                {"name": "Medical Devices"},
-                {"name": "Healthcare Plans"},
-                {"name": "Medical Care Facilities"},
-            ],
-        }]
+        existing_vertical = [
+            {
+                "theme_name": "Healthcare Sector Concentration",
+                "direction": "bullish",
+                "matching_industries": [
+                    {"name": "Medical Devices"},
+                    {"name": "Healthcare Plans"},
+                    {"name": "Medical Care Facilities"},
+                ],
+            }
+        ]
         discovered = discover_themes(ranked, matched, existing_vertical, top_n=5)
         # Should be excluded due to high overlap with Healthcare Vertical
         for d in discovered:
@@ -297,10 +328,8 @@ class TestDiscoverThemes:
     def test_small_cluster_rejected(self):
         """Cluster with only 1 industry should be rejected."""
         ranked = [
-            _ind("LoneIndustry", 15.0, "bullish", "Tech",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
-            _ind("FarAway", 50.0, "bullish", "Other",
-                 perf_1w=30.0, perf_1m=40.0, perf_3m=50.0),
+            _ind("LoneIndustry", 15.0, "bullish", "Tech", perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind("FarAway", 50.0, "bullish", "Other", perf_1w=30.0, perf_1m=40.0, perf_3m=50.0),
         ] + [_ind(f"Bottom{i}", -10.0 - i, "bearish") for i in range(8)]
         discovered = discover_themes(ranked, set(), [], top_n=5)
         # Single-industry clusters don't form (min_cluster_size=2)
@@ -309,10 +338,8 @@ class TestDiscoverThemes:
 
     def test_sets_theme_origin_discovered(self):
         ranked = [
-            _ind("A", 15.0, "bullish", "Tech",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
-            _ind("B", 14.0, "bullish", "Tech",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind("A", 15.0, "bullish", "Tech", perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind("B", 14.0, "bullish", "Tech", perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
         ] + [_ind(f"Bottom{i}", -10.0 - i, "bearish") for i in range(8)]
         discovered = discover_themes(ranked, set(), [], top_n=5)
         for d in discovered:
@@ -320,10 +347,8 @@ class TestDiscoverThemes:
 
     def test_sets_proxy_etfs_empty(self):
         ranked = [
-            _ind("A", 15.0, "bullish", "Tech",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
-            _ind("B", 14.0, "bullish", "Tech",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind("A", 15.0, "bullish", "Tech", perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind("B", 14.0, "bullish", "Tech", perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
         ] + [_ind(f"Bottom{i}", -10.0 - i, "bearish") for i in range(8)]
         discovered = discover_themes(ranked, set(), [], top_n=5)
         for d in discovered:
@@ -331,10 +356,8 @@ class TestDiscoverThemes:
 
     def test_name_confidence_is_medium(self):
         ranked = [
-            _ind("A", 15.0, "bullish", "Tech",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
-            _ind("B", 14.0, "bullish", "Tech",
-                 perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind("A", 15.0, "bullish", "Tech", perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
+            _ind("B", 14.0, "bullish", "Tech", perf_1w=5.0, perf_1m=10.0, perf_3m=15.0),
         ] + [_ind(f"Bottom{i}", -10.0 - i, "bearish") for i in range(8)]
         discovered = discover_themes(ranked, set(), [], top_n=5)
         for d in discovered:
@@ -350,8 +373,15 @@ class TestDiscoverThemes:
         ranked = [
             _ind("TopFiller", 20.0, "bullish"),
         ] + [
-            _ind(f"BearInd{i}", -10.0 - i * 0.5, "bearish", "Consumer",
-                 perf_1w=-3.0 - i, perf_1m=-5.0 - i, perf_3m=-8.0 - i)
+            _ind(
+                f"BearInd{i}",
+                -10.0 - i * 0.5,
+                "bearish",
+                "Consumer",
+                perf_1w=-3.0 - i,
+                perf_1m=-5.0 - i,
+                perf_3m=-8.0 - i,
+            )
             for i in range(5)
         ]
         discovered = discover_themes(ranked, set(), [], top_n=5)
@@ -366,29 +396,34 @@ class TestDiscoverThemes:
 
 
 class TestIsDuplicateOfExisting:
-
     def test_high_overlap_same_direction_is_duplicate(self):
         cluster = [{"name": "A"}, {"name": "B"}]
-        existing = [{
-            "direction": "bullish",
-            "matching_industries": [{"name": "A"}, {"name": "B"}, {"name": "C"}],
-        }]
+        existing = [
+            {
+                "direction": "bullish",
+                "matching_industries": [{"name": "A"}, {"name": "B"}, {"name": "C"}],
+            }
+        ]
         assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is True
 
     def test_high_overlap_different_direction_not_duplicate(self):
         cluster = [{"name": "A"}, {"name": "B"}]
-        existing = [{
-            "direction": "bearish",
-            "matching_industries": [{"name": "A"}, {"name": "B"}, {"name": "C"}],
-        }]
+        existing = [
+            {
+                "direction": "bearish",
+                "matching_industries": [{"name": "A"}, {"name": "B"}, {"name": "C"}],
+            }
+        ]
         assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is False
 
     def test_low_overlap_same_direction_not_duplicate(self):
         cluster = [{"name": "X"}, {"name": "Y"}]
-        existing = [{
-            "direction": "bullish",
-            "matching_industries": [{"name": "A"}, {"name": "B"}, {"name": "C"}],
-        }]
+        existing = [
+            {
+                "direction": "bullish",
+                "matching_industries": [{"name": "A"}, {"name": "B"}, {"name": "C"}],
+            }
+        ]
         assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is False
 
     def test_glp1_not_duplicate_of_healthcare_vertical(self):
@@ -397,14 +432,16 @@ class TestIsDuplicateOfExisting:
             {"name": "Drug Manufacturers - General"},
             {"name": "Drug Manufacturers - Specialty & Generic"},
         ]
-        existing = [{
-            "direction": "bullish",
-            "matching_industries": [
-                {"name": "Medical Devices"},
-                {"name": "Healthcare Plans"},
-                {"name": "Medical Care Facilities"},
-            ],
-        }]
+        existing = [
+            {
+                "direction": "bullish",
+                "matching_industries": [
+                    {"name": "Medical Devices"},
+                    {"name": "Healthcare Plans"},
+                    {"name": "Medical Care Facilities"},
+                ],
+            }
+        ]
         assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is False
 
     def test_subset_detected_by_overlap_coefficient(self):
@@ -414,12 +451,12 @@ class TestIsDuplicateOfExisting:
         Overlap coefficient catches it: intersection=2, min(2,12)=2 → coeff=1.0.
         """
         cluster = [{"name": "A"}, {"name": "B"}]
-        existing = [{
-            "direction": "bullish",
-            "matching_industries": [
-                {"name": n} for n in "ABCDEFGHIJKL"
-            ],
-        }]
+        existing = [
+            {
+                "direction": "bullish",
+                "matching_industries": [{"name": n} for n in "ABCDEFGHIJKL"],
+            }
+        ]
         # Jaccard = 2/12 = 0.17 < 0.5 → would PASS Jaccard-only check
         # Overlap coeff = 2/2 = 1.0 >= 0.5 → caught by overlap coefficient
         assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is True
@@ -427,12 +464,12 @@ class TestIsDuplicateOfExisting:
     def test_partial_overlap_below_both_thresholds_passes(self):
         """Cluster with low overlap on both metrics should not be duplicate."""
         cluster = [{"name": "A"}, {"name": "X"}, {"name": "Y"}, {"name": "Z"}]
-        existing = [{
-            "direction": "bullish",
-            "matching_industries": [
-                {"name": n} for n in "ABCDEFGHIJ"
-            ],
-        }]
+        existing = [
+            {
+                "direction": "bullish",
+                "matching_industries": [{"name": n} for n in "ABCDEFGHIJ"],
+            }
+        ]
         # Jaccard = 1/13 = 0.077 < 0.5
         # Overlap coeff = 1/4 = 0.25 < 0.5
         assert _is_duplicate_of_existing(cluster, "bullish", existing, 0.5) is False
@@ -444,7 +481,6 @@ class TestIsDuplicateOfExisting:
 
 
 class TestBuildThemeDict:
-
     def test_has_required_fields(self):
         industries = [_ind("A", 10.0, "bullish"), _ind("B", 9.0, "bullish")]
         result = _build_theme_dict("Test Cluster", industries)

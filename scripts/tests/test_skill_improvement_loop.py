@@ -138,13 +138,16 @@ def test_pick_next_skill_empty(loop_module):
 
 def test_git_safe_check_dirty_tree(loop_module, tmp_path: Path, monkeypatch):
     """Dirty working tree should fail."""
+
     def fake_run(cmd, **kwargs):
         if "status" in cmd:
             from subprocess import CompletedProcess
+
             return CompletedProcess(cmd, 0, " M dirty.py\n", "")
         return CompletedProcess(cmd, 0, "main\n", "")
 
     import subprocess as sp
+
     monkeypatch.setattr(sp, "run", fake_run)
     monkeypatch.setattr(loop_module.subprocess, "run", fake_run)
 
@@ -154,8 +157,10 @@ def test_git_safe_check_dirty_tree(loop_module, tmp_path: Path, monkeypatch):
 def test_git_safe_check_not_on_main(loop_module, tmp_path: Path, monkeypatch):
     """Not on main branch should fail."""
     call_count = [0]
+
     def fake_run(cmd, **kwargs):
         from subprocess import CompletedProcess
+
         call_count[0] += 1
         if "status" in cmd:
             return CompletedProcess(cmd, 0, "", "")
@@ -223,9 +228,11 @@ def test_extract_json_from_claude_simple(loop_module):
 
 def test_extract_json_from_claude_wrapped(loop_module):
     """JSON wrapped in claude --output-format json envelope."""
-    wrapper = json.dumps({
-        "result": 'Here is the review:\n{"score": 72, "summary": "ok", "findings": []}',
-    })
+    wrapper = json.dumps(
+        {
+            "result": 'Here is the review:\n{"score": 72, "summary": "ok", "findings": []}',
+        }
+    )
     result = loop_module._extract_json_from_claude(wrapper)
     assert result is not None
     assert result["score"] == 72
@@ -236,7 +243,7 @@ def test_extract_json_from_claude_greedy_fix(loop_module):
     # With greedy [\s\S]*, regex would span from first { to last },
     # capturing invalid JSON. Non-greedy stops at the first valid closing }.
     text = (
-        'Here is the review:\n\n'
+        "Here is the review:\n\n"
         '{"score": 90, "summary": "x", "findings": []}\n\n'
         'Some trailing text with {"other": "data"}'
     )
@@ -283,6 +290,7 @@ def test_apply_improvement_returns_report(loop_module, tmp_path: Path, monkeypat
 
     def fake_run(cmd, **kwargs):
         from subprocess import CompletedProcess
+
         return CompletedProcess(cmd, 0, "", "")
 
     monkeypatch.setattr(loop_module.subprocess, "run", fake_run)
@@ -310,6 +318,7 @@ def test_apply_improvement_uses_auto_score_for_comparison(loop_module, tmp_path:
 
     def fake_run(cmd, **kwargs):
         from subprocess import CompletedProcess
+
         return CompletedProcess(cmd, 0, "", "")
 
     monkeypatch.setattr(loop_module.subprocess, "run", fake_run)
@@ -351,11 +360,14 @@ def test_run_uses_auto_score_for_improvement_trigger(loop_module, tmp_path: Path
     monkeypatch.setattr(loop_module, "run_auto_score", lambda *a, **kw: report)
     monkeypatch.setattr(loop_module, "write_daily_summary", lambda *a, **kw: None)
     monkeypatch.setattr(loop_module, "save_state", lambda *a, **kw: None)
-    monkeypatch.setattr(loop_module, "load_state", lambda *a: {"last_skill_index": -1, "history": []})
+    monkeypatch.setattr(
+        loop_module, "load_state", lambda *a: {"last_skill_index": -1, "history": []}
+    )
 
     apply_called = []
     monkeypatch.setattr(
-        loop_module, "apply_improvement",
+        loop_module,
+        "apply_improvement",
         lambda *a, **kw: apply_called.append(1) or None,
     )
 
@@ -384,7 +396,9 @@ def test_dry_run_does_not_record_improved(loop_module, tmp_path: Path, monkeypat
     monkeypatch.setattr(loop_module, "run_auto_score", lambda *a, **kw: report)
     monkeypatch.setattr(loop_module, "write_daily_summary", lambda *a, **kw: None)
     monkeypatch.setattr(loop_module, "save_state", lambda root, state: saved_states.append(state))
-    monkeypatch.setattr(loop_module, "load_state", lambda *a: {"last_skill_index": -1, "history": []})
+    monkeypatch.setattr(
+        loop_module, "load_state", lambda *a: {"last_skill_index": -1, "history": []}
+    )
 
     rc = loop_module.run(tmp_path, dry_run=True)
 
@@ -400,6 +414,7 @@ def test_run_auto_score_fallback_on_uv_failure(loop_module, tmp_path: Path, monk
 
     def fake_run(cmd, **kwargs):
         from subprocess import CompletedProcess
+
         call_log.append(list(cmd))
         # First call (uv) fails; second call (python) succeeds
         if cmd[0] == "uv":
@@ -407,7 +422,9 @@ def test_run_auto_score_fallback_on_uv_failure(loop_module, tmp_path: Path, monk
         return CompletedProcess(cmd, 0, "", "")
 
     # Ensure _build_reviewer_cmd picks uv
-    monkeypatch.setattr(loop_module.shutil, "which", lambda name: "/usr/bin/uv" if name == "uv" else None)
+    monkeypatch.setattr(
+        loop_module.shutil, "which", lambda name: "/usr/bin/uv" if name == "uv" else None
+    )
     monkeypatch.setattr(loop_module.subprocess, "run", fake_run)
 
     # Create a fake report file for the function to find
@@ -415,7 +432,8 @@ def test_run_auto_score_fallback_on_uv_failure(loop_module, tmp_path: Path, monk
     reports_dir.mkdir(parents=True, exist_ok=True)
     fake_report = {"auto_review": {"score": 75}, "final_review": {"score": 75}}
     (reports_dir / "skill_review_test-skill_2026.json").write_text(
-        json.dumps(fake_report), encoding="utf-8",
+        json.dumps(fake_report),
+        encoding="utf-8",
     )
 
     result = loop_module.run_auto_score(tmp_path, "test-skill")

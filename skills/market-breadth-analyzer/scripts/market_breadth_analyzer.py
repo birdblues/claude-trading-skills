@@ -31,22 +31,22 @@ from datetime import datetime
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
+from calculators.bearish_signal_calculator import calculate_bearish_signal
+from calculators.cycle_calculator import calculate_cycle_position
+from calculators.divergence_calculator import calculate_divergence
+from calculators.historical_context_calculator import calculate_historical_percentile
+from calculators.ma_crossover_calculator import calculate_ma_crossover
+from calculators.trend_level_calculator import calculate_breadth_level_trend
 from csv_client import (
-    fetch_detail_csv,
-    fetch_summary_csv,
-    check_data_freshness,
     DEFAULT_DETAIL_URL,
     DEFAULT_SUMMARY_URL,
+    check_data_freshness,
+    fetch_detail_csv,
+    fetch_summary_csv,
 )
-from calculators.trend_level_calculator import calculate_breadth_level_trend
-from calculators.ma_crossover_calculator import calculate_ma_crossover
-from calculators.cycle_calculator import calculate_cycle_position
-from calculators.bearish_signal_calculator import calculate_bearish_signal
-from calculators.historical_context_calculator import calculate_historical_percentile
-from calculators.divergence_calculator import calculate_divergence
-from scorer import calculate_composite_score
-from history_tracker import append_history, load_history, get_trend_summary
+from history_tracker import append_history, get_trend_summary
 from report_generator import generate_json_report, generate_markdown_report
+from scorer import calculate_composite_score
 
 
 def parse_arguments():
@@ -196,9 +196,11 @@ def main():
     )
     trend_summary = get_trend_summary(updated_history)
     if trend_summary["direction"] != "stable" and len(trend_summary["entries"]) >= 2:
-        print(f"  Score Trend: {trend_summary['direction']} "
-              f"(delta {trend_summary['delta']:+.1f} over "
-              f"{len(trend_summary['entries'])} observations)")
+        print(
+            f"  Score Trend: {trend_summary['direction']} "
+            f"(delta {trend_summary['delta']:+.1f} over "
+            f"{len(trend_summary['entries'])} observations)"
+        )
     print()
 
     # ========================================================================
@@ -259,7 +261,7 @@ def _compute_key_levels(rows, summary):
         return {}
 
     latest = rows[-1]
-    ma8 = latest["Breadth_Index_8MA"]
+    latest["Breadth_Index_8MA"]
     ma200 = latest["Breadth_Index_200MA"]
 
     levels = {}

@@ -15,14 +15,13 @@ Usage:
     python generate_report.py --help
 """
 
-import sys
 import json
-from datetime import datetime
+import sys
 from collections import defaultdict
-from typing import List, Dict
+from datetime import datetime
 
 
-def load_earnings_data(filepath: str) -> List[Dict]:
+def load_earnings_data(filepath: str) -> list[dict]:
     """
     Load earnings data from JSON file
 
@@ -33,11 +32,11 @@ def load_earnings_data(filepath: str) -> List[Dict]:
         List of earnings announcements
     """
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath) as f:
             content = f.read()
 
             # Handle case where file has progress messages before JSON
-            json_start = content.find('[')
+            json_start = content.find("[")
             if json_start != -1:
                 content = content[json_start:]
 
@@ -60,7 +59,7 @@ def load_earnings_data(filepath: str) -> List[Dict]:
         sys.exit(1)
 
 
-def group_by_date(earnings: List[Dict]) -> Dict:
+def group_by_date(earnings: list[dict]) -> dict:
     """
     Group earnings by date and timing
 
@@ -70,11 +69,11 @@ def group_by_date(earnings: List[Dict]) -> Dict:
     Returns:
         Dictionary grouped by date and timing
     """
-    by_date = defaultdict(lambda: {'BMO': [], 'AMC': [], 'TAS': []})
+    by_date = defaultdict(lambda: {"BMO": [], "AMC": [], "TAS": []})
 
     for stock in earnings:
-        date = stock.get('date')
-        timing = stock.get('timing', 'TAS')
+        date = stock.get("date")
+        timing = stock.get("timing", "TAS")
 
         if date:
             by_date[date][timing].append(stock)
@@ -82,7 +81,7 @@ def group_by_date(earnings: List[Dict]) -> Dict:
     return by_date
 
 
-def calculate_summary_stats(earnings: List[Dict]) -> Dict:
+def calculate_summary_stats(earnings: list[dict]) -> dict:
     """
     Calculate summary statistics
 
@@ -93,13 +92,13 @@ def calculate_summary_stats(earnings: List[Dict]) -> Dict:
         Dictionary with summary statistics
     """
     total = len(earnings)
-    large_cap = sum(1 for s in earnings if s.get('marketCap', 0) >= 10_000_000_000)
+    large_cap = sum(1 for s in earnings if s.get("marketCap", 0) >= 10_000_000_000)
     mid_cap = total - large_cap
 
     # Sector distribution
     sectors = defaultdict(int)
     for stock in earnings:
-        sector = stock.get('sector', 'N/A')
+        sector = stock.get("sector", "N/A")
         sectors[sector] += 1
 
     # Peak day
@@ -109,12 +108,12 @@ def calculate_summary_stats(earnings: List[Dict]) -> Dict:
     peak_count = sum(len(v) for v in peak_data.values())
 
     return {
-        'total': total,
-        'large_cap': large_cap,
-        'mid_cap': mid_cap,
-        'sectors': dict(sectors),
-        'peak_date': peak_date,
-        'peak_count': peak_count
+        "total": total,
+        "large_cap": large_cap,
+        "mid_cap": mid_cap,
+        "sectors": dict(sectors),
+        "peak_date": peak_date,
+        "peak_count": peak_count,
     }
 
 
@@ -128,8 +127,8 @@ def get_day_name(date_str: str) -> str:
     Returns:
         Formatted day name (e.g., "Monday, November 03, 2025")
     """
-    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-    return date_obj.strftime('%A, %B %d, %Y')
+    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+    return date_obj.strftime("%A, %B %d, %Y")
 
 
 def format_revenue(revenue: float) -> str:
@@ -143,16 +142,16 @@ def format_revenue(revenue: float) -> str:
         Formatted string (e.g., "$3.5B", "$150M")
     """
     if revenue >= 1e12:
-        return f"${revenue/1e12:.1f}T"
+        return f"${revenue / 1e12:.1f}T"
     elif revenue >= 1e9:
-        return f"${revenue/1e9:.1f}B"
+        return f"${revenue / 1e9:.1f}B"
     elif revenue >= 1e6:
-        return f"${revenue/1e6:.0f}M"
+        return f"${revenue / 1e6:.0f}M"
     else:
         return f"${revenue:,.0f}"
 
 
-def generate_report(earnings: List[Dict]) -> str:
+def generate_report(earnings: list[dict]) -> str:
     """
     Generate markdown earnings calendar report
 
@@ -172,31 +171,31 @@ def generate_report(earnings: List[Dict]) -> str:
     # Get date range
     dates = sorted(by_date.keys())
     if dates:
-        start_date = datetime.strptime(dates[0], '%Y-%m-%d')
-        end_date = datetime.strptime(dates[-1], '%Y-%m-%d')
+        start_date = datetime.strptime(dates[0], "%Y-%m-%d")
+        end_date = datetime.strptime(dates[-1], "%Y-%m-%d")
         date_range = f"{start_date.strftime('%B %d')} to {end_date.strftime('%B %d, %Y')}"
     else:
         date_range = "Unknown"
 
     # Top 5 by market cap
-    top5 = sorted(earnings, key=lambda x: x.get('marketCap', 0), reverse=True)[:5]
+    top5 = sorted(earnings, key=lambda x: x.get("marketCap", 0), reverse=True)[:5]
 
     # Generate report
     report = f"""# Upcoming Earnings Calendar - Week of {date_range}
 
-**Report Generated**: {datetime.now().strftime('%B %d, %Y')}
+**Report Generated**: {datetime.now().strftime("%B %d, %Y")}
 **Data Source**: FMP API (US stocks, Mid-cap and above, >$2B market cap)
 **Coverage Period**: Next 7 days
-**Total Companies**: {stats['total']}
+**Total Companies**: {stats["total"]}
 
 ---
 
 ## Executive Summary
 
-- **Total Companies Reporting**: {stats['total']}
-- **Mega/Large Cap (>$10B)**: {stats['large_cap']}
-- **Mid Cap ($2B-$10B)**: {stats['mid_cap']}
-- **Peak Day**: {get_day_name(stats['peak_date']).split(',')[0]} ({stats['peak_count']} companies)
+- **Total Companies Reporting**: {stats["total"]}
+- **Mega/Large Cap (>$10B)**: {stats["large_cap"]}
+- **Mid Cap ($2B-$10B)**: {stats["mid_cap"]}
+- **Peak Day**: {get_day_name(stats["peak_date"]).split(",")[0]} ({stats["peak_count"]} companies)
 
 ---
 
@@ -207,11 +206,11 @@ def generate_report(earnings: List[Dict]) -> str:
         day_name = get_day_name(date)
         report += f"## {day_name}\n\n"
 
-        timings = ['BMO', 'AMC', 'TAS']
+        timings = ["BMO", "AMC", "TAS"]
         timing_labels = {
-            'BMO': 'Before Market Open (BMO)',
-            'AMC': 'After Market Close (AMC)',
-            'TAS': 'Time Not Announced (TAS)'
+            "BMO": "Before Market Open (BMO)",
+            "AMC": "After Market Close (AMC)",
+            "TAS": "Time Not Announced (TAS)",
         }
 
         for timing in timings:
@@ -226,21 +225,25 @@ def generate_report(earnings: List[Dict]) -> str:
                 report += "|--------|---------|------------|--------|----------|--------------|\n"
 
                 # Top 30 by market cap
-                display_stocks = sorted(stocks, key=lambda x: x.get('marketCap', 0), reverse=True)[:30]
+                display_stocks = sorted(stocks, key=lambda x: x.get("marketCap", 0), reverse=True)[
+                    :30
+                ]
 
                 for stock in display_stocks:
-                    ticker = stock.get('symbol', 'N/A')
-                    company = stock.get('companyName', 'N/A')[:35]
-                    mcap = stock.get('marketCapFormatted', 'N/A')
-                    sector = stock.get('sector', 'N/A')[:18]
+                    ticker = stock.get("symbol", "N/A")
+                    company = stock.get("companyName", "N/A")[:35]
+                    mcap = stock.get("marketCapFormatted", "N/A")
+                    sector = stock.get("sector", "N/A")[:18]
 
-                    eps = stock.get('epsEstimated')
-                    eps_str = f"${eps:.2f}" if eps is not None else 'N/A'
+                    eps = stock.get("epsEstimated")
+                    eps_str = f"${eps:.2f}" if eps is not None else "N/A"
 
-                    rev = stock.get('revenueEstimated')
-                    rev_str = format_revenue(rev) if rev else 'N/A'
+                    rev = stock.get("revenueEstimated")
+                    rev_str = format_revenue(rev) if rev else "N/A"
 
-                    report += f"| {ticker} | {company} | {mcap} | {sector} | {eps_str} | {rev_str} |\n"
+                    report += (
+                        f"| {ticker} | {company} | {mcap} | {sector} | {eps_str} | {rev_str} |\n"
+                    )
 
                 if len(stocks) > 30:
                     report += f"\n*Showing top 30 of {len(stocks)} companies by market cap*\n"
@@ -252,22 +255,22 @@ def generate_report(earnings: List[Dict]) -> str:
     # Key observations
     report += "## Key Observations\n\n### Highest Market Cap Companies This Week\n"
     for i, stock in enumerate(top5, 1):
-        date_str = datetime.strptime(stock['date'], '%Y-%m-%d').strftime('%a')
-        company = stock.get('companyName', stock.get('symbol'))
-        ticker = stock.get('symbol', 'N/A')
-        mcap = stock.get('marketCapFormatted', 'N/A')
-        timing = stock.get('timing', 'TAS')
+        date_str = datetime.strptime(stock["date"], "%Y-%m-%d").strftime("%a")
+        company = stock.get("companyName", stock.get("symbol"))
+        ticker = stock.get("symbol", "N/A")
+        mcap = stock.get("marketCapFormatted", "N/A")
+        timing = stock.get("timing", "TAS")
         report += f"{i}. {company} ({ticker}) - {mcap} - {date_str} {timing}\n"
 
     report += "\n### Sector Distribution\n"
-    top_sectors = sorted(stats['sectors'].items(), key=lambda x: x[1], reverse=True)[:5]
+    top_sectors = sorted(stats["sectors"].items(), key=lambda x: x[1], reverse=True)[:5]
     for sector, count in top_sectors:
         report += f"- **{sector}**: {count} companies\n"
 
-    peak_day_name = get_day_name(stats['peak_date']).split(',')[0]
+    peak_day_name = get_day_name(stats["peak_date"]).split(",")[0]
     report += f"""
 ### Trading Considerations
-- **Peak Day**: {peak_day_name} with {stats['peak_count']} earnings announcements
+- **Peak Day**: {peak_day_name} with {stats["peak_count"]} earnings announcements
 - **Pre-Market Focus**: BMO announcements before 9:30 AM ET
 - **After-Hours Focus**: AMC announcements after 4:00 PM ET
 
@@ -319,15 +322,23 @@ def print_usage():
     print("", file=sys.stderr)
     print("Arguments:", file=sys.stderr)
     print("  INPUT_JSON   Path to earnings data JSON file (required)", file=sys.stderr)
-    print("  OUTPUT_FILE  Path to output markdown file (optional, defaults to stdout)", file=sys.stderr)
+    print(
+        "  OUTPUT_FILE  Path to output markdown file (optional, defaults to stdout)",
+        file=sys.stderr,
+    )
     print("", file=sys.stderr)
     print("Examples:", file=sys.stderr)
     print("  python generate_report.py earnings_data.json", file=sys.stderr)
     print("  python generate_report.py earnings_data.json earnings_calendar.md", file=sys.stderr)
     print("", file=sys.stderr)
     print("Input JSON format:", file=sys.stderr)
-    print("  Array of earnings objects with fields: symbol, companyName, date, timing,", file=sys.stderr)
-    print("  marketCap, marketCapFormatted, sector, epsEstimated, revenueEstimated", file=sys.stderr)
+    print(
+        "  Array of earnings objects with fields: symbol, companyName, date, timing,",
+        file=sys.stderr,
+    )
+    print(
+        "  marketCap, marketCapFormatted, sector, epsEstimated, revenueEstimated", file=sys.stderr
+    )
 
 
 def main():
@@ -355,7 +366,7 @@ def main():
     report = generate_report(earnings)
 
     if output_file:
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             f.write(report)
         print(f"✓ Report saved to: {output_file}", file=sys.stderr)
     else:

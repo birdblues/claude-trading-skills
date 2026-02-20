@@ -1,8 +1,6 @@
 """Tests for the composite scoring engine."""
 
-import pytest
-
-from scorer import calculate_composite_score, COMPONENT_WEIGHTS
+from scorer import COMPONENT_WEIGHTS, calculate_composite_score
 
 
 def _all_scores(value=50):
@@ -104,7 +102,7 @@ class TestWeightRedistribution:
     def test_component_scores_have_effective_weight(self):
         scores = _all_scores(50)
         result = calculate_composite_score(scores, _all_available())
-        for key, comp in result["component_scores"].items():
+        for _key, comp in result["component_scores"].items():
             assert "effective_weight" in comp
             assert "data_available" in comp
 

@@ -13,18 +13,18 @@ Sub-scores:
 """
 
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 from data_fetcher import build_summary_from_timeseries
 
-
 # Monty's official dashboard thresholds
-OVERBOUGHT_THRESHOLD = 0.37   # Upper threshold
-OVERSOLD_THRESHOLD = 0.097    # Lower threshold
+OVERBOUGHT_THRESHOLD = 0.37  # Upper threshold
+OVERSOLD_THRESHOLD = 0.097  # Lower threshold
 
 
-def calculate_sector_participation(sector_summary: List[Dict],
-                                   sector_timeseries: Dict[str, List[Dict]]) -> Dict:
+def calculate_sector_participation(
+    sector_summary: list[dict], sector_timeseries: dict[str, list[dict]]
+) -> dict:
     """
     Calculate sector participation score.
 
@@ -39,8 +39,7 @@ def calculate_sector_participation(sector_summary: List[Dict],
     if not sector_summary:
         if sector_timeseries:
             sector_summary = build_summary_from_timeseries(sector_timeseries)
-            print("  (fallback: built sector summary from timeseries data)",
-                  file=sys.stderr)
+            print("  (fallback: built sector summary from timeseries data)", file=sys.stderr)
         else:
             return {
                 "score": 50,
@@ -65,14 +64,10 @@ def calculate_sector_participation(sector_summary: List[Dict],
         }
 
     # Count sectors in uptrend
-    uptrend_count = sum(
-        1 for s in sector_summary
-        if s.get("Trend", "").lower() == "up"
-    )
+    uptrend_count = sum(1 for s in sector_summary if s.get("Trend", "").lower() == "up")
 
     # Get ratios for spread calculation
-    ratios = [s["Ratio"] for s in sector_summary
-              if s.get("Ratio") is not None]
+    ratios = [s["Ratio"] for s in sector_summary if s.get("Ratio") is not None]
 
     if ratios:
         max_ratio = max(ratios)
@@ -94,25 +89,31 @@ def calculate_sector_participation(sector_summary: List[Dict],
     score = round(min(100, max(0, raw_score)))
 
     # Identify overbought/oversold sectors
-    overbought = [s for s in sector_summary
-                  if s.get("Ratio") is not None and s["Ratio"] >= OVERBOUGHT_THRESHOLD]
-    oversold = [s for s in sector_summary
-                if s.get("Ratio") is not None and s["Ratio"] < OVERSOLD_THRESHOLD]
+    overbought = [
+        s
+        for s in sector_summary
+        if s.get("Ratio") is not None and s["Ratio"] >= OVERBOUGHT_THRESHOLD
+    ]
+    oversold = [
+        s for s in sector_summary if s.get("Ratio") is not None and s["Ratio"] < OVERSOLD_THRESHOLD
+    ]
 
     signal = _build_signal(score, uptrend_count, total_sectors, spread)
 
     # Build sector details sorted by ratio descending
     sector_details = []
     for s in sorted(sector_summary, key=lambda x: x.get("Ratio") or 0, reverse=True):
-        sector_details.append({
-            "sector": s.get("Sector", "Unknown"),
-            "ratio": s.get("Ratio"),
-            "ratio_pct": round(s["Ratio"] * 100, 1) if s.get("Ratio") is not None else None,
-            "ma_10": s.get("10MA"),
-            "trend": s.get("Trend", ""),
-            "slope": s.get("Slope"),
-            "status": s.get("Status", ""),
-        })
+        sector_details.append(
+            {
+                "sector": s.get("Sector", "Unknown"),
+                "ratio": s.get("Ratio"),
+                "ratio_pct": round(s["Ratio"] * 100, 1) if s.get("Ratio") is not None else None,
+                "ma_10": s.get("10MA"),
+                "trend": s.get("Trend", ""),
+                "slope": s.get("Slope"),
+                "status": s.get("Status", ""),
+            }
+        )
 
     return {
         "score": score,
@@ -182,23 +183,21 @@ def _score_spread(spread: float) -> float:
         return max(0, 30 - (spread - 0.45) / 0.10 * 30)
 
 
-def _build_signal(score: int, uptrend_count: int,
-                  total_sectors: int, spread: Optional[float]) -> str:
+def _build_signal(
+    score: int, uptrend_count: int, total_sectors: int, spread: Optional[float]
+) -> str:
     """Build human-readable signal."""
     spread_pct = f", spread {round(spread * 100, 1)}%" if spread is not None else ""
 
     if score >= 80:
-        return (f"BROAD PARTICIPATION: {uptrend_count}/{total_sectors} "
-                f"sectors uptrending{spread_pct}")
+        return (
+            f"BROAD PARTICIPATION: {uptrend_count}/{total_sectors} sectors uptrending{spread_pct}"
+        )
     elif score >= 60:
-        return (f"HEALTHY: {uptrend_count}/{total_sectors} "
-                f"sectors uptrending{spread_pct}")
+        return f"HEALTHY: {uptrend_count}/{total_sectors} sectors uptrending{spread_pct}"
     elif score >= 40:
-        return (f"MODERATE: {uptrend_count}/{total_sectors} "
-                f"sectors uptrending{spread_pct}")
+        return f"MODERATE: {uptrend_count}/{total_sectors} sectors uptrending{spread_pct}"
     elif score >= 20:
-        return (f"NARROW: {uptrend_count}/{total_sectors} "
-                f"sectors uptrending{spread_pct}")
+        return f"NARROW: {uptrend_count}/{total_sectors} sectors uptrending{spread_pct}"
     else:
-        return (f"VERY NARROW: {uptrend_count}/{total_sectors} "
-                f"sectors uptrending{spread_pct}")
+        return f"VERY NARROW: {uptrend_count}/{total_sectors} sectors uptrending{spread_pct}"

@@ -16,11 +16,9 @@ Note: This is a simplified version. For full portfolio tracking, use WhaleWisdom
 import argparse
 import os
 import sys
-from datetime import datetime
 
 print(
-    "ERROR: This script is not yet functional. "
-    "See below for alternative resources.",
+    "ERROR: This script is not yet functional. See below for alternative resources.",
     file=sys.stderr,
 )
 
@@ -74,26 +72,18 @@ Example for Berkshire's top holdings:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Track institutional investor portfolio changes (simplified)'
+        description="Track institutional investor portfolio changes (simplified)"
     )
 
     parser.add_argument(
-        '--cik',
-        type=str,
-        required=True,
-        help='Central Index Key of the institution'
+        "--cik", type=str, required=True, help="Central Index Key of the institution"
     )
+    parser.add_argument("--name", type=str, required=True, help="Institution name")
     parser.add_argument(
-        '--name',
+        "--api-key",
         type=str,
-        required=True,
-        help='Institution name'
-    )
-    parser.add_argument(
-        '--api-key',
-        type=str,
-        default=os.getenv('FMP_API_KEY'),
-        help='FMP API key (currently not used in simplified version)'
+        default=os.getenv("FMP_API_KEY"),
+        help="FMP API key (currently not used in simplified version)",
     )
 
     args = parser.parse_args()
@@ -103,12 +93,14 @@ def main():
     print()
     print("For detailed portfolio tracking, please use:")
     print(f"1. WhaleWisdom: https://whalewisdom.com/filer/{args.name.lower().replace(' ', '-')}")
-    print(f"2. SEC EDGAR: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={args.cik}&type=13F")
-    print(f"3. DataRoma: https://www.dataroma.com (if superinvestor)")
+    print(
+        f"2. SEC EDGAR: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={args.cik}&type=13F"
+    )
+    print("3. DataRoma: https://www.dataroma.com (if superinvestor)")
     print()
 
     return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -2,10 +2,10 @@
 
 import pytest
 from scorer import (
-    calculate_composite_score,
-    _interpret_zone,
-    _apply_warning_overlays,
     COMPONENT_WEIGHTS,
+    _apply_warning_overlays,
+    _interpret_zone,
+    calculate_composite_score,
 )
 
 
@@ -97,11 +97,11 @@ def test_zone_strong_bull_boundary():
 def test_composite_weighted_sum():
     """Verify weighted calculation with specific per-component scores."""
     scores = {
-        "market_breadth": 80,       # 80 * 0.30 = 24.0
-        "sector_participation": 60, # 60 * 0.25 = 15.0
-        "sector_rotation": 40,      # 40 * 0.15 = 6.0
-        "momentum": 70,             # 70 * 0.20 = 14.0
-        "historical_context": 50,   # 50 * 0.10 = 5.0
+        "market_breadth": 80,  # 80 * 0.30 = 24.0
+        "sector_participation": 60,  # 60 * 0.25 = 15.0
+        "sector_rotation": 40,  # 40 * 0.15 = 6.0
+        "momentum": 70,  # 70 * 0.20 = 14.0
+        "historical_context": 50,  # 50 * 0.10 = 5.0
     }
     # Expected composite: 24.0 + 15.0 + 6.0 + 14.0 + 5.0 = 64.0
     result = calculate_composite_score(scores)
@@ -160,9 +160,7 @@ def test_warning_high_spread():
 def test_warning_both_active():
     """Both flags active -> two warnings."""
     zone_info = _interpret_zone(85)
-    warnings, _ = _apply_warning_overlays(
-        zone_info, {"late_cycle": True, "high_spread": True}
-    )
+    warnings, _ = _apply_warning_overlays(zone_info, {"late_cycle": True, "high_spread": True})
     assert len(warnings) == 2
     flags = {w["flag"] for w in warnings}
     assert flags == {"late_cycle", "high_spread"}

@@ -8,9 +8,7 @@ All functions use FMP v3 field names: 'shares', 'change', 'holder'.
 The nonexistent fields 'totalShares' and 'totalInvested' are never referenced.
 """
 
-from typing import Dict, List
 import re
-
 
 # --- Known share-class groups for deduplication ---
 # Each tuple: (base_symbol_pattern, list_of_variants)
@@ -28,7 +26,7 @@ SHARE_CLASS_GROUPS = [
 ]
 
 
-def classify_holder(holder: Dict) -> str:
+def classify_holder(holder: dict) -> str:
     """Classify a holder record as genuine, new_full, exited, or unknown.
 
     Uses FMP v3 fields:
@@ -55,9 +53,7 @@ def classify_holder(holder: Dict) -> str:
     return "genuine"
 
 
-def calculate_coverage_ratio(
-    current_holders: List[Dict], previous_holders: List[Dict]
-) -> float:
+def calculate_coverage_ratio(current_holders: list[dict], previous_holders: list[dict]) -> float:
     """Calculate ratio of current to previous holder counts.
 
     A high ratio (e.g., 27x) indicates highly asymmetric data where
@@ -75,9 +71,7 @@ def calculate_coverage_ratio(
     return current_count / previous_count
 
 
-def calculate_match_ratio(
-    current_holders: List[Dict], previous_holders: List[Dict]
-) -> float:
+def calculate_match_ratio(current_holders: list[dict], previous_holders: list[dict]) -> float:
     """Calculate fraction of current holders that also appear in previous quarter.
 
     Uses the 'holder' field (institution name) for matching.
@@ -95,7 +89,7 @@ def calculate_match_ratio(
     return len(matched) / len(current_names)
 
 
-def calculate_filtered_metrics(holders: List[Dict]) -> Dict:
+def calculate_filtered_metrics(holders: list[dict]) -> dict:
     """Calculate ownership metrics using only genuine holders.
 
     Filters out new_full and exited holders to avoid inflated
@@ -135,9 +129,7 @@ def calculate_filtered_metrics(holders: List[Dict]) -> Dict:
     }
 
 
-def reliability_grade(
-    coverage_ratio: float, match_ratio: float, genuine_ratio: float
-) -> str:
+def reliability_grade(coverage_ratio: float, match_ratio: float, genuine_ratio: float) -> str:
     """Determine data reliability grade based on quality metrics.
 
     Grades:
@@ -155,7 +147,7 @@ def reliability_grade(
     return "C"
 
 
-def is_tradable_stock(profile: Dict) -> bool:
+def is_tradable_stock(profile: dict) -> bool:
     """Check if a stock profile represents a tradable common stock.
 
     Excludes:
@@ -185,7 +177,7 @@ def _get_share_class_group(symbol: str) -> str:
     return ""
 
 
-def deduplicate_share_classes(results: List[Dict]) -> List[Dict]:
+def deduplicate_share_classes(results: list[dict]) -> list[dict]:
     """Remove duplicate share class entries, keeping the one with higher market_cap.
 
     Known share class groups: BRK-A/B, GOOG/GOOGL, PBR/PBR-A, etc.
@@ -200,7 +192,7 @@ def deduplicate_share_classes(results: List[Dict]) -> List[Dict]:
         return []
 
     # Group by share class
-    groups: Dict[str, List[int]] = {}
+    groups: dict[str, list[int]] = {}
     for i, r in enumerate(results):
         group = _get_share_class_group(r.get("symbol", ""))
         if group:
@@ -208,7 +200,7 @@ def deduplicate_share_classes(results: List[Dict]) -> List[Dict]:
 
     # Find indices to remove (keep the one with highest market_cap)
     remove_indices = set()
-    for group_key, indices in groups.items():
+    for _group_key, indices in groups.items():
         if len(indices) <= 1:
             continue
         # Keep the one with highest market_cap

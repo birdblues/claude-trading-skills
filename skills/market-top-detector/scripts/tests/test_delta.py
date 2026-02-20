@@ -4,7 +4,7 @@ import json
 import os
 import tempfile
 
-from market_top_detector import _load_previous_report, _compute_deltas
+from market_top_detector import _compute_deltas, _load_previous_report
 
 
 class TestLoadPreviousReport:
@@ -20,7 +20,7 @@ class TestLoadPreviousReport:
             # Create two report files
             for ts in ["2026-02-18_100000", "2026-02-19_100000"]:
                 path = os.path.join(tmpdir, f"market_top_{ts}.json")
-                with open(path, 'w') as f:
+                with open(path, "w") as f:
                     json.dump({"timestamp": ts}, f)
             result = _load_previous_report(tmpdir)
             assert result["timestamp"] == "2026-02-19_100000"
@@ -28,7 +28,7 @@ class TestLoadPreviousReport:
     def test_invalid_json_returns_none(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "market_top_2026-02-19_100000.json")
-            with open(path, 'w') as f:
+            with open(path, "w") as f:
                 f.write("not json")
             result = _load_previous_report(tmpdir)
             assert result is None
@@ -38,18 +38,28 @@ class TestComputeDeltas:
     """Test delta computation."""
 
     def test_no_previous_all_first_run(self):
-        scores = {"distribution_days": 50, "leading_stocks": 40,
-                  "defensive_rotation": 30, "breadth_divergence": 20,
-                  "index_technical": 10, "sentiment": 5}
+        scores = {
+            "distribution_days": 50,
+            "leading_stocks": 40,
+            "defensive_rotation": 30,
+            "breadth_divergence": 20,
+            "index_technical": 10,
+            "sentiment": 5,
+        }
         result = _compute_deltas(scores, None)
-        for key, info in result["components"].items():
+        for _key, info in result["components"].items():
             assert info["direction"] == "first_run"
         assert result["composite_direction"] == "first_run"
 
     def test_worsening_detected(self):
-        scores = {"distribution_days": 80, "leading_stocks": 50,
-                  "defensive_rotation": 50, "breadth_divergence": 50,
-                  "index_technical": 50, "sentiment": 50}
+        scores = {
+            "distribution_days": 80,
+            "leading_stocks": 50,
+            "defensive_rotation": 50,
+            "breadth_divergence": 50,
+            "index_technical": 50,
+            "sentiment": 50,
+        }
         prev = {
             "components": {
                 "distribution_days": {"score": 60},
@@ -67,9 +77,14 @@ class TestComputeDeltas:
         assert result["components"]["distribution_days"]["delta"] == 20
 
     def test_improving_detected(self):
-        scores = {"distribution_days": 30, "leading_stocks": 50,
-                  "defensive_rotation": 50, "breadth_divergence": 50,
-                  "index_technical": 50, "sentiment": 50}
+        scores = {
+            "distribution_days": 30,
+            "leading_stocks": 50,
+            "defensive_rotation": 50,
+            "breadth_divergence": 50,
+            "index_technical": 50,
+            "sentiment": 50,
+        }
         prev = {
             "components": {
                 "distribution_days": {"score": 60},
@@ -87,9 +102,14 @@ class TestComputeDeltas:
         assert result["components"]["distribution_days"]["delta"] == -30
 
     def test_stable_within_3(self):
-        scores = {"distribution_days": 52, "leading_stocks": 50,
-                  "defensive_rotation": 50, "breadth_divergence": 50,
-                  "index_technical": 50, "sentiment": 50}
+        scores = {
+            "distribution_days": 52,
+            "leading_stocks": 50,
+            "defensive_rotation": 50,
+            "breadth_divergence": 50,
+            "index_technical": 50,
+            "sentiment": 50,
+        }
         prev = {
             "components": {
                 "distribution_days": {"score": 50},

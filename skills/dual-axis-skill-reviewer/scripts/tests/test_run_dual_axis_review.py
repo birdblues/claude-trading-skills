@@ -255,7 +255,13 @@ def test_to_markdown_contains_combined_sections(reviewer_module):
             "score": 75,
             "weights": {"auto_weight": 0.5, "llm_weight": 0.5},
             "findings": [
-                {"axis": "auto", "severity": "medium", "path": "skills/x-skill/SKILL.md", "line": 3, "message": "m"}
+                {
+                    "axis": "auto",
+                    "severity": "medium",
+                    "path": "skills/x-skill/SKILL.md",
+                    "line": 3,
+                    "message": "m",
+                }
             ],
             "improvements_required": True,
             "improvement_items": ["m -> fix"],
@@ -388,7 +394,9 @@ def test_api_key_score_exempt_when_no_api_reference(reviewer_module, tmp_path: P
     assert not any("API key" in m for m in messages), f"Unexpected API key finding: {messages}"
 
 
-def test_domain_specific_workflow_and_reference_headings_are_recognized(reviewer_module, tmp_path: Path):
+def test_domain_specific_workflow_and_reference_headings_are_recognized(
+    reviewer_module, tmp_path: Path
+):
     project_root = tmp_path
     skill_dir = project_root / "skills" / "knowledge-workflow"
     skill_md = skill_dir / "SKILL.md"
@@ -422,7 +430,9 @@ def test_domain_specific_workflow_and_reference_headings_are_recognized(reviewer
     assert "Missing section: `## Resources`." not in messages
 
 
-def test_knowledge_only_skill_not_penalized_for_no_scripts_or_tests(reviewer_module, tmp_path: Path):
+def test_knowledge_only_skill_not_penalized_for_no_scripts_or_tests(
+    reviewer_module, tmp_path: Path
+):
     project_root = tmp_path
     skill_dir = project_root / "skills" / "knowledge-only"
     skill_md = skill_dir / "SKILL.md"
@@ -466,7 +476,9 @@ def test_knowledge_only_skill_not_penalized_for_no_scripts_or_tests(reviewer_mod
 def test_combine_reviews_boundary_at_90_no_improvement(reviewer_module):
     auto = {
         "score": 90,
-        "findings": [{"severity": "low", "message": "x", "improvement": "y", "path": "a", "line": None}],
+        "findings": [
+            {"severity": "low", "message": "x", "improvement": "y", "path": "a", "line": None}
+        ],
     }
     merged = reviewer_module.combine_reviews(auto, None, auto_weight=1.0, llm_weight=0.0)
     assert merged["score"] == 90

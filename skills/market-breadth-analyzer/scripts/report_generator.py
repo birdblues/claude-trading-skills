@@ -6,17 +6,16 @@ Generates JSON and Markdown reports for market breadth health analysis.
 """
 
 import json
-from typing import Dict
 
 
-def generate_json_report(analysis: Dict, output_file: str):
+def generate_json_report(analysis: dict, output_file: str):
     """Save full analysis as JSON."""
     with open(output_file, "w") as f:
         json.dump(analysis, f, indent=2, default=str)
     print(f"  JSON report saved to: {output_file}")
 
 
-def generate_markdown_report(analysis: Dict, output_file: str):
+def generate_markdown_report(analysis: dict, output_file: str):
     """Generate comprehensive Markdown report."""
     lines = []
     composite = analysis.get("composite", {})
@@ -32,15 +31,15 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("# Market Breadth Analyzer Report")
     lines.append("")
     lines.append(f"**Generated:** {metadata.get('generated_at', 'N/A')}")
-    lines.append(f"**Data Source:** TraderMonty Market Breadth CSV (no API key required)")
+    lines.append("**Data Source:** TraderMonty Market Breadth CSV (no API key required)")
     latest = freshness.get("latest_date", "N/A")
     days_old = freshness.get("days_old", "?")
     last_modified = freshness.get("last_modified")
     lm_str = f" | CSV last modified: {last_modified}" if last_modified else ""
     lines.append(f"**Latest Data:** {latest} ({days_old} days old{lm_str})")
     lines.append(
-        f"**Live Dashboard:** [Interactive Chart]"
-        f"(https://tradermonty.github.io/market-breadth-analysis/)"
+        "**Live Dashboard:** [Interactive Chart]"
+        "(https://tradermonty.github.io/market-breadth-analysis/)"
     )
     lines.append("")
 
@@ -91,12 +90,8 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
     lines.append("## Component Scores")
     lines.append("")
-    lines.append(
-        "| # | Component | Weight | Eff. Weight | Score | Contribution | Signal |"
-    )
-    lines.append(
-        "|---|-----------|--------|-------------|-------|--------------|--------|"
-    )
+    lines.append("| # | Component | Weight | Eff. Weight | Score | Contribution | Signal |")
+    lines.append("|---|-----------|--------|-------------|-------|--------------|--------|")
 
     component_order = [
         "breadth_level_trend",
@@ -153,15 +148,11 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     if c1:
         lines.append(f"- **8MA Level:** {c1.get('current_8ma', 0):.4f}")
         lines.append(f"- **200MA Level:** {c1.get('current_200ma', 0):.4f}")
-        lines.append(
-            f"- **200MA Trend:** {'Uptrend' if c1.get('trend') == 1 else 'Downtrend'}"
-        )
+        lines.append(f"- **200MA Trend:** {'Uptrend' if c1.get('trend') == 1 else 'Downtrend'}")
         lines.append(f"- **Level Score:** {c1.get('level_score', 'N/A')}")
         lines.append(f"- **Trend Score:** {c1.get('trend_score', 'N/A')}")
         if c1.get("ma8_direction"):
-            lines.append(
-                f"- **8MA Direction (5d):** {c1['ma8_direction']}"
-            )
+            lines.append(f"- **8MA Direction (5d):** {c1['ma8_direction']}")
             modifier = c1.get("direction_modifier", 0)
             if modifier != 0:
                 lines.append(f"- **Direction Modifier:** {modifier:+d}")
@@ -174,12 +165,8 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     if c2:
         lines.append(f"- **Gap (8MA - 200MA):** {c2.get('gap', 0):+.4f}")
         lines.append(f"- **Gap Score:** {c2.get('gap_score', 'N/A')}")
-        lines.append(
-            f"- **8MA Direction (5d):** {c2.get('ma8_direction', 'N/A')}"
-        )
-        lines.append(
-            f"- **Direction Modifier:** {c2.get('direction_modifier', 0):+d}"
-        )
+        lines.append(f"- **8MA Direction (5d):** {c2.get('ma8_direction', 'N/A')}")
+        lines.append(f"- **Direction Modifier:** {c2.get('direction_modifier', 0):+d}")
     lines.append("")
 
     # C3: Cycle Position
@@ -199,12 +186,8 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("### 4. Bearish Signal Status")
     lines.append("")
     if c4:
-        lines.append(
-            f"- **Bearish Signal Active:** {'YES' if c4.get('signal_active') else 'No'}"
-        )
-        lines.append(
-            f"- **200MA Trend:** {'Uptrend' if c4.get('trend') == 1 else 'Downtrend'}"
-        )
+        lines.append(f"- **Bearish Signal Active:** {'YES' if c4.get('signal_active') else 'No'}")
+        lines.append(f"- **200MA Trend:** {'Uptrend' if c4.get('trend') == 1 else 'Downtrend'}")
         lines.append(f"- **Current 8MA:** {c4.get('current_8ma', 0):.4f}")
         in_pink = c4.get("in_pink_zone", False)
         pink_days = c4.get("pink_zone_days", 0)
@@ -216,9 +199,7 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         else:
             lines.append("- **Pink Zone:** No (outside bearish region)")
         lines.append(f"- **Base Score:** {c4.get('base_score', 'N/A')}")
-        lines.append(
-            f"- **Context Adjustment:** {c4.get('context_adjustment', 0):+d}"
-        )
+        lines.append(f"- **Context Adjustment:** {c4.get('context_adjustment', 0):+d}")
         pink_adj = c4.get("pink_zone_adjustment", 0)
         if pink_adj != 0:
             lines.append(f"- **Pink Zone Adjustment:** {pink_adj:+d}")
@@ -230,9 +211,7 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("")
     if c5:
         lines.append(f"- **Current 8MA:** {c5.get('current_8ma', 0):.4f}")
-        lines.append(
-            f"- **Percentile Rank:** {c5.get('percentile_rank', 'N/A'):.1f}%"
-        )
+        lines.append(f"- **Percentile Rank:** {c5.get('percentile_rank', 'N/A'):.1f}%")
         lines.append(f"- **Avg Peak (200MA):** {c5.get('avg_peak', 'N/A')}")
         lines.append(f"- **Avg Trough (8MA<0.4):** {c5.get('avg_trough', 'N/A')}")
         adj = c5.get("adjustment", 0)
@@ -246,12 +225,8 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     lines.append("### 6. S&P 500 vs Breadth Divergence")
     lines.append("")
     if c6:
-        lines.append(
-            f"- **S&P 500 60d Change:** {c6.get('sp500_pct_change', 0):+.2f}%"
-        )
-        lines.append(
-            f"- **Breadth 8MA 60d Change:** {c6.get('breadth_change', 0):+.4f}"
-        )
+        lines.append(f"- **S&P 500 60d Change:** {c6.get('sp500_pct_change', 0):+.2f}%")
+        lines.append(f"- **Breadth 8MA 60d Change:** {c6.get('breadth_change', 0):+.4f}")
         lines.append(f"- **Divergence Type:** {c6.get('divergence_type', 'N/A')}")
 
         # Dual-window details (new)
@@ -288,24 +263,18 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         lines.append("## Score Trend")
         lines.append("")
         if len(entries) == 1:
-            lines.append(
-                "**Direction:** N/A (single observation "
-                "— trend requires 2+ data points)"
-            )
+            lines.append("**Direction:** N/A (single observation — trend requires 2+ data points)")
         else:
             direction = trend_summary["direction"].capitalize()
             delta = trend_summary["delta"]
             lines.append(
-                f"**Direction:** {direction} ({delta:+.1f} over "
-                f"{len(entries)} observations)"
+                f"**Direction:** {direction} ({delta:+.1f} over {len(entries)} observations)"
             )
             lines.append("")
             lines.append("| Date | Score |")
             lines.append("|------|-------|")
             for entry in entries:
-                lines.append(
-                    f"| {entry['data_date']} | {entry['composite_score']:.1f} |"
-                )
+                lines.append(f"| {entry['data_date']} | {entry['composite_score']:.1f} |")
         lines.append("")
 
     # Key Levels to Watch
@@ -337,12 +306,8 @@ def generate_markdown_report(analysis: Dict, output_file: str):
     for action in composite.get("actions", []):
         lines.append(f"- {action}")
     # Inject cautionary actions when 8MA is falling
-    c1_mod_act = components.get("breadth_level_trend", {}).get(
-        "direction_modifier", 0
-    )
-    c2_mod_act = components.get("ma_crossover", {}).get(
-        "direction_modifier", 0
-    )
+    c1_mod_act = components.get("breadth_level_trend", {}).get("direction_modifier", 0)
+    c2_mod_act = components.get("ma_crossover", {}).get("direction_modifier", 0)
     if c1_mod_act < 0 or c2_mod_act < 0:
         lines.append("- Reduce new position sizes until 8MA stabilizes")
         lines.append("- Tighten stop-loss levels on existing positions")
@@ -358,33 +323,19 @@ def generate_markdown_report(analysis: Dict, output_file: str):
         "market participation health across 6 dimensions:"
     )
     lines.append("")
-    lines.append(
-        "1. **Breadth Level & Trend (25%):** Current 8MA level and 200MA trend direction"
-    )
-    lines.append(
-        "2. **MA Crossover (20%):** Gap between 8MA and 200MA with momentum detection"
-    )
-    lines.append(
-        "3. **Cycle Position (20%):** Position relative to recent peaks/troughs"
-    )
-    lines.append(
-        "4. **Bearish Signal (15%):** Backtested bearish signal flag from dataset"
-    )
-    lines.append(
-        "5. **Historical Percentile (10%):** Current level vs full history distribution"
-    )
-    lines.append(
-        "6. **Divergence (10%):** S&P 500 price vs breadth directional agreement"
-    )
+    lines.append("1. **Breadth Level & Trend (25%):** Current 8MA level and 200MA trend direction")
+    lines.append("2. **MA Crossover (20%):** Gap between 8MA and 200MA with momentum detection")
+    lines.append("3. **Cycle Position (20%):** Position relative to recent peaks/troughs")
+    lines.append("4. **Bearish Signal (15%):** Backtested bearish signal flag from dataset")
+    lines.append("5. **Historical Percentile (10%):** Current level vs full history distribution")
+    lines.append("6. **Divergence (10%):** S&P 500 price vs breadth directional agreement")
     lines.append("")
     lines.append(
         "Composite score: 0-100 (100 = maximum health). "
         "No API key required - uses freely available CSV data."
     )
     lines.append("")
-    lines.append(
-        "For detailed methodology, see `references/breadth_analysis_methodology.md`."
-    )
+    lines.append("For detailed methodology, see `references/breadth_analysis_methodology.md`.")
     lines.append("")
 
     # Disclaimer

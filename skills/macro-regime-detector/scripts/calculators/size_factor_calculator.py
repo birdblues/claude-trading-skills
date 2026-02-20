@@ -13,21 +13,19 @@ Transition signals:
 - IWM/SPY turning down = flight to quality, narrowing leadership
 """
 
-from typing import Dict, List, Optional
 from .utils import (
-    downsample_to_monthly,
     calculate_ratio,
+    compute_percentile,
+    compute_roc,
     compute_sma,
     detect_crossover,
-    compute_roc,
-    compute_percentile,
-    score_transition_signal,
     determine_direction,
+    downsample_to_monthly,
+    score_transition_signal,
 )
 
 
-def calculate_size_factor(iwm_history: List[Dict],
-                          spy_history: List[Dict]) -> Dict:
+def calculate_size_factor(iwm_history: list[dict], spy_history: list[dict]) -> dict:
     """
     Calculate size factor transition signal from IWM/SPY ratio.
 
@@ -72,8 +70,10 @@ def calculate_size_factor(iwm_history: List[Dict],
 
     # Direction
     direction, momentum_qualifier = determine_direction(
-        crossover, roc_3m,
-        positive_label="small_cap_leading", negative_label="large_cap_leading",
+        crossover,
+        roc_3m,
+        positive_label="small_cap_leading",
+        negative_label="large_cap_leading",
         neutral_label="neutral",
     )
 
@@ -113,7 +113,7 @@ def _describe_signal(score: int, direction: str, ratio: float) -> str:
         return f"STABLE: Size factor stable, {label} (IWM/SPY={ratio:.4f})"
 
 
-def _insufficient_data(reason: str) -> Dict:
+def _insufficient_data(reason: str) -> dict:
     return {
         "score": 0,
         "signal": f"INSUFFICIENT DATA: {reason}",

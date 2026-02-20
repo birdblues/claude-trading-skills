@@ -24,22 +24,22 @@ import argparse
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fmp_client import FMPClient
-from calculators.trend_template_calculator import calculate_trend_template
-from calculators.vcp_pattern_calculator import calculate_vcp_pattern
-from calculators.volume_pattern_calculator import calculate_volume_pattern
 from calculators.pivot_proximity_calculator import calculate_pivot_proximity
 from calculators.relative_strength_calculator import (
     calculate_relative_strength,
     rank_relative_strength_universe,
 )
-from scorer import calculate_composite_score
+from calculators.trend_template_calculator import calculate_trend_template
+from calculators.vcp_pattern_calculator import calculate_vcp_pattern
+from calculators.volume_pattern_calculator import calculate_volume_pattern
+from fmp_client import FMPClient
 from report_generator import generate_json_report, generate_markdown_report
+from scorer import calculate_composite_score
 
 
 def parse_arguments():
@@ -48,58 +48,63 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--api-key",
-        help="FMP API key (defaults to FMP_API_KEY environment variable)"
+        "--api-key", help="FMP API key (defaults to FMP_API_KEY environment variable)"
     )
     parser.add_argument(
-        "--max-candidates", type=int, default=100,
-        help="Max stocks for full VCP analysis after pre-filter (default: 100)"
+        "--max-candidates",
+        type=int,
+        default=100,
+        help="Max stocks for full VCP analysis after pre-filter (default: 100)",
     )
     parser.add_argument(
-        "--top", type=int, default=20,
-        help="Top results to include in report (default: 20)"
+        "--top", type=int, default=20, help="Top results to include in report (default: 20)"
+    )
+    parser.add_argument("--output-dir", default=".", help="Output directory for reports")
+    parser.add_argument(
+        "--universe", nargs="+", help="Custom symbols to screen (overrides S&P 500)"
     )
     parser.add_argument(
-        "--output-dir", default=".",
-        help="Output directory for reports"
+        "--full-sp500",
+        action="store_true",
+        help="Screen all S&P 500 stocks (requires paid API tier, ~350 calls)",
     )
     parser.add_argument(
-        "--universe", nargs="+",
-        help="Custom symbols to screen (overrides S&P 500)"
+        "--mode",
+        choices=["all", "prebreakout"],
+        default="all",
+        help="Output mode: 'all' shows everything, 'prebreakout' shows entry_ready only (default: all)",
     )
     parser.add_argument(
-        "--full-sp500", action="store_true",
-        help="Screen all S&P 500 stocks (requires paid API tier, ~350 calls)"
+        "--max-above-pivot",
+        type=float,
+        default=3.0,
+        help="Max %% above pivot for entry_ready (default: 3.0)",
     )
     parser.add_argument(
-        "--mode", choices=["all", "prebreakout"], default="all",
-        help="Output mode: 'all' shows everything, 'prebreakout' shows entry_ready only (default: all)"
+        "--max-risk", type=float, default=15.0, help="Max risk %% for entry_ready (default: 15.0)"
     )
     parser.add_argument(
-        "--max-above-pivot", type=float, default=3.0,
-        help="Max %% above pivot for entry_ready (default: 3.0)"
+        "--no-require-valid-vcp",
+        action="store_true",
+        help="Do not require valid_vcp=True for entry_ready",
     )
     parser.add_argument(
-        "--max-risk", type=float, default=15.0,
-        help="Max risk %% for entry_ready (default: 15.0)"
+        "--min-atr-pct",
+        type=float,
+        default=1.0,
+        help="Min avg daily range %% to exclude stale/acquired stocks (default: 1.0)",
     )
     parser.add_argument(
-        "--no-require-valid-vcp", action="store_true",
-        help="Do not require valid_vcp=True for entry_ready"
-    )
-    parser.add_argument(
-        "--min-atr-pct", type=float, default=1.0,
-        help="Min avg daily range %% to exclude stale/acquired stocks (default: 1.0)"
-    )
-    parser.add_argument(
-        "--ext-threshold", type=float, default=8.0,
-        help="SMA50 distance %% where extended penalty starts (default: 8.0)"
+        "--ext-threshold",
+        type=float,
+        default=8.0,
+        help="SMA50 distance %% where extended penalty starts (default: 8.0)",
     )
 
     return parser.parse_args()
 
 
-def pre_filter_stock(quote: Dict) -> tuple:
+def pre_filter_stock(quote: dict) -> tuple:
     """
     Cheap pre-filter using quote data only.
 
@@ -145,13 +150,13 @@ def pre_filter_stock(quote: Dict) -> tuple:
 
 def analyze_stock(
     symbol: str,
-    historical: List[Dict],
-    quote: Dict,
-    sp500_history: List[Dict],
+    historical: list[dict],
+    quote: dict,
+    sp500_history: list[dict],
     sector: str = "Unknown",
     company_name: str = "",
     ext_threshold: float = 8.0,
-) -> Optional[Dict]:
+) -> Optional[dict]:
     """
     Full VCP analysis for a single stock (Phase 3).
     No additional API calls needed - uses pre-fetched data.
@@ -174,7 +179,8 @@ def analyze_stock(
     # 4. Volume Pattern
     pivot_price = vcp_result.get("pivot_price")
     vol_result = calculate_volume_pattern(
-        historical, pivot_price=pivot_price,
+        historical,
+        pivot_price=pivot_price,
         contractions=vcp_result.get("contractions"),
     )
 
@@ -227,7 +233,7 @@ def analyze_stock(
 
 
 def is_stale_price(
-    historical: List[Dict],
+    historical: list[dict],
     lookback: int = 10,
     threshold: float = 1.0,
 ) -> bool:
@@ -261,7 +267,7 @@ def is_stale_price(
 
 
 def compute_entry_ready(
-    result: Dict,
+    result: dict,
     max_above_pivot: float = 3.0,
     max_risk: float = 15.0,
     require_valid_vcp: bool = True,
@@ -296,8 +302,7 @@ def main():
     args = parse_arguments()
 
     if not (0 < args.ext_threshold < 50):
-        print("ERROR: --ext-threshold must be between 0 and 50 (exclusive)",
-              file=sys.stderr)
+        print("ERROR: --ext-threshold must be between 0 and 50 (exclusive)", file=sys.stderr)
         sys.exit(1)
 
     print("=" * 70)
@@ -346,12 +351,12 @@ def main():
             name_map[c["symbol"]] = c.get("name", c["symbol"])
 
     # Batch fetch quotes
-    print(f"  Fetching quotes...", end=" ", flush=True)
+    print("  Fetching quotes...", end=" ", flush=True)
     all_quotes = client.get_batch_quotes(symbols)
     print(f"OK ({len(all_quotes)} quotes)")
 
     # Apply pre-filter
-    print(f"  Applying pre-filter...", end=" ", flush=True)
+    print("  Applying pre-filter...", end=" ", flush=True)
     pre_filtered = []
     for sym in symbols:
         quote = all_quotes.get(sym)
@@ -393,11 +398,11 @@ def main():
         if (i + 1) % 20 == 0 or i == len(candidate_symbols) - 1:
             print(f"    Progress: {i + 1}/{len(candidate_symbols)}", flush=True)
         data = client.get_historical_prices(sym, days=260)
-        if data and 'historical' in data:
-            candidate_histories[sym] = data['historical']
+        if data and "historical" in data:
+            candidate_histories[sym] = data["historical"]
 
     # Apply Trend Template filter
-    print(f"  Applying 7-point Trend Template...", end=" ", flush=True)
+    print("  Applying 7-point Trend Template...", end=" ", flush=True)
     trend_passed = []
 
     for sym, likelihood, quote in candidates:
@@ -443,7 +448,12 @@ def main():
 
         print(f"  Analyzing {sym}...", end=" ", flush=True)
         analysis = analyze_stock(
-            sym, hist, quote, sp500_history, sector, name,
+            sym,
+            hist,
+            quote,
+            sp500_history,
+            sector,
+            name,
             ext_threshold=args.ext_threshold,
         )
 
@@ -526,7 +536,7 @@ def main():
         "api_stats": api_stats,
     }
 
-    top_results = results[:args.top]
+    top_results = results[: args.top]
 
     generate_json_report(top_results, metadata, json_file, all_results=results)
     generate_markdown_report(top_results, metadata, md_file, all_results=results)
@@ -546,8 +556,10 @@ def main():
         for i, s in enumerate(results[:5], 1):
             pivot = s.get("vcp_pattern", {}).get("pivot_price")
             pivot_str = f"Pivot: ${pivot:.2f}" if pivot else ""
-            print(f"  {i}. {s['symbol']:6} Score: {s['composite_score']:5.1f} "
-                  f"({s['rating']}) {pivot_str}")
+            print(
+                f"  {i}. {s['symbol']:6} Score: {s['composite_score']:5.1f} "
+                f"({s['rating']}) {pivot_str}"
+            )
     else:
         print()
         print("  No VCP candidates found in this screening run.")
@@ -556,7 +568,7 @@ def main():
     print(f"  JSON Report:    {json_file}")
     print(f"  Markdown Report: {md_file}")
     print()
-    print(f"API Usage:")
+    print("API Usage:")
     print(f"  API calls made: {api_stats['api_calls_made']}")
     print(f"  Cache entries:  {api_stats['cache_entries']}")
     print()

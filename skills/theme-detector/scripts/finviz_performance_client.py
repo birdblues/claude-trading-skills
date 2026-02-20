@@ -10,11 +10,11 @@ Data Source: finvizfinance.group.performance
 
 import math
 import sys
-from typing import Dict, List, Optional
-
+from typing import Optional
 
 try:
     from finvizfinance.group import performance as fvperf
+
     HAS_FINVIZFINANCE = True
 except ImportError:
     HAS_FINVIZFINANCE = False
@@ -57,6 +57,7 @@ def _parse_perf_value(val) -> Optional[float]:
         return None
     try:
         import math
+
         if isinstance(val, float) and math.isnan(val):
             return None
     except (TypeError, ValueError):
@@ -81,7 +82,7 @@ def _parse_perf_value(val) -> Optional[float]:
     return None
 
 
-def _dataframe_to_dicts(df) -> List[Dict]:
+def _dataframe_to_dicts(df) -> list[dict]:
     """Convert a finvizfinance DataFrame to standardized list of dicts."""
     rows = []
     for _, row in df.iterrows():
@@ -100,7 +101,7 @@ def _dataframe_to_dicts(df) -> List[Dict]:
     return rows
 
 
-def _apply_hard_caps(industries: List[Dict]) -> List[Dict]:
+def _apply_hard_caps(industries: list[dict]) -> list[dict]:
     """Apply absolute hard caps to performance values.
 
     Caps each perf_* field to ±HARD_CAPS[key]. Original values are saved in
@@ -126,8 +127,7 @@ def _apply_hard_caps(industries: List[Dict]) -> List[Dict]:
     return industries
 
 
-def cap_outlier_performances(industries: List[Dict],
-                              z_threshold: float = 3.0) -> List[Dict]:
+def cap_outlier_performances(industries: list[dict], z_threshold: float = 3.0) -> list[dict]:
     """Winsorize performance values exceeding z_threshold standard deviations.
 
     For each perf_* field, computes mean and std across all industries,
@@ -180,7 +180,7 @@ def cap_outlier_performances(industries: List[Dict],
     return industries
 
 
-def get_sector_performance() -> List[Dict]:
+def get_sector_performance() -> list[dict]:
     """Fetch sector-level performance data from FINVIZ.
 
     Returns:
@@ -189,8 +189,10 @@ def get_sector_performance() -> List[Dict]:
         form (e.g., 0.05 = 5%).
     """
     if not HAS_FINVIZFINANCE:
-        print("WARNING: finvizfinance not installed. "
-              "Install with: pip install finvizfinance", file=sys.stderr)
+        print(
+            "WARNING: finvizfinance not installed. Install with: pip install finvizfinance",
+            file=sys.stderr,
+        )
         return []
 
     try:
@@ -198,12 +200,11 @@ def get_sector_performance() -> List[Dict]:
         df = perf.screener_view(group="Sector")
         return _dataframe_to_dicts(df)
     except Exception as e:
-        print(f"WARNING: Failed to fetch sector performance: {e}",
-              file=sys.stderr)
+        print(f"WARNING: Failed to fetch sector performance: {e}", file=sys.stderr)
         return []
 
 
-def get_industry_performance() -> List[Dict]:
+def get_industry_performance() -> list[dict]:
     """Fetch industry-level performance data from FINVIZ.
 
     Returns:
@@ -211,8 +212,10 @@ def get_industry_performance() -> List[Dict]:
         Typically 140+ industries.
     """
     if not HAS_FINVIZFINANCE:
-        print("WARNING: finvizfinance not installed. "
-              "Install with: pip install finvizfinance", file=sys.stderr)
+        print(
+            "WARNING: finvizfinance not installed. Install with: pip install finvizfinance",
+            file=sys.stderr,
+        )
         return []
 
     try:
@@ -220,6 +223,5 @@ def get_industry_performance() -> List[Dict]:
         df = perf.screener_view(group="Industry")
         return _dataframe_to_dicts(df)
     except Exception as e:
-        print(f"WARNING: Failed to fetch industry performance: {e}",
-              file=sys.stderr)
+        print(f"WARNING: Failed to fetch industry performance: {e}", file=sys.stderr)
         return []

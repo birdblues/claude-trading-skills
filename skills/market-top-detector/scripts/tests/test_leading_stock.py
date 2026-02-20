@@ -1,11 +1,11 @@
 """Tests for Leading Stock Calculator"""
 
 from calculators.leading_stock_calculator import (
+    CANDIDATE_POOL,
+    DEFAULT_LEADING_ETFS,
     _evaluate_etf,
     calculate_leading_stock_health,
     select_dynamic_basket,
-    DEFAULT_LEADING_ETFS,
-    CANDIDATE_POOL,
 )
 
 
@@ -83,8 +83,12 @@ class TestFetchSuccessRate:
     def test_below_threshold_marks_unavailable(self):
         """Below 75% success rate -> data_available=False."""
         # quotes has 4 keys but only 2 have actual data
-        quotes = {"A": {"price": 100, "yearHigh": 102, "yearLow": 80},
-                  "B": None, "C": None, "D": None}
+        quotes = {
+            "A": {"price": 100, "yearHigh": 102, "yearLow": 80},
+            "B": None,
+            "C": None,
+            "D": None,
+        }
         historical = {"A": [{"close": 100, "volume": 1000000} for _ in range(60)]}
         result = calculate_leading_stock_health(quotes, historical)
         # 1 success out of 4 = 0.25 < 0.75
@@ -146,7 +150,9 @@ class TestBasketModeInResult:
         """Passing DEFAULT_LEADING_ETFS as etf_list -> static mode."""
         quotes = {"A": {"price": 100, "yearHigh": 102, "yearLow": 80}}
         historical = {"A": [{"close": 100, "volume": 1000000} for _ in range(60)]}
-        result = calculate_leading_stock_health(quotes, historical, etf_list=list(DEFAULT_LEADING_ETFS))
+        result = calculate_leading_stock_health(
+            quotes, historical, etf_list=list(DEFAULT_LEADING_ETFS)
+        )
         assert result["basket_mode"] == "static"
         assert result["basket"] == list(DEFAULT_LEADING_ETFS)
 

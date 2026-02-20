@@ -5,10 +5,8 @@ Shared EMA/SMA calculation utilities for Market Top Detector.
 All functions expect prices in most-recent-first order.
 """
 
-from typing import List
 
-
-def calc_ema(prices: List[float], period: int) -> float:
+def calc_ema(prices: list[float], period: int) -> float:
     """
     Calculate Exponential Moving Average from prices (most recent first).
 
@@ -39,7 +37,7 @@ def calc_ema(prices: List[float], period: int) -> float:
     return ema
 
 
-def calc_sma(prices: List[float], period: int) -> float:
+def calc_sma(prices: list[float], period: int) -> float:
     """
     Calculate Simple Moving Average from prices (most recent first).
 

@@ -20,12 +20,14 @@ Scoring logic:
   50DMA breadth is used as a supplementary signal.
 """
 
-from typing import Dict, Optional
+from typing import Optional
 
 
-def calculate_breadth_divergence(breadth_200dma: Optional[float],
-                                 breadth_50dma: Optional[float],
-                                 index_distance_from_high_pct: float) -> Dict:
+def calculate_breadth_divergence(
+    breadth_200dma: Optional[float],
+    breadth_50dma: Optional[float],
+    index_distance_from_high_pct: float,
+) -> dict:
     """
     Calculate market breadth divergence score.
 

@@ -18,10 +18,8 @@ Bonus: +10 points for stability (no down years)
 Penalty: -20% if revenue CAGR significantly lags EPS CAGR (buyback-driven growth)
 """
 
-from typing import Dict, List, Optional
 
-
-def calculate_annual_growth(income_statements: List[Dict]) -> Dict:
+def calculate_annual_growth(income_statements: list[dict]) -> dict:
     """
     Calculate 3-year EPS CAGR and growth stability
 
@@ -48,7 +46,7 @@ def calculate_annual_growth(income_statements: List[Dict]) -> Dict:
             "revenue_cagr_3yr": None,
             "stability": "unknown",
             "eps_values": None,
-            "interpretation": "Data unavailable"
+            "interpretation": "Data unavailable",
         }
 
     # Extract EPS for last 4 years (most recent first in API response)
@@ -68,7 +66,7 @@ def calculate_annual_growth(income_statements: List[Dict]) -> Dict:
                 "revenue_cagr_3yr": None,
                 "stability": "unknown",
                 "eps_values": None,
-                "interpretation": "EPS data incomplete"
+                "interpretation": "EPS data incomplete",
             }
 
         if eps <= 0:
@@ -79,7 +77,7 @@ def calculate_annual_growth(income_statements: List[Dict]) -> Dict:
                 "revenue_cagr_3yr": None,
                 "stability": "unknown",
                 "eps_values": None,
-                "interpretation": "Negative EPS - not a CANSLIM candidate"
+                "interpretation": "Negative EPS - not a CANSLIM candidate",
             }
 
         eps_values.append(eps)
@@ -92,7 +90,7 @@ def calculate_annual_growth(income_statements: List[Dict]) -> Dict:
     # Calculate 3-year CAGR
     # CAGR = ((Ending Value / Beginning Value) ^ (1 / Number of Years)) - 1
     eps_start = eps_values_chrono[0]  # 3 years ago
-    eps_end = eps_values_chrono[3]    # Current year
+    eps_end = eps_values_chrono[3]  # Current year
     years = 3
 
     eps_cagr = (((eps_end / eps_start) ** (1 / years)) - 1) * 100
@@ -107,8 +105,9 @@ def calculate_annual_growth(income_statements: List[Dict]) -> Dict:
         revenue_cagr = 0
 
     # Check growth stability (no down years)
-    stable = all(eps_values_chrono[i] >= eps_values_chrono[i - 1]
-                 for i in range(1, len(eps_values_chrono)))
+    stable = all(
+        eps_values_chrono[i] >= eps_values_chrono[i - 1] for i in range(1, len(eps_values_chrono))
+    )
 
     # Calculate score
     score = score_annual_growth(eps_cagr, revenue_cagr, stable)
@@ -119,8 +118,10 @@ def calculate_annual_growth(income_statements: List[Dict]) -> Dict:
     # Quality warning
     quality_warning = None
     if revenue_cagr < (eps_cagr * 0.5) and eps_cagr > 20:
-        quality_warning = ("Revenue CAGR significantly lags EPS CAGR - "
-                          "growth may be buyback-driven rather than organic")
+        quality_warning = (
+            "Revenue CAGR significantly lags EPS CAGR - "
+            "growth may be buyback-driven rather than organic"
+        )
 
     return {
         "score": score,
@@ -132,7 +133,7 @@ def calculate_annual_growth(income_statements: List[Dict]) -> Dict:
         "years_analyzed": len(eps_values_chrono),
         "interpretation": interpretation,
         "quality_warning": quality_warning,
-        "error": None
+        "error": None,
     }
 
 
@@ -197,22 +198,22 @@ def interpret_growth_score(score: int, eps_cagr: float, stable: bool) -> str:
     stability_text = "stable" if stable else "erratic"
 
     if score >= 90:
-        return (f"Exceptional - {eps_cagr:.1f}% CAGR, {stability_text} growth trajectory")
+        return f"Exceptional - {eps_cagr:.1f}% CAGR, {stability_text} growth trajectory"
 
     elif score >= 70:
-        return (f"Strong - {eps_cagr:.1f}% CAGR, well above CANSLIM 25% threshold ({stability_text})")
+        return f"Strong - {eps_cagr:.1f}% CAGR, well above CANSLIM 25% threshold ({stability_text})"
 
     elif score >= 50:
-        return (f"Acceptable - {eps_cagr:.1f}% CAGR meets CANSLIM minimum ({stability_text})")
+        return f"Acceptable - {eps_cagr:.1f}% CAGR meets CANSLIM minimum ({stability_text})"
 
     elif score >= 30:
-        return (f"Below threshold - {eps_cagr:.1f}% CAGR insufficient (<25% required)")
+        return f"Below threshold - {eps_cagr:.1f}% CAGR insufficient (<25% required)"
 
     else:
-        return (f"Weak - {eps_cagr:.1f}% CAGR does not meet CANSLIM criteria")
+        return f"Weak - {eps_cagr:.1f}% CAGR does not meet CANSLIM criteria"
 
 
-def check_consistency(income_statements: List[Dict]) -> Dict:
+def check_consistency(income_statements: list[dict]) -> dict:
     """
     Check year-over-year growth consistency (no down years is ideal)
 
@@ -230,7 +231,7 @@ def check_consistency(income_statements: List[Dict]) -> Dict:
             "down_years": None,
             "consecutive_growth_years": None,
             "growth_pattern": None,
-            "interpretation": "Insufficient data"
+            "interpretation": "Insufficient data",
         }
 
     eps_values = []
@@ -268,7 +269,7 @@ def check_consistency(income_statements: List[Dict]) -> Dict:
         "down_years": down_years,
         "consecutive_growth_years": max_consecutive,
         "growth_pattern": growth_pattern,
-        "interpretation": interpretation
+        "interpretation": interpretation,
     }
 
 

@@ -69,10 +69,12 @@ class TestCalculateSectorRotation:
         xlp = make_monthly_history(xlp_closes, start_year=2024)
         result = calculate_sector_rotation(xly, xlp)
         # The crossover happened early (stale) and recent momentum is negative
-        if (result["crossover"]["type"] == "golden_cross"
-                and result["crossover"]["bars_ago"] is not None
-                and result["crossover"]["bars_ago"] >= 3
-                and result["roc_3m"] is not None
-                and result["roc_3m"] < 0):
+        if (
+            result["crossover"]["type"] == "golden_cross"
+            and result["crossover"]["bars_ago"] is not None
+            and result["crossover"]["bars_ago"] >= 3
+            and result["roc_3m"] is not None
+            and result["roc_3m"] < 0
+        ):
             assert result["direction"] == "risk_off"
             assert result["momentum_qualifier"] == "reversing"

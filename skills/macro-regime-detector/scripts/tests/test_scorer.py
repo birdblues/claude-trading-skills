@@ -2,9 +2,8 @@
 
 from scorer import (
     calculate_composite_score,
-    classify_regime,
     check_regime_consistency,
-    COMPONENT_WEIGHTS,
+    classify_regime,
 )
 
 

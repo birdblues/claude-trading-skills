@@ -17,12 +17,13 @@ Usage:
     python fetch_earnings_fmp.py --help
 """
 
-import sys
-import os
 import json
+import os
+import sys
+from datetime import datetime
+from typing import Optional
+
 import requests
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional
 
 
 class FMPEarningsCalendar:
@@ -30,7 +31,7 @@ class FMPEarningsCalendar:
 
     BASE_URL = "https://financialmodelingprep.com/api/v3"
     MIN_MARKET_CAP = 2_000_000_000  # $2B
-    US_EXCHANGES = ['NYSE', 'NASDAQ', 'AMEX', 'NYSEArca', 'BATS', 'NMS', 'NGM', 'NCM']
+    US_EXCHANGES = ["NYSE", "NASDAQ", "AMEX", "NYSEArca", "BATS", "NMS", "NGM", "NCM"]
 
     def __init__(self, api_key: str, us_only: bool = True):
         """
@@ -43,7 +44,7 @@ class FMPEarningsCalendar:
         self.api_key = api_key
         self.us_only = us_only
 
-    def fetch_earnings_calendar(self, start_date: str, end_date: str) -> Optional[List[Dict]]:
+    def fetch_earnings_calendar(self, start_date: str, end_date: str) -> Optional[list[dict]]:
         """
         Fetch earnings calendar from FMP API
 
@@ -55,18 +56,17 @@ class FMPEarningsCalendar:
             List of earnings announcements or None on error
         """
         url = f"{self.BASE_URL}/earning_calendar"
-        params = {
-            "apikey": self.api_key,
-            "from": start_date,
-            "to": end_date
-        }
+        params = {"apikey": self.api_key, "from": start_date, "to": end_date}
 
         try:
             response = requests.get(url, params=params, timeout=30)
 
             if response.status_code == 401:
                 print("❌ ERROR: Invalid API key", file=sys.stderr)
-                print("Get free API key: https://site.financialmodelingprep.com/developer/docs", file=sys.stderr)
+                print(
+                    "Get free API key: https://site.financialmodelingprep.com/developer/docs",
+                    file=sys.stderr,
+                )
                 return None
 
             if response.status_code == 429:
@@ -97,7 +97,7 @@ class FMPEarningsCalendar:
             print(f"❌ ERROR: Unexpected error: {str(e)}", file=sys.stderr)
             return None
 
-    def fetch_company_profiles(self, symbols: List[str]) -> Dict[str, Dict]:
+    def fetch_company_profiles(self, symbols: list[str]) -> dict[str, dict]:
         """
         Fetch company profiles for multiple symbols (batch)
 
@@ -113,7 +113,7 @@ class FMPEarningsCalendar:
         print(f"✓ Fetching profiles for {len(symbols)} companies...", file=sys.stderr)
 
         for i in range(0, len(symbols), batch_size):
-            batch = symbols[i:i+batch_size]
+            batch = symbols[i : i + batch_size]
             symbols_str = ",".join(batch)
 
             url = f"{self.BASE_URL}/profile/{symbols_str}"
@@ -127,16 +127,19 @@ class FMPEarningsCalendar:
                     if isinstance(profile, dict):
                         profiles[profile.get("symbol")] = profile
 
-                print(f"  ✓ Batch {i//batch_size + 1}: {len(batch)} profiles", file=sys.stderr)
+                print(f"  ✓ Batch {i // batch_size + 1}: {len(batch)} profiles", file=sys.stderr)
 
             except Exception as e:
-                print(f"  ⚠️  Warning: Failed to fetch batch {i//batch_size + 1}: {str(e)}", file=sys.stderr)
+                print(
+                    f"  ⚠️  Warning: Failed to fetch batch {i // batch_size + 1}: {str(e)}",
+                    file=sys.stderr,
+                )
                 continue
 
         print(f"✓ Retrieved {len(profiles)} company profiles", file=sys.stderr)
         return profiles
 
-    def filter_by_market_cap(self, earnings: List[Dict], profiles: Dict[str, Dict]) -> List[Dict]:
+    def filter_by_market_cap(self, earnings: list[dict], profiles: dict[str, dict]) -> list[dict]:
         """
         Filter earnings by minimum market cap and enrich with company data
 
@@ -178,9 +181,15 @@ class FMPEarningsCalendar:
                 filtered.append(earning)
 
         if self.us_only:
-            print(f"✓ Filtered to {len(filtered)} US mid-cap+ companies (>${self.MIN_MARKET_CAP/1e9:.0f}B)", file=sys.stderr)
+            print(
+                f"✓ Filtered to {len(filtered)} US mid-cap+ companies (>${self.MIN_MARKET_CAP / 1e9:.0f}B)",
+                file=sys.stderr,
+            )
         else:
-            print(f"✓ Filtered to {len(filtered)} mid-cap+ companies (>${self.MIN_MARKET_CAP/1e9:.0f}B)", file=sys.stderr)
+            print(
+                f"✓ Filtered to {len(filtered)} mid-cap+ companies (>${self.MIN_MARKET_CAP / 1e9:.0f}B)",
+                file=sys.stderr,
+            )
 
         return filtered
 
@@ -217,15 +226,15 @@ class FMPEarningsCalendar:
             Formatted string (e.g., "$3.0T", "$150B")
         """
         if market_cap >= 1e12:
-            return f"${market_cap/1e12:.1f}T"
+            return f"${market_cap / 1e12:.1f}T"
         elif market_cap >= 1e9:
-            return f"${market_cap/1e9:.1f}B"
+            return f"${market_cap / 1e9:.1f}B"
         elif market_cap >= 1e6:
-            return f"${market_cap/1e6:.0f}M"
+            return f"${market_cap / 1e6:.0f}M"
         else:
             return f"${market_cap:,.0f}"
 
-    def process_earnings(self, earnings: List[Dict]) -> List[Dict]:
+    def process_earnings(self, earnings: list[dict]) -> list[dict]:
         """
         Process and standardize earnings data
 
@@ -257,14 +266,14 @@ class FMPEarningsCalendar:
                 "epsEstimated": earning.get("epsEstimated"),
                 "revenueEstimated": earning.get("revenueEstimated"),
                 "fiscalDateEnding": earning.get("fiscalDateEnding"),
-                "exchange": earning.get("exchange", "N/A")
+                "exchange": earning.get("exchange", "N/A"),
             }
 
             processed.append(processed_earning)
 
         return processed
 
-    def sort_earnings(self, earnings: List[Dict]) -> List[Dict]:
+    def sort_earnings(self, earnings: list[dict]) -> list[dict]:
         """
         Sort earnings by date, timing, and market cap
 
@@ -282,8 +291,8 @@ class FMPEarningsCalendar:
             key=lambda x: (
                 x.get("date", ""),
                 timing_order.get(x.get("timing", "TAS"), 3),
-                -x.get("marketCap", 0)  # Descending market cap
-            )
+                -x.get("marketCap", 0),  # Descending market cap
+            ),
         )
 
 
@@ -301,7 +310,7 @@ def get_api_key() -> Optional[str]:
         return api_key
 
     # Method 2: Environment variable
-    api_key = os.environ.get('FMP_API_KEY')
+    api_key = os.environ.get("FMP_API_KEY")
     if api_key:
         print("✓ API key loaded from FMP_API_KEY environment variable", file=sys.stderr)
         return api_key
@@ -312,7 +321,10 @@ def get_api_key() -> Optional[str]:
     print("Options:", file=sys.stderr)
     print("1. Set environment variable: export FMP_API_KEY='your-key'", file=sys.stderr)
     print("2. Pass as argument: python fetch_earnings_fmp.py START END YOUR_KEY", file=sys.stderr)
-    print("3. Get free API key: https://site.financialmodelingprep.com/developer/docs", file=sys.stderr)
+    print(
+        "3. Get free API key: https://site.financialmodelingprep.com/developer/docs",
+        file=sys.stderr,
+    )
     return None
 
 
@@ -387,9 +399,9 @@ def main():
     if not api_key:
         sys.exit(1)
 
-    print(f"", file=sys.stderr)
+    print("", file=sys.stderr)
     print(f"📅 Fetching earnings calendar: {start_date} to {end_date}", file=sys.stderr)
-    print(f"", file=sys.stderr)
+    print("", file=sys.stderr)
 
     # Initialize client
     client = FMPEarningsCalendar(api_key)

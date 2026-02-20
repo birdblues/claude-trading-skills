@@ -21,21 +21,24 @@ Scoring (0-100 = Transition Signal Strength):
   80-100: Strong confirmed transition
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
+
 from .utils import (
-    downsample_to_monthly,
     calculate_ratio,
+    compute_percentile,
+    compute_roc,
     compute_sma,
     detect_crossover,
-    compute_roc,
-    compute_percentile,
+    downsample_to_monthly,
     score_transition_signal,
 )
 
 
-def calculate_yield_curve(treasury_rates: Optional[List[Dict]] = None,
-                          shy_history: Optional[List[Dict]] = None,
-                          tlt_history: Optional[List[Dict]] = None) -> Dict:
+def calculate_yield_curve(
+    treasury_rates: Optional[list[dict]] = None,
+    shy_history: Optional[list[dict]] = None,
+    tlt_history: Optional[list[dict]] = None,
+) -> dict:
     """
     Calculate yield curve transition signal.
 
@@ -60,7 +63,7 @@ def calculate_yield_curve(treasury_rates: Optional[List[Dict]] = None,
     return _insufficient_data("No treasury rates or SHY/TLT data available")
 
 
-def _analyze_treasury_spread(treasury_rates: List[Dict]) -> Optional[Dict]:
+def _analyze_treasury_spread(treasury_rates: list[dict]) -> Optional[dict]:
     """Analyze 10Y-2Y spread from Treasury API data."""
     # Extract 10Y-2Y spread series
     spread_monthly = {}
@@ -156,8 +159,7 @@ def _analyze_treasury_spread(treasury_rates: List[Dict]) -> Optional[Dict]:
     }
 
 
-def _analyze_shy_tlt_proxy(shy_history: List[Dict],
-                           tlt_history: List[Dict]) -> Dict:
+def _analyze_shy_tlt_proxy(shy_history: list[dict], tlt_history: list[dict]) -> dict:
     """Fallback: Use SHY/TLT ratio as yield curve proxy."""
     shy_monthly = downsample_to_monthly(shy_history)
     tlt_monthly = downsample_to_monthly(tlt_history)
@@ -221,8 +223,7 @@ def _analyze_shy_tlt_proxy(shy_history: List[Dict],
     }
 
 
-def _classify_curve_state(spread: float, sma_6m: Optional[float],
-                          roc_3m: Optional[float]) -> str:
+def _classify_curve_state(spread: float, sma_6m: Optional[float], roc_3m: Optional[float]) -> str:
     """Classify current yield curve state."""
     if spread < -0.5:
         return "deeply_inverted"
@@ -257,7 +258,7 @@ def _describe_signal(score: int, state: str, spread: float, direction: str) -> s
         return f"STABLE: Yield curve {state_label} (spread={spread:+.3f}%)"
 
 
-def _insufficient_data(reason: str) -> Dict:
+def _insufficient_data(reason: str) -> dict:
     return {
         "score": 0,
         "signal": f"INSUFFICIENT DATA: {reason}",

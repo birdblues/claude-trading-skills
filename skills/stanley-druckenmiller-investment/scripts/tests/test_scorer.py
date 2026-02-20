@@ -1,18 +1,15 @@
 """Tests for scorer.py"""
 
-import pytest
-
 from scorer import (
     COMPONENT_WEIGHTS,
-    calculate_composite_conviction,
-    calculate_market_structure,
-    calculate_distribution_risk,
     calculate_bottom_confirmation,
+    calculate_composite_conviction,
+    calculate_distribution_risk,
     calculate_macro_alignment,
+    calculate_market_structure,
     calculate_signal_convergence,
     classify_pattern,
 )
-from report_loader import extract_signal
 
 
 class TestWeights:
@@ -172,35 +169,57 @@ class TestComponentCalculators:
 class TestCompositeConviction:
     """Test the full composite scoring pipeline."""
 
-    def _build_signals(self, breadth=50, uptrend=50, top=50, macro_regime="transitional",
-                       macro_score=50, macro_conf="medium", ftd_state="NO_SIGNAL",
-                       ftd_quality=50, theme_derived=50, vcp_derived=50,
-                       canslim_derived=50):
+    def _build_signals(
+        self,
+        breadth=50,
+        uptrend=50,
+        top=50,
+        macro_regime="transitional",
+        macro_score=50,
+        macro_conf="medium",
+        ftd_state="NO_SIGNAL",
+        ftd_quality=50,
+        theme_derived=50,
+        vcp_derived=50,
+        canslim_derived=50,
+    ):
         """Helper to build a complete signal dict."""
         return {
             "market_breadth": {"composite_score": breadth},
             "uptrend_analysis": {"composite_score": uptrend},
             "market_top": {"composite_score": top},
             "macro_regime": {
-                "regime": macro_regime, "composite_score": macro_score,
-                "confidence": macro_conf, "transition_level": "moderate",
+                "regime": macro_regime,
+                "composite_score": macro_score,
+                "confidence": macro_conf,
+                "transition_level": "moderate",
             },
             "ftd_detector": {
-                "state": ftd_state, "quality_score": ftd_quality,
-                "dual_confirmation": False, "post_ftd_distribution_count": 0,
+                "state": ftd_state,
+                "quality_score": ftd_quality,
+                "dual_confirmation": False,
+                "post_ftd_distribution_count": 0,
             },
             "theme_detector": {"derived_score": theme_derived},
             "vcp_screener": {"derived_score": vcp_derived, "textbook_count": 0},
             "canslim_screener": {
-                "derived_score": canslim_derived, "exceptional_count": 0,
+                "derived_score": canslim_derived,
+                "exceptional_count": 0,
             },
         }
 
     def test_all_zero_signals(self):
         signals = self._build_signals(
-            breadth=0, uptrend=0, top=100, macro_regime="contraction",
-            macro_score=0, ftd_state="RALLY_FAILED", ftd_quality=0,
-            theme_derived=0, vcp_derived=0, canslim_derived=0,
+            breadth=0,
+            uptrend=0,
+            top=100,
+            macro_regime="contraction",
+            macro_score=0,
+            ftd_state="RALLY_FAILED",
+            ftd_quality=0,
+            theme_derived=0,
+            vcp_derived=0,
+            canslim_derived=0,
         )
         result = calculate_composite_conviction(signals)
         assert result["conviction_score"] <= 20
@@ -208,9 +227,16 @@ class TestCompositeConviction:
 
     def test_all_100_signals(self):
         signals = self._build_signals(
-            breadth=100, uptrend=100, top=0, macro_regime="broadening",
-            macro_score=100, macro_conf="high", ftd_state="FTD_CONFIRMED",
-            ftd_quality=100, theme_derived=100, vcp_derived=100,
+            breadth=100,
+            uptrend=100,
+            top=0,
+            macro_regime="broadening",
+            macro_score=100,
+            macro_conf="high",
+            ftd_state="FTD_CONFIRMED",
+            ftd_quality=100,
+            theme_derived=100,
+            vcp_derived=100,
             canslim_derived=100,
         )
         result = calculate_composite_conviction(signals)
@@ -219,9 +245,16 @@ class TestCompositeConviction:
 
     def test_bullish_alignment(self):
         signals = self._build_signals(
-            breadth=75, uptrend=80, top=15, macro_regime="broadening",
-            macro_score=70, macro_conf="high", ftd_state="FTD_CONFIRMED",
-            ftd_quality=85, theme_derived=70, vcp_derived=65,
+            breadth=75,
+            uptrend=80,
+            top=15,
+            macro_regime="broadening",
+            macro_score=70,
+            macro_conf="high",
+            ftd_state="FTD_CONFIRMED",
+            ftd_quality=85,
+            theme_derived=70,
+            vcp_derived=65,
         )
         result = calculate_composite_conviction(signals)
         assert result["conviction_score"] >= 60
@@ -229,17 +262,28 @@ class TestCompositeConviction:
 
     def test_bearish_alignment(self):
         signals = self._build_signals(
-            breadth=25, uptrend=20, top=80, macro_regime="contraction",
-            macro_score=20, ftd_state="RALLY_FAILED", ftd_quality=10,
-            theme_derived=20, vcp_derived=10,
+            breadth=25,
+            uptrend=20,
+            top=80,
+            macro_regime="contraction",
+            macro_score=20,
+            ftd_state="RALLY_FAILED",
+            ftd_quality=10,
+            theme_derived=20,
+            vcp_derived=10,
         )
         result = calculate_composite_conviction(signals)
         assert result["conviction_score"] <= 40
 
     def test_mixed_signals(self):
         signals = self._build_signals(
-            breadth=70, uptrend=30, top=60, macro_regime="transitional",
-            macro_score=50, ftd_state="RALLY_ATTEMPT", ftd_quality=40,
+            breadth=70,
+            uptrend=30,
+            top=60,
+            macro_regime="transitional",
+            macro_score=50,
+            ftd_state="RALLY_ATTEMPT",
+            ftd_quality=40,
             theme_derived=55,
         )
         result = calculate_composite_conviction(signals)
@@ -274,7 +318,8 @@ class TestPatternClassification:
     def test_policy_pivot_detected(self):
         signals = {
             "macro_regime": {
-                "regime": "transitional", "composite_score": 60,
+                "regime": "transitional",
+                "composite_score": 60,
                 "transition_level": "high",
             },
             "market_top": {"composite_score": 30},
@@ -288,7 +333,8 @@ class TestPatternClassification:
     def test_unsustainable_distortion_detected(self):
         signals = {
             "macro_regime": {
-                "regime": "contraction", "composite_score": 30,
+                "regime": "contraction",
+                "composite_score": 30,
                 "transition_level": "low",
             },
             "market_top": {"composite_score": 75},
@@ -303,7 +349,8 @@ class TestPatternClassification:
     def test_extreme_contrarian_with_ftd(self):
         signals = {
             "macro_regime": {
-                "regime": "contraction", "composite_score": 20,
+                "regime": "contraction",
+                "composite_score": 20,
                 "transition_level": "low",
             },
             "market_top": {"composite_score": 80},
@@ -317,7 +364,8 @@ class TestPatternClassification:
     def test_wait_and_observe_default(self):
         signals = {
             "macro_regime": {
-                "regime": "concentration", "composite_score": 50,
+                "regime": "concentration",
+                "composite_score": 50,
                 "transition_level": "low",
             },
             "market_top": {"composite_score": 50},
@@ -330,7 +378,11 @@ class TestPatternClassification:
 
     def test_pattern_has_all_scores(self):
         signals = {
-            "macro_regime": {"regime": "broadening", "composite_score": 70, "transition_level": "moderate"},
+            "macro_regime": {
+                "regime": "broadening",
+                "composite_score": 70,
+                "transition_level": "moderate",
+            },
             "market_top": {"composite_score": 30},
             "ftd_detector": {"state": "NO_SIGNAL", "quality_score": 50},
             "market_breadth": {"composite_score": 60},
@@ -345,22 +397,33 @@ class TestPatternClassification:
 class TestWeightRedistribution:
     """Test weight redistribution when optional skills are missing."""
 
-    def _required_only_signals(self, breadth=70, uptrend=70, top=30,
-                                macro_regime="broadening", macro_score=70,
-                                macro_conf="high", ftd_state="FTD_CONFIRMED",
-                                ftd_quality=80):
+    def _required_only_signals(
+        self,
+        breadth=70,
+        uptrend=70,
+        top=30,
+        macro_regime="broadening",
+        macro_score=70,
+        macro_conf="high",
+        ftd_state="FTD_CONFIRMED",
+        ftd_quality=80,
+    ):
         """Build signals with ONLY the 5 required skills (no optionals)."""
         return {
             "market_breadth": {"composite_score": breadth},
             "uptrend_analysis": {"composite_score": uptrend},
             "market_top": {"composite_score": top},
             "macro_regime": {
-                "regime": macro_regime, "composite_score": macro_score,
-                "confidence": macro_conf, "transition_level": "moderate",
+                "regime": macro_regime,
+                "composite_score": macro_score,
+                "confidence": macro_conf,
+                "transition_level": "moderate",
             },
             "ftd_detector": {
-                "state": ftd_state, "quality_score": ftd_quality,
-                "dual_confirmation": False, "post_ftd_distribution_count": 0,
+                "state": ftd_state,
+                "quality_score": ftd_quality,
+                "dual_confirmation": False,
+                "post_ftd_distribution_count": 0,
             },
         }
 
@@ -389,8 +452,9 @@ class TestWeightRedistribution:
         result = calculate_composite_conviction(signals)
         cs = result["component_scores"]
         for key, comp in cs.items():
-            assert abs(comp["effective_weight"] - COMPONENT_WEIGHTS[key]) < 0.001, \
+            assert abs(comp["effective_weight"] - COMPONENT_WEIGHTS[key]) < 0.001, (
                 f"{key}: effective_weight={comp['effective_weight']} != {COMPONENT_WEIGHTS[key]}"
+            )
             assert comp["available"] is True
 
     def test_missing_optional_does_not_inflate_score(self):
@@ -401,12 +465,16 @@ class TestWeightRedistribution:
             "uptrend_analysis": {"composite_score": 50},
             "market_top": {"composite_score": 50},
             "macro_regime": {
-                "regime": "transitional", "composite_score": 50,
-                "confidence": "medium", "transition_level": "moderate",
+                "regime": "transitional",
+                "composite_score": 50,
+                "confidence": "medium",
+                "transition_level": "moderate",
             },
             "ftd_detector": {
-                "state": "NO_SIGNAL", "quality_score": 50,
-                "dual_confirmation": False, "post_ftd_distribution_count": 0,
+                "state": "NO_SIGNAL",
+                "quality_score": 50,
+                "dual_confirmation": False,
+                "post_ftd_distribution_count": 0,
             },
             "theme_detector": {"derived_score": 50},
             "vcp_screener": {"derived_score": 50, "textbook_count": 0},
@@ -417,20 +485,25 @@ class TestWeightRedistribution:
             "uptrend_analysis": {"composite_score": 50},
             "market_top": {"composite_score": 50},
             "macro_regime": {
-                "regime": "transitional", "composite_score": 50,
-                "confidence": "medium", "transition_level": "moderate",
+                "regime": "transitional",
+                "composite_score": 50,
+                "confidence": "medium",
+                "transition_level": "moderate",
             },
             "ftd_detector": {
-                "state": "NO_SIGNAL", "quality_score": 50,
-                "dual_confirmation": False, "post_ftd_distribution_count": 0,
+                "state": "NO_SIGNAL",
+                "quality_score": 50,
+                "dual_confirmation": False,
+                "post_ftd_distribution_count": 0,
             },
         }
         score_with = calculate_composite_conviction(signals_with)["conviction_score"]
         score_without = calculate_composite_conviction(signals_without)["conviction_score"]
         # Removing optional skills that score 50 should not change the composite
         # because redistribution replaces fixed-50 defaults
-        assert abs(score_with - score_without) < 5.0, \
+        assert abs(score_with - score_without) < 5.0, (
             f"Score inflated: with={score_with}, without={score_without}"
+        )
 
     def test_vcp_only_keeps_setup_available(self):
         """VCP alone (no CANSLIM) should keep setup_availability available."""

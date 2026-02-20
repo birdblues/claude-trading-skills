@@ -12,26 +12,28 @@ Optional: vcp_screener, theme_detector, canslim_screener
 import glob
 import json
 import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-
+from datetime import datetime
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Skill definitions
 # ---------------------------------------------------------------------------
 
 REQUIRED_SKILLS = {
-    "market_breadth":   {"prefix": "market_breadth_",   "role": "Market participation breadth"},
+    "market_breadth": {"prefix": "market_breadth_", "role": "Market participation breadth"},
     "uptrend_analysis": {"prefix": "uptrend_analysis_", "role": "Sector uptrend ratios"},
-    "market_top":       {"prefix": "market_top_",       "role": "Distribution / top risk (defense)"},
-    "macro_regime":     {"prefix": "macro_regime_",     "role": "Macro regime transition (1-2Y structure)"},
-    "ftd_detector":     {"prefix": "ftd_detector_",     "role": "Bottom confirmation / re-entry (offense)"},
+    "market_top": {"prefix": "market_top_", "role": "Distribution / top risk (defense)"},
+    "macro_regime": {"prefix": "macro_regime_", "role": "Macro regime transition (1-2Y structure)"},
+    "ftd_detector": {"prefix": "ftd_detector_", "role": "Bottom confirmation / re-entry (offense)"},
 }
 
 OPTIONAL_SKILLS = {
-    "vcp_screener":     {"prefix": "vcp_screener_",     "role": "Momentum stock setups (VCP)"},
-    "theme_detector":   {"prefix": "theme_detector_",   "role": "Theme / sector momentum"},
-    "canslim_screener": {"prefix": "canslim_screener_", "role": "Growth stock setups + M(Market Direction)"},
+    "vcp_screener": {"prefix": "vcp_screener_", "role": "Momentum stock setups (VCP)"},
+    "theme_detector": {"prefix": "theme_detector_", "role": "Theme / sector momentum"},
+    "canslim_screener": {
+        "prefix": "canslim_screener_",
+        "role": "Growth stock setups + M(Market Direction)",
+    },
 }
 
 ALL_SKILLS = {**REQUIRED_SKILLS, **OPTIONAL_SKILLS}
@@ -41,11 +43,12 @@ ALL_SKILLS = {**REQUIRED_SKILLS, **OPTIONAL_SKILLS}
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def find_latest_report(
     reports_dir: str,
     prefix: str,
     max_age_hours: float = 0,
-) -> Optional[Tuple[str, Dict]]:
+) -> Optional[tuple[str, dict]]:
     """
     Find the most recent JSON report matching *prefix* in *reports_dir*.
 
@@ -66,7 +69,7 @@ def find_latest_report(
             if file_age_hours > max_age_hours:
                 continue
         try:
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
             return (path, data)
         except (json.JSONDecodeError, OSError):
@@ -78,7 +81,7 @@ def find_latest_report(
 def load_all_reports(
     reports_dir: str,
     max_age_hours: float = 72,
-) -> Dict[str, Dict]:
+) -> dict[str, dict]:
     """
     Load all upstream skill JSON reports from *reports_dir*.
 
@@ -106,7 +109,7 @@ def load_all_reports(
     return reports
 
 
-def extract_signal(skill_name: str, report_data: Dict) -> Dict:
+def extract_signal(skill_name: str, report_data: dict) -> dict:
     """
     Extract a normalized signal dict from a skill's JSON output.
 
@@ -114,13 +117,13 @@ def extract_signal(skill_name: str, report_data: Dict) -> Dict:
     composite_score (VCP, Theme, CANSLIM), a derived score is calculated.
     """
     extractors = {
-        "market_breadth":   _extract_breadth,
+        "market_breadth": _extract_breadth,
         "uptrend_analysis": _extract_uptrend,
-        "market_top":       _extract_market_top,
-        "macro_regime":     _extract_macro_regime,
-        "ftd_detector":     _extract_ftd,
-        "vcp_screener":     _extract_vcp,
-        "theme_detector":   _extract_theme,
+        "market_top": _extract_market_top,
+        "macro_regime": _extract_macro_regime,
+        "ftd_detector": _extract_ftd,
+        "vcp_screener": _extract_vcp,
+        "theme_detector": _extract_theme,
         "canslim_screener": _extract_canslim,
     }
     extractor = extractors.get(skill_name)
@@ -133,7 +136,8 @@ def extract_signal(skill_name: str, report_data: Dict) -> Dict:
 # Per-skill extractors
 # ---------------------------------------------------------------------------
 
-def _extract_breadth(data: Dict) -> Dict:
+
+def _extract_breadth(data: dict) -> dict:
     composite = data.get("composite", {})
     return {
         "source": "market_breadth",
@@ -144,7 +148,7 @@ def _extract_breadth(data: Dict) -> Dict:
     }
 
 
-def _extract_uptrend(data: Dict) -> Dict:
+def _extract_uptrend(data: dict) -> dict:
     composite = data.get("composite", {})
     warnings = composite.get("active_warnings", [])
     return {
@@ -157,7 +161,7 @@ def _extract_uptrend(data: Dict) -> Dict:
     }
 
 
-def _extract_market_top(data: Dict) -> Dict:
+def _extract_market_top(data: dict) -> dict:
     composite = data.get("composite", {})
     return {
         "source": "market_top",
@@ -169,7 +173,7 @@ def _extract_market_top(data: Dict) -> Dict:
     }
 
 
-def _extract_macro_regime(data: Dict) -> Dict:
+def _extract_macro_regime(data: dict) -> dict:
     composite = data.get("composite", {})
     regime = data.get("regime", {})
     transition = regime.get("transition_probability", {})
@@ -185,7 +189,7 @@ def _extract_macro_regime(data: Dict) -> Dict:
     }
 
 
-def _extract_ftd(data: Dict) -> Dict:
+def _extract_ftd(data: dict) -> dict:
     market_state = data.get("market_state", {})
     quality = data.get("quality_score", {})
     post_ftd = data.get("post_ftd_distribution", {})
@@ -201,7 +205,7 @@ def _extract_ftd(data: Dict) -> Dict:
     }
 
 
-def _extract_vcp(data: Dict) -> Dict:
+def _extract_vcp(data: dict) -> dict:
     """
     VCP screener lacks a composite_score. Derive one from:
     - Rating distribution: textbook*25 + strong*15 + good*10 + developing*3
@@ -254,7 +258,7 @@ def _extract_vcp(data: Dict) -> Dict:
     }
 
 
-def _extract_theme(data: Dict) -> Dict:
+def _extract_theme(data: dict) -> dict:
     """
     Theme detector lacks a composite_score. Derive one from:
     - Hot theme count (heat >= 70)
@@ -290,7 +294,7 @@ def _extract_theme(data: Dict) -> Dict:
 
     # Bonuses and penalties
     early_bonus = early_count * 5  # Up to ~25
-    hot_bonus = hot_count * 3     # Up to ~15
+    hot_bonus = hot_count * 3  # Up to ~15
     exhaustion_penalty = exhaustion_count * 8  # Up to ~40
 
     derived = round(base_score + early_bonus + hot_bonus - exhaustion_penalty, 1)
@@ -307,7 +311,7 @@ def _extract_theme(data: Dict) -> Dict:
     }
 
 
-def _extract_canslim(data: Dict) -> Dict:
+def _extract_canslim(data: dict) -> dict:
     """
     CANSLIM screener has composite_score per stock.
     Derive overall score from top candidates + M component.

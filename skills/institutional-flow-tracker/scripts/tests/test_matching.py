@@ -7,10 +7,9 @@ percent_change values.
 
 import pytest
 from data_quality import (
-    classify_holder,
     calculate_coverage_ratio,
-    calculate_match_ratio,
     calculate_filtered_metrics,
+    calculate_match_ratio,
     reliability_grade,
 )
 
@@ -25,7 +24,6 @@ def _make_holder(holder, shares, change, date="2025-09-30"):
 
 
 class TestCoverageRatio:
-
     def test_symmetric_coverage(self):
         current = [_make_holder(f"H{i}", 100, 10) for i in range(200)]
         previous = [_make_holder(f"H{i}", 90, 5) for i in range(200)]
@@ -53,7 +51,6 @@ class TestCoverageRatio:
 
 
 class TestMatchRatio:
-
     def test_perfect_match(self):
         current = [_make_holder(f"H{i}", 100, 10) for i in range(100)]
         previous = [_make_holder(f"H{i}", 90, 5) for i in range(100)]

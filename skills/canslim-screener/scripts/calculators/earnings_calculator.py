@@ -15,10 +15,8 @@ Scoring:
 - 0 points: EPS <10% or negative
 """
 
-from typing import Dict, List, Optional
 
-
-def calculate_quarterly_growth(income_statements: List[Dict]) -> Dict:
+def calculate_quarterly_growth(income_statements: list[dict]) -> dict:
     """
     Calculate quarterly EPS and revenue growth (year-over-year)
 
@@ -54,7 +52,7 @@ def calculate_quarterly_growth(income_statements: List[Dict]) -> Dict:
             "year_ago_eps": None,
             "latest_revenue": None,
             "year_ago_revenue": None,
-            "interpretation": "Data unavailable"
+            "interpretation": "Data unavailable",
         }
 
     # Extract most recent quarter (index 0) and year-ago quarter (index 4)
@@ -63,7 +61,9 @@ def calculate_quarterly_growth(income_statements: List[Dict]) -> Dict:
 
     # Extract EPS (try multiple field names for compatibility)
     latest_eps = latest.get("eps") or latest.get("epsdiluted") or latest.get("netIncomePerShare")
-    year_ago_eps = year_ago.get("eps") or year_ago.get("epsdiluted") or year_ago.get("netIncomePerShare")
+    year_ago_eps = (
+        year_ago.get("eps") or year_ago.get("epsdiluted") or year_ago.get("netIncomePerShare")
+    )
 
     # Extract revenue
     latest_revenue = latest.get("revenue")
@@ -80,7 +80,7 @@ def calculate_quarterly_growth(income_statements: List[Dict]) -> Dict:
             "year_ago_eps": year_ago_eps,
             "latest_revenue": latest_revenue,
             "year_ago_revenue": year_ago_revenue,
-            "interpretation": "EPS data unavailable"
+            "interpretation": "EPS data unavailable",
         }
 
     if latest_revenue is None or year_ago_revenue is None or year_ago_revenue == 0:
@@ -93,7 +93,7 @@ def calculate_quarterly_growth(income_statements: List[Dict]) -> Dict:
             "year_ago_eps": year_ago_eps,
             "latest_revenue": latest_revenue,
             "year_ago_revenue": year_ago_revenue,
-            "interpretation": "Revenue data unavailable"
+            "interpretation": "Revenue data unavailable",
         }
 
     # Calculate year-over-year growth
@@ -119,8 +119,10 @@ def calculate_quarterly_growth(income_statements: List[Dict]) -> Dict:
     # Quality check: flag if revenue growth significantly lags EPS growth
     quality_warning = None
     if revenue_growth < (eps_growth * 0.5) and eps_growth > 20:
-        quality_warning = ("Revenue growth significantly lags EPS growth - "
-                          "investigate earnings quality (potential buyback-driven)")
+        quality_warning = (
+            "Revenue growth significantly lags EPS growth - "
+            "investigate earnings quality (potential buyback-driven)"
+        )
 
     return {
         "score": score,
@@ -134,7 +136,7 @@ def calculate_quarterly_growth(income_statements: List[Dict]) -> Dict:
         "year_ago_qtr_date": year_ago.get("date"),
         "interpretation": interpretation,
         "quality_warning": quality_warning,
-        "error": None
+        "error": None,
     }
 
 
@@ -189,27 +191,37 @@ def interpret_earnings_score(score: int, eps_growth: float, revenue_growth: floa
         Interpretation string
     """
     if score >= 90:
-        return (f"Exceptional - Explosive earnings acceleration "
-                f"(EPS +{eps_growth:.1f}%, Revenue +{revenue_growth:.1f}%)")
+        return (
+            f"Exceptional - Explosive earnings acceleration "
+            f"(EPS +{eps_growth:.1f}%, Revenue +{revenue_growth:.1f}%)"
+        )
 
     elif score >= 70:
-        return (f"Strong - Well above CANSLIM threshold "
-                f"(EPS +{eps_growth:.1f}%, Revenue +{revenue_growth:.1f}%)")
+        return (
+            f"Strong - Well above CANSLIM threshold "
+            f"(EPS +{eps_growth:.1f}%, Revenue +{revenue_growth:.1f}%)"
+        )
 
     elif score >= 50:
-        return (f"Acceptable - Meets CANSLIM minimum 18% threshold "
-                f"(EPS +{eps_growth:.1f}%, Revenue +{revenue_growth:.1f}%)")
+        return (
+            f"Acceptable - Meets CANSLIM minimum 18% threshold "
+            f"(EPS +{eps_growth:.1f}%, Revenue +{revenue_growth:.1f}%)"
+        )
 
     elif score >= 30:
-        return (f"Below threshold - Insufficient growth "
-                f"(EPS +{eps_growth:.1f}%, Revenue +{revenue_growth:.1f}%)")
+        return (
+            f"Below threshold - Insufficient growth "
+            f"(EPS +{eps_growth:.1f}%, Revenue +{revenue_growth:.1f}%)"
+        )
 
     else:
-        return (f"Weak - Does not meet CANSLIM criteria "
-                f"(EPS {eps_growth:+.1f}%, Revenue {revenue_growth:+.1f}%)")
+        return (
+            f"Weak - Does not meet CANSLIM criteria "
+            f"(EPS {eps_growth:+.1f}%, Revenue {revenue_growth:+.1f}%)"
+        )
 
 
-def detect_earnings_acceleration(income_statements: List[Dict]) -> Dict:
+def detect_earnings_acceleration(income_statements: list[dict]) -> dict:
     """
     Detect if earnings are accelerating or decelerating (trend analysis)
 
@@ -232,35 +244,47 @@ def detect_earnings_acceleration(income_statements: List[Dict]) -> Dict:
             "trend": "unknown",
             "recent_growth": None,
             "prior_growth": None,
-            "interpretation": "Insufficient data for trend analysis"
+            "interpretation": "Insufficient data for trend analysis",
         }
 
     # Most recent quarter vs year-ago
     recent_eps = income_statements[0].get("eps", 0)
     recent_year_ago_eps = income_statements[4].get("eps", 0.01)
-    recent_growth = ((recent_eps - recent_year_ago_eps) / abs(recent_year_ago_eps)) * 100 if recent_year_ago_eps else 0
+    recent_growth = (
+        ((recent_eps - recent_year_ago_eps) / abs(recent_year_ago_eps)) * 100
+        if recent_year_ago_eps
+        else 0
+    )
 
     # Prior quarter vs its year-ago
     prior_eps = income_statements[1].get("eps", 0)
     prior_year_ago_eps = income_statements[5].get("eps", 0.01)
-    prior_growth = ((prior_eps - prior_year_ago_eps) / abs(prior_year_ago_eps)) * 100 if prior_year_ago_eps else 0
+    prior_growth = (
+        ((prior_eps - prior_year_ago_eps) / abs(prior_year_ago_eps)) * 100
+        if prior_year_ago_eps
+        else 0
+    )
 
     # Determine trend
     if recent_growth > prior_growth + 5:  # 5% threshold for significance
         trend = "accelerating"
-        interpretation = f"Earnings accelerating ({recent_growth:.1f}% vs {prior_growth:.1f}% prior quarter)"
+        interpretation = (
+            f"Earnings accelerating ({recent_growth:.1f}% vs {prior_growth:.1f}% prior quarter)"
+        )
     elif recent_growth < prior_growth - 5:
         trend = "decelerating"
         interpretation = f"Earnings decelerating ({recent_growth:.1f}% vs {prior_growth:.1f}% prior quarter) - Warning sign"
     else:
         trend = "stable"
-        interpretation = f"Earnings stable ({recent_growth:.1f}% vs {prior_growth:.1f}% prior quarter)"
+        interpretation = (
+            f"Earnings stable ({recent_growth:.1f}% vs {prior_growth:.1f}% prior quarter)"
+        )
 
     return {
         "trend": trend,
         "recent_growth": round(recent_growth, 1),
         "prior_growth": round(prior_growth, 1),
-        "interpretation": interpretation
+        "interpretation": interpretation,
     }
 
 
@@ -274,7 +298,7 @@ if __name__ == "__main__":
         {"date": "2023-03-31", "eps": 1.09, "revenue": 7192000000},
         {"date": "2022-12-31", "eps": 0.88, "revenue": 6051000000},
         {"date": "2022-09-30", "eps": 0.58, "revenue": 5931000000},
-        {"date": "2022-06-30", "eps": 0.51, "revenue": 6704000000},   # Q2 2022 (year-ago)
+        {"date": "2022-06-30", "eps": 0.51, "revenue": 6704000000},  # Q2 2022 (year-ago)
     ]
 
     result1 = calculate_quarterly_growth(test_data_exceptional)

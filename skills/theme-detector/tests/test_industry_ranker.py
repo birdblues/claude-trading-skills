@@ -1,10 +1,9 @@
 """Tests for industry_ranker module."""
 
-from calculators.industry_ranker import rank_industries, get_top_bottom_industries
+from calculators.industry_ranker import get_top_bottom_industries, rank_industries
 
 
-def _make_industry(name, perf_1w=0.0, perf_1m=0.0, perf_3m=0.0, perf_6m=0.0,
-                   sector="Technology"):
+def _make_industry(name, perf_1w=0.0, perf_1m=0.0, perf_3m=0.0, perf_6m=0.0, sector="Technology"):
     return {
         "name": name,
         "perf_1w": perf_1w,

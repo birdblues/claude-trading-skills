@@ -11,28 +11,25 @@ Covers:
 
 import os
 import sys
-import json
 import tempfile
 
-import pytest
-
 # Add scripts directories to path
-SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'scripts')
-CALCULATORS_DIR = os.path.join(SCRIPTS_DIR, 'calculators')
+SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
+CALCULATORS_DIR = os.path.join(SCRIPTS_DIR, "calculators")
 sys.path.insert(0, SCRIPTS_DIR)
 sys.path.insert(0, CALCULATORS_DIR)
 
-from calculators.market_calculator import calculate_market_direction, calculate_ema
 from calculators.institutional_calculator import (
     calculate_institutional_sponsorship,
     score_institutional_sponsorship,
 )
+from calculators.market_calculator import calculate_ema, calculate_market_direction
 from report_generator import generate_markdown_report
-
 
 # ---------------------------------------------------------------------------
 # B1: M Component - EMA calculation with real historical data
 # ---------------------------------------------------------------------------
+
 
 class TestMComponentEMA:
     """Verify that calculate_market_direction uses real historical prices
@@ -44,15 +41,17 @@ class TestMComponentEMA:
         prices = []
         price = start_price
         for i in range(days):
-            prices.append({
-                "date": f"2025-01-{days - i:02d}",
-                "close": round(price, 2),
-                "open": round(price + 1, 2),
-                "high": round(price + 2, 2),
-                "low": round(price - 1, 2),
-                "volume": 3_000_000_000,
-            })
-            price *= (1 - daily_decline_pct / 100)
+            prices.append(
+                {
+                    "date": f"2025-01-{days - i:02d}",
+                    "close": round(price, 2),
+                    "open": round(price + 1, 2),
+                    "high": round(price + 2, 2),
+                    "low": round(price - 1, 2),
+                    "volume": 3_000_000_000,
+                }
+            )
+            price *= 1 - daily_decline_pct / 100
         return prices
 
     @staticmethod
@@ -61,15 +60,17 @@ class TestMComponentEMA:
         prices = []
         price = start_price
         for i in range(days):
-            prices.append({
-                "date": f"2025-01-{days - i:02d}",
-                "close": round(price, 2),
-                "open": round(price - 1, 2),
-                "high": round(price + 1, 2),
-                "low": round(price - 2, 2),
-                "volume": 3_000_000_000,
-            })
-            price *= (1 + daily_rise_pct / 100)
+            prices.append(
+                {
+                    "date": f"2025-01-{days - i:02d}",
+                    "close": round(price, 2),
+                    "open": round(price - 1, 2),
+                    "high": round(price + 1, 2),
+                    "low": round(price - 2, 2),
+                    "volume": 3_000_000_000,
+                }
+            )
+            price *= 1 + daily_rise_pct / 100
         return prices
 
     def test_ema_calculation_with_sufficient_data(self):
@@ -85,7 +86,7 @@ class TestMComponentEMA:
         # Prices declined steadily so EMA remains high relative to current price
         historical = []
         price = 5000.0
-        for i in range(60):
+        for _i in range(60):
             historical.append({"close": round(price, 2)})
             price *= 0.995  # ~0.5% daily decline
 
@@ -124,7 +125,7 @@ class TestMComponentEMA:
         # Build prices that start at 5500 and decline to 5000
         historical = []
         price = 5500.0
-        for i in range(60):
+        for _i in range(60):
             historical.append({"close": round(price, 2)})
             price -= 8.33  # Decline from 5500 to ~5000
 
@@ -156,6 +157,7 @@ class TestMComponentEMA:
 # B2: I Component - Condition ordering in score_institutional_sponsorship
 # ---------------------------------------------------------------------------
 
+
 class TestIComponentConditionOrdering:
     """Verify that extreme ownership ranges (<10% or >90%) score 20,
     not 40 (which would happen if the <20% check catches them first)."""
@@ -168,9 +170,7 @@ class TestIComponentConditionOrdering:
             superinvestor_present=False,
             quality_warning=None,
         )
-        assert score == 20, (
-            f"Extreme low ownership (5%) should score 20, got {score}"
-        )
+        assert score == 20, f"Extreme low ownership (5%) should score 20, got {score}"
 
     def test_extreme_high_ownership_scores_20(self):
         """ownership_pct=95 should score 20 (extreme), not 40 (suboptimal)."""
@@ -180,9 +180,7 @@ class TestIComponentConditionOrdering:
             superinvestor_present=False,
             quality_warning=None,
         )
-        assert score == 20, (
-            f"Extreme high ownership (95%) should score 20, got {score}"
-        )
+        assert score == 20, f"Extreme high ownership (95%) should score 20, got {score}"
 
     def test_suboptimal_ownership_scores_40(self):
         """ownership_pct=15 should score 40 (suboptimal, between 10-20%)."""
@@ -192,9 +190,7 @@ class TestIComponentConditionOrdering:
             superinvestor_present=False,
             quality_warning=None,
         )
-        assert score == 40, (
-            f"Suboptimal ownership (15%) should score 40, got {score}"
-        )
+        assert score == 40, f"Suboptimal ownership (15%) should score 40, got {score}"
 
     def test_suboptimal_high_ownership_scores_40(self):
         """ownership_pct=85 should score 40 (suboptimal, between 80-90%)."""
@@ -204,9 +200,7 @@ class TestIComponentConditionOrdering:
             superinvestor_present=False,
             quality_warning=None,
         )
-        assert score == 40, (
-            f"Suboptimal high ownership (85%) should score 40, got {score}"
-        )
+        assert score == 40, f"Suboptimal high ownership (85%) should score 40, got {score}"
 
     def test_boundary_10pct_is_extreme(self):
         """ownership_pct=9.99 should score 20 (extreme: < 10)."""
@@ -216,9 +210,7 @@ class TestIComponentConditionOrdering:
             superinvestor_present=False,
             quality_warning=None,
         )
-        assert score == 20, (
-            f"Boundary (9.99%) should score 20, got {score}"
-        )
+        assert score == 20, f"Boundary (9.99%) should score 20, got {score}"
 
     def test_boundary_90pct_is_extreme(self):
         """ownership_pct=90.01 should score 20 (extreme: > 90)."""
@@ -228,14 +220,13 @@ class TestIComponentConditionOrdering:
             superinvestor_present=False,
             quality_warning=None,
         )
-        assert score == 20, (
-            f"Boundary (90.01%) should score 20, got {score}"
-        )
+        assert score == 20, f"Boundary (90.01%) should score 20, got {score}"
 
 
 # ---------------------------------------------------------------------------
 # B3: I Component - mktCap key from FMP profile
 # ---------------------------------------------------------------------------
+
 
 class TestIComponentMktCapKey:
     """Verify that institutional_calculator handles both 'mktCap' and 'marketCap' keys."""
@@ -243,7 +234,12 @@ class TestIComponentMktCapKey:
     def _make_holders(self, count, shares_each=1_000_000):
         """Create a list of dummy institutional holders."""
         return [
-            {"holder": f"Institution {i}", "shares": shares_each, "dateReported": "2025-01-01", "change": 0}
+            {
+                "holder": f"Institution {i}",
+                "shares": shares_each,
+                "dateReported": "2025-01-01",
+                "change": 0,
+            }
             for i in range(count)
         ]
 
@@ -310,6 +306,7 @@ class TestIComponentMktCapKey:
 # C1: report_generator --top parameter
 # ---------------------------------------------------------------------------
 
+
 class TestReportGeneratorTopParameter:
     """Verify that generate_markdown_report outputs all results, not just 20."""
 
@@ -353,19 +350,19 @@ class TestReportGeneratorTopParameter:
             },
         }
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             output_file = f.name
 
         try:
             generate_markdown_report(results, metadata, output_file)
 
-            with open(output_file, 'r') as f:
+            with open(output_file) as f:
                 content = f.read()
 
             # Check that the header says "Top 30" not "Top 20"
             assert "Top 30" in content, (
-                f"Report header should say 'Top 30', found: "
-                + [line for line in content.split('\n') if 'Top' in line and 'CANSLIM' in line][0]
+                "Report header should say 'Top 30', found: "
+                + [line for line in content.split("\n") if "Top" in line and "CANSLIM" in line][0]
             )
 
             # Check that SYM30 (the 30th stock) appears in the report
@@ -375,7 +372,8 @@ class TestReportGeneratorTopParameter:
 
             # Count the number of stock entries (each starts with "### N.")
             import re
-            stock_entries = re.findall(r'^### \d+\.', content, re.MULTILINE)
+
+            stock_entries = re.findall(r"^### \d+\.", content, re.MULTILINE)
             assert len(stock_entries) == 30, (
                 f"Expected 30 stock entries, found {len(stock_entries)}"
             )
@@ -394,22 +392,21 @@ class TestReportGeneratorTopParameter:
             "market_condition": {"trend": "uptrend", "M_score": 80, "warning": None},
         }
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             output_file = f.name
 
         try:
             generate_markdown_report(results, metadata, output_file)
 
-            with open(output_file, 'r') as f:
+            with open(output_file) as f:
                 content = f.read()
 
             assert "Top 5" in content, "Report header should say 'Top 5'"
 
             import re
-            stock_entries = re.findall(r'^### \d+\.', content, re.MULTILINE)
-            assert len(stock_entries) == 5, (
-                f"Expected 5 stock entries, found {len(stock_entries)}"
-            )
+
+            stock_entries = re.findall(r"^### \d+\.", content, re.MULTILINE)
+            assert len(stock_entries) == 5, f"Expected 5 stock entries, found {len(stock_entries)}"
         finally:
             os.unlink(output_file)
 
@@ -417,6 +414,7 @@ class TestReportGeneratorTopParameter:
 # ---------------------------------------------------------------------------
 # Integration: ^GSPC/SPY scale mismatch detection
 # ---------------------------------------------------------------------------
+
 
 class TestBenchmarkScaleConsistency:
     """Verify that M component rejects or handles mixed price scales.
@@ -500,9 +498,10 @@ class TestBenchmarkScaleConsistency:
     def test_screen_canslim_uses_gspc_for_historical(self):
         """Verify that screen_canslim.py uses ^GSPC (not SPY) for historical data."""
         import re
+
         screen_file = os.path.join(SCRIPTS_DIR, "screen_canslim.py")
 
-        with open(screen_file, "r") as f:
+        with open(screen_file) as f:
             content = f.read()
 
         # Find all get_historical_prices calls for S&P 500 / market data

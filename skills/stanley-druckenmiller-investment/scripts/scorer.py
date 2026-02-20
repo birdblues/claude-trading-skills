@@ -23,27 +23,26 @@ Conviction Zones:
    0-19:  Capital Preservation - Exposure: 0-20%
 """
 
-from typing import Dict, List, Optional
-
+from typing import Optional
 
 COMPONENT_WEIGHTS = {
-    "market_structure":    0.18,
-    "distribution_risk":   0.18,
+    "market_structure": 0.18,
+    "distribution_risk": 0.18,
     "bottom_confirmation": 0.12,
-    "macro_alignment":     0.18,
-    "theme_quality":       0.12,
-    "setup_availability":  0.10,
-    "signal_convergence":  0.12,
+    "macro_alignment": 0.18,
+    "theme_quality": 0.12,
+    "setup_availability": 0.10,
+    "signal_convergence": 0.12,
 }
 
 COMPONENT_LABELS = {
-    "market_structure":    "Market Structure (Breadth + Uptrend)",
-    "distribution_risk":   "Distribution Risk (Market Top, inverted)",
+    "market_structure": "Market Structure (Breadth + Uptrend)",
+    "distribution_risk": "Distribution Risk (Market Top, inverted)",
     "bottom_confirmation": "Bottom Confirmation (FTD Detector)",
-    "macro_alignment":     "Macro Alignment (Regime)",
-    "theme_quality":       "Theme Quality (Theme Detector)",
-    "setup_availability":  "Setup Availability (VCP + CANSLIM)",
-    "signal_convergence":  "Signal Convergence (Cross-Skill Agreement)",
+    "macro_alignment": "Macro Alignment (Regime)",
+    "theme_quality": "Theme Quality (Theme Detector)",
+    "setup_availability": "Setup Availability (VCP + CANSLIM)",
+    "signal_convergence": "Signal Convergence (Cross-Skill Agreement)",
 }
 
 
@@ -51,7 +50,8 @@ COMPONENT_LABELS = {
 # Component calculators
 # ---------------------------------------------------------------------------
 
-def calculate_market_structure(signals: Dict) -> float:
+
+def calculate_market_structure(signals: dict) -> float:
     """Breadth health * 0.5 + Uptrend health * 0.5, with divergence adjustment."""
     breadth = signals.get("market_breadth", {})
     uptrend = signals.get("uptrend_analysis", {})
@@ -69,14 +69,14 @@ def calculate_market_structure(signals: Dict) -> float:
     return max(0, min(round(base, 1), 100))
 
 
-def calculate_distribution_risk(signals: Dict) -> float:
+def calculate_distribution_risk(signals: dict) -> float:
     """Inverted market top score: high top risk = low conviction."""
     top = signals.get("market_top", {})
     top_score = top.get("composite_score", 0)
     return round(max(0, min(100 - top_score, 100)), 1)
 
 
-def calculate_bottom_confirmation(signals: Dict) -> float:
+def calculate_bottom_confirmation(signals: dict) -> float:
     """FTD state-based scoring for bottom confirmation / re-entry signal."""
     ftd = signals.get("ftd_detector", {})
     state = ftd.get("state", "NO_SIGNAL")
@@ -85,13 +85,13 @@ def calculate_bottom_confirmation(signals: Dict) -> float:
     dist_count = ftd.get("post_ftd_distribution_count", 0)
 
     state_scores = {
-        "FTD_CONFIRMED":    80,
-        "FTD_WINDOW":       60,
-        "RALLY_ATTEMPT":    55,
-        "NO_SIGNAL":        40,
-        "CORRECTION":       35,
-        "FTD_INVALIDATED":  15,
-        "RALLY_FAILED":     10,
+        "FTD_CONFIRMED": 80,
+        "FTD_WINDOW": 60,
+        "RALLY_ATTEMPT": 55,
+        "NO_SIGNAL": 40,
+        "CORRECTION": 35,
+        "FTD_INVALIDATED": 15,
+        "RALLY_FAILED": 10,
     }
 
     base = state_scores.get(state, 40)
@@ -108,7 +108,7 @@ def calculate_bottom_confirmation(signals: Dict) -> float:
     return round(max(0, min(base, 100)), 1)
 
 
-def calculate_macro_alignment(signals: Dict) -> float:
+def calculate_macro_alignment(signals: dict) -> float:
     """Regime-based conviction scoring."""
     macro = signals.get("macro_regime", {})
     regime = macro.get("regime", "unknown")
@@ -116,11 +116,11 @@ def calculate_macro_alignment(signals: Dict) -> float:
     confidence = macro.get("confidence", "unknown")
 
     regime_base = {
-        "broadening":    85,
+        "broadening": 85,
         "concentration": 65,
-        "transitional":  50,
-        "inflationary":  35,
-        "contraction":   20,
+        "transitional": 50,
+        "inflationary": 35,
+        "contraction": 20,
     }
 
     base = regime_base.get(regime, 50)
@@ -136,14 +136,14 @@ def calculate_macro_alignment(signals: Dict) -> float:
     return round(max(0, min(base, 100)), 1)
 
 
-def calculate_theme_quality(signals: Dict) -> float:
+def calculate_theme_quality(signals: dict) -> float:
     """Theme-derived score with lifecycle adjustment."""
     theme = signals.get("theme_detector", {})
     derived = theme.get("derived_score", 50)
     return round(max(0, min(derived, 100)), 1)
 
 
-def calculate_setup_availability(signals: Dict) -> float:
+def calculate_setup_availability(signals: dict) -> float:
     """
     VCP + CANSLIM derived scores averaged when both available.
     Fat pitch detection: exceptional setups = bonus.
@@ -171,7 +171,7 @@ def calculate_setup_availability(signals: Dict) -> float:
     return round(max(0, min(base, 100)), 1)
 
 
-def calculate_signal_convergence(signals: Dict) -> float:
+def calculate_signal_convergence(signals: dict) -> float:
     """
     Measure agreement among the 5 required skills.
     "Ducks in a row" - Druckenmiller's key conviction criterion.
@@ -206,7 +206,7 @@ def calculate_signal_convergence(signals: Dict) -> float:
     # Calculate agreement: low standard deviation = high convergence
     mean = sum(required_scores) / len(required_scores)
     variance = sum((s - mean) ** 2 for s in required_scores) / len(required_scores)
-    std_dev = variance ** 0.5
+    std_dev = variance**0.5
 
     # Convert std_dev to convergence score
     # std_dev 0 -> 100 (perfect agreement)
@@ -228,10 +228,11 @@ def calculate_signal_convergence(signals: Dict) -> float:
 # Composite scorer
 # ---------------------------------------------------------------------------
 
+
 def calculate_composite_conviction(
-    signals: Dict,
-    data_availability: Optional[Dict[str, bool]] = None,
-) -> Dict:
+    signals: dict,
+    data_availability: Optional[dict[str, bool]] = None,
+) -> dict:
     """
     Calculate weighted composite conviction score from extracted signals.
 
@@ -247,17 +248,17 @@ def calculate_composite_conviction(
 
     # Determine which optional components have real data
     has_theme = "theme_detector" in signals
-    has_setup = ("vcp_screener" in signals or "canslim_screener" in signals)
+    has_setup = "vcp_screener" in signals or "canslim_screener" in signals
 
     # Calculate each component
     raw_scores = {
-        "market_structure":    calculate_market_structure(signals),
-        "distribution_risk":   calculate_distribution_risk(signals),
+        "market_structure": calculate_market_structure(signals),
+        "distribution_risk": calculate_distribution_risk(signals),
         "bottom_confirmation": calculate_bottom_confirmation(signals),
-        "macro_alignment":     calculate_macro_alignment(signals),
-        "theme_quality":       calculate_theme_quality(signals),
-        "setup_availability":  calculate_setup_availability(signals),
-        "signal_convergence":  calculate_signal_convergence(signals),
+        "macro_alignment": calculate_macro_alignment(signals),
+        "theme_quality": calculate_theme_quality(signals),
+        "setup_availability": calculate_setup_availability(signals),
+        "signal_convergence": calculate_signal_convergence(signals),
     }
 
     # Determine availability per component
@@ -331,7 +332,7 @@ def calculate_composite_conviction(
     }
 
 
-def _interpret_conviction_zone(composite: float) -> Dict:
+def _interpret_conviction_zone(composite: float) -> dict:
     """Map composite conviction to zone."""
     if composite >= 80:
         return {
@@ -427,8 +428,7 @@ PATTERN_DEFINITIONS = {
 }
 
 
-def classify_pattern(signals: Dict, component_scores: Dict,
-                     conviction_score: float) -> Dict:
+def classify_pattern(signals: dict, component_scores: dict, conviction_score: float) -> dict:
     """
     Classify the current market into one of 4 Druckenmiller patterns.
     Returns the best-matching pattern with match strength.
@@ -494,8 +494,9 @@ def classify_pattern(signals: Dict, component_scores: Dict,
     if conviction_score < 40:
         p4 += 40
     # Mixed signals indicator
-    scores_list = [v.get("score", 50) if isinstance(v, dict) else 50
-                   for v in component_scores.values()]
+    scores_list = [
+        v.get("score", 50) if isinstance(v, dict) else 50 for v in component_scores.values()
+    ]
     if scores_list:
         spread = max(scores_list) - min(scores_list)
         if spread > 40:

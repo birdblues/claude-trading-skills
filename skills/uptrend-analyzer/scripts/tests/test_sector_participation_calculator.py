@@ -1,18 +1,17 @@
 """Tests for sector_participation_calculator.py"""
 
 import pytest
-
-from helpers import make_sector_summary_row, make_full_sector_summary
 from calculators.sector_participation_calculator import (
-    calculate_sector_participation,
-    _score_uptrend_count,
     _score_spread,
+    _score_uptrend_count,
+    calculate_sector_participation,
 )
-
+from helpers import make_full_sector_summary
 
 # ---------------------------------------------------------------------------
 # _score_uptrend_count
 # ---------------------------------------------------------------------------
+
 
 def test_count_score_zero():
     """0 sectors in uptrend -> score 0."""
@@ -58,6 +57,7 @@ def test_count_score_zero_total():
 # _score_spread
 # ---------------------------------------------------------------------------
 
+
 def test_spread_uniform():
     """spread=0.10 (< 0.15) -> 100."""
     assert _score_spread(0.10) == pytest.approx(100, abs=1)
@@ -92,11 +92,10 @@ def test_spread_very_extreme():
 # Overbought / oversold detection
 # ---------------------------------------------------------------------------
 
+
 def test_overbought_detection():
     """Sectors with ratio >= 0.37 are detected as overbought."""
-    summary = make_full_sector_summary(
-        ratios={"Technology": 0.45, "Industrials": 0.40}
-    )
+    summary = make_full_sector_summary(ratios={"Technology": 0.45, "Industrials": 0.40})
     result = calculate_sector_participation(summary, {})
     assert result["overbought_count"] == 2
     assert "Technology" in result["overbought_sectors"]
@@ -105,9 +104,7 @@ def test_overbought_detection():
 
 def test_oversold_detection():
     """Sectors with ratio < 0.097 are detected as oversold."""
-    summary = make_full_sector_summary(
-        ratios={"Energy": 0.05, "Utilities": 0.08}
-    )
+    summary = make_full_sector_summary(ratios={"Energy": 0.05, "Utilities": 0.08})
     result = calculate_sector_participation(summary, {})
     assert result["oversold_count"] == 2
     assert "Energy" in result["oversold_sectors"]
@@ -117,6 +114,7 @@ def test_oversold_detection():
 # ---------------------------------------------------------------------------
 # Full calculation
 # ---------------------------------------------------------------------------
+
 
 def test_full_calculation():
     """Full flow with 11 sectors all uptrending.
@@ -138,6 +136,7 @@ def test_full_calculation():
 # Edge cases
 # ---------------------------------------------------------------------------
 
+
 def test_empty_data_neutral():
     """Empty sector_summary and no timeseries -> neutral score 50."""
     result = calculate_sector_participation([], {})
@@ -149,13 +148,22 @@ def test_fallback_from_timeseries():
     """When sector_summary is empty but timeseries available, fallback builds summary."""
     sector_ts = {
         "sec_technology": {
-            "ratio": 0.35, "ma_10": 0.33, "trend": "up", "slope": 0.002,
+            "ratio": 0.35,
+            "ma_10": 0.33,
+            "trend": "up",
+            "slope": 0.002,
         },
         "sec_financial": {
-            "ratio": 0.28, "ma_10": 0.26, "trend": "up", "slope": 0.001,
+            "ratio": 0.28,
+            "ma_10": 0.26,
+            "trend": "up",
+            "slope": 0.001,
         },
         "sec_energy": {
-            "ratio": 0.20, "ma_10": 0.19, "trend": "down", "slope": -0.001,
+            "ratio": 0.20,
+            "ma_10": 0.19,
+            "trend": "down",
+            "slope": -0.001,
         },
     }
     result = calculate_sector_participation([], sector_ts)

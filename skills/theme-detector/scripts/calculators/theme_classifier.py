@@ -22,14 +22,13 @@ themes_config format:
 """
 
 from collections import Counter
-from typing import Dict, List, Set
 
 
 def classify_themes(
-    ranked_industries: List[Dict],
-    themes_config: Dict,
+    ranked_industries: list[dict],
+    themes_config: dict,
     top_n: int = 30,
-) -> List[Dict]:
+) -> list[dict]:
     """
     Match ranked industries to cross-sector and vertical themes.
 
@@ -57,7 +56,7 @@ def classify_themes(
     # Build active set from top N + bottom N (deduplicated)
     top = ranked_industries[:top_n]
     bottom = ranked_industries[-top_n:] if len(ranked_industries) > top_n else []
-    active_set: Dict[str, Dict] = {ind["name"]: ind for ind in top}
+    active_set: dict[str, dict] = {ind["name"]: ind for ind in top}
     for ind in bottom:
         if ind["name"] not in active_set:
             active_set[ind["name"]] = ind
@@ -72,27 +71,27 @@ def classify_themes(
         if len(matches) >= cross_sector_min:
             matching_inds = [active_set[m] for m in matches]
             direction = _majority_direction(matching_inds)
-            sector_weights = get_theme_sector_weights(
-                {"matching_industries": matching_inds}
-            )
+            sector_weights = get_theme_sector_weights({"matching_industries": matching_inds})
 
-            themes.append({
-                "theme_name": theme_def["theme_name"],
-                "direction": direction,
-                "matching_industries": matching_inds,
-                "sector_weights": sector_weights,
-                "proxy_etfs": theme_def.get("proxy_etfs", []),
-                "static_stocks": theme_def.get("static_stocks", []),
-                "theme_origin": "seed",
-                "name_confidence": "high",
-            })
+            themes.append(
+                {
+                    "theme_name": theme_def["theme_name"],
+                    "direction": direction,
+                    "matching_industries": matching_inds,
+                    "sector_weights": sector_weights,
+                    "proxy_etfs": theme_def.get("proxy_etfs", []),
+                    "static_stocks": theme_def.get("static_stocks", []),
+                    "theme_origin": "seed",
+                    "name_confidence": "high",
+                }
+            )
 
     # 2. Vertical (single-sector) theme detection
     # Count industries per sector in top N and bottom N separately
     top_set = set(ind["name"] for ind in top)
 
     # Top N sector groups
-    top_sector_groups: Dict[str, List[Dict]] = {}
+    top_sector_groups: dict[str, list[dict]] = {}
     for ind in top:
         sector = ind.get("sector")
         if sector is None:
@@ -102,22 +101,22 @@ def classify_themes(
     for sector, inds in top_sector_groups.items():
         if len(inds) >= vertical_min:
             direction = _majority_direction(inds)
-            sector_weights = get_theme_sector_weights(
-                {"matching_industries": inds}
+            sector_weights = get_theme_sector_weights({"matching_industries": inds})
+            themes.append(
+                {
+                    "theme_name": f"{sector} Sector Concentration",
+                    "direction": direction,
+                    "matching_industries": inds,
+                    "sector_weights": sector_weights,
+                    "proxy_etfs": [],
+                    "static_stocks": [],
+                    "theme_origin": "vertical",
+                    "name_confidence": "high",
+                }
             )
-            themes.append({
-                "theme_name": f"{sector} Sector Concentration",
-                "direction": direction,
-                "matching_industries": inds,
-                "sector_weights": sector_weights,
-                "proxy_etfs": [],
-                "static_stocks": [],
-                "theme_origin": "vertical",
-                "name_confidence": "high",
-            })
 
     # Bottom N sector groups (excluding industries already in top N)
-    bottom_sector_groups: Dict[str, List[Dict]] = {}
+    bottom_sector_groups: dict[str, list[dict]] = {}
     for ind in bottom:
         if ind["name"] in top_set:
             continue
@@ -129,24 +128,24 @@ def classify_themes(
     for sector, inds in bottom_sector_groups.items():
         if len(inds) >= vertical_min:
             direction = _majority_direction(inds)
-            sector_weights = get_theme_sector_weights(
-                {"matching_industries": inds}
+            sector_weights = get_theme_sector_weights({"matching_industries": inds})
+            themes.append(
+                {
+                    "theme_name": f"{sector} Sector Concentration",
+                    "direction": direction,
+                    "matching_industries": inds,
+                    "sector_weights": sector_weights,
+                    "proxy_etfs": [],
+                    "static_stocks": [],
+                    "theme_origin": "vertical",
+                    "name_confidence": "high",
+                }
             )
-            themes.append({
-                "theme_name": f"{sector} Sector Concentration",
-                "direction": direction,
-                "matching_industries": inds,
-                "sector_weights": sector_weights,
-                "proxy_etfs": [],
-                "static_stocks": [],
-                "theme_origin": "vertical",
-                "name_confidence": "high",
-            })
 
     return themes
 
 
-def get_matched_industry_names(themes: List[Dict]) -> Set[str]:
+def get_matched_industry_names(themes: list[dict]) -> set[str]:
     """Return the set of all matched industry names across classified themes.
 
     Args:
@@ -155,7 +154,7 @@ def get_matched_industry_names(themes: List[Dict]) -> Set[str]:
     Returns:
         Set of industry name strings.
     """
-    names: Set[str] = set()
+    names: set[str] = set()
     for theme in themes:
         for ind in theme.get("matching_industries", []):
             name = ind.get("name", "")
@@ -164,7 +163,7 @@ def get_matched_industry_names(themes: List[Dict]) -> Set[str]:
     return names
 
 
-def get_theme_sector_weights(theme: Dict) -> Dict[str, float]:
+def get_theme_sector_weights(theme: dict) -> dict[str, float]:
     """
     Calculate sector weight distribution for a theme's matching industries.
 
@@ -189,7 +188,7 @@ def get_theme_sector_weights(theme: Dict) -> Dict[str, float]:
 
 
 # Sector-to-representative-stocks mapping for vertical theme enrichment
-SECTOR_REPRESENTATIVE_STOCKS: Dict[str, List[str]] = {
+SECTOR_REPRESENTATIVE_STOCKS: dict[str, list[str]] = {
     "Technology": ["AAPL", "MSFT", "NVDA", "AVGO", "CRM"],
     "Consumer Cyclical": ["AMZN", "TSLA", "HD", "MCD", "NKE"],
     "Consumer Defensive": ["PG", "KO", "PEP", "WMT", "COST"],
@@ -204,7 +203,7 @@ SECTOR_REPRESENTATIVE_STOCKS: Dict[str, List[str]] = {
 }
 
 # Sector-to-ETF mapping for vertical theme enrichment
-SECTOR_ETFS: Dict[str, List[str]] = {
+SECTOR_ETFS: dict[str, list[str]] = {
     "Energy": ["XLE"],
     "Technology": ["XLK"],
     "Basic Materials": ["XLB"],
@@ -219,7 +218,7 @@ SECTOR_ETFS: Dict[str, List[str]] = {
 }
 
 
-def _industry_overlap_ratio(theme_a: Dict, theme_b: Dict) -> float:
+def _industry_overlap_ratio(theme_a: dict, theme_b: dict) -> float:
     """Calculate industry name overlap ratio between two themes.
 
     Returns the Jaccard-like ratio: |intersection| / |smaller set|.
@@ -233,7 +232,7 @@ def _industry_overlap_ratio(theme_a: Dict, theme_b: Dict) -> float:
     return len(intersection) / smaller if smaller > 0 else 0.0
 
 
-def enrich_vertical_themes(themes: List[Dict]) -> None:
+def enrich_vertical_themes(themes: list[dict]) -> None:
     """Add ETFs and stocks to vertical themes from overlapping seeds or sector mapping.
 
     Mutates vertical themes in place:
@@ -271,8 +270,11 @@ def enrich_vertical_themes(themes: List[Dict]) -> None:
                 theme["proxy_etfs"] = list(etfs)
         else:
             # Infer sector from matching industries
-            sectors = [ind.get("sector") for ind in theme.get("matching_industries", [])
-                       if ind.get("sector")]
+            sectors = [
+                ind.get("sector")
+                for ind in theme.get("matching_industries", [])
+                if ind.get("sector")
+            ]
             if sectors:
                 primary = max(set(sectors), key=sectors.count)
                 etfs = SECTOR_ETFS.get(primary, [])
@@ -290,8 +292,11 @@ def enrich_vertical_themes(themes: List[Dict]) -> None:
         if sector_weights:
             primary_sector = max(sector_weights, key=sector_weights.get)
         else:
-            sectors = [ind.get("sector") for ind in theme.get("matching_industries", [])
-                       if ind.get("sector")]
+            sectors = [
+                ind.get("sector")
+                for ind in theme.get("matching_industries", [])
+                if ind.get("sector")
+            ]
             primary_sector = max(set(sectors), key=sectors.count) if sectors else None
 
         if primary_sector:
@@ -300,7 +305,7 @@ def enrich_vertical_themes(themes: List[Dict]) -> None:
                 theme["static_stocks"] = list(stocks)
 
 
-def deduplicate_themes(themes: List[Dict], overlap_threshold: float = 0.5) -> List[Dict]:
+def deduplicate_themes(themes: list[dict], overlap_threshold: float = 0.5) -> list[dict]:
     """Remove vertical themes that duplicate seed themes.
 
     A vertical theme is removed if:
@@ -331,11 +336,10 @@ def deduplicate_themes(themes: List[Dict], overlap_threshold: float = 0.5) -> Li
     return result
 
 
-def _majority_direction(industries: List[Dict]) -> str:
+def _majority_direction(industries: list[dict]) -> str:
     """Determine majority direction from rank_direction (falls back to direction)."""
     bullish = sum(
-        1 for ind in industries
-        if ind.get("rank_direction", ind.get("direction")) == "bullish"
+        1 for ind in industries if ind.get("rank_direction", ind.get("direction")) == "bullish"
     )
     bearish = len(industries) - bullish
     return "bullish" if bullish > bearish else "bearish"

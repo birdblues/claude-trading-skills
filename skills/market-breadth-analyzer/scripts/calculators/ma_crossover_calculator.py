@@ -17,10 +17,8 @@ Scoring (100 = healthy):
     Gap > 0 and 8MA falling -> -10 (deterioration signal)
 """
 
-from typing import Dict, List
 
-
-def calculate_ma_crossover(rows: List[Dict]) -> Dict:
+def calculate_ma_crossover(rows: list[dict]) -> dict:
     """
     Calculate 8MA vs 200MA crossover dynamics score.
 

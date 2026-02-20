@@ -25,10 +25,8 @@ Scoring per window (100 = healthy):
   Otherwise                          -> 50
 """
 
-from typing import Dict, List, Tuple
 
-
-def calculate_divergence(rows: List[Dict]) -> Dict:
+def calculate_divergence(rows: list[dict]) -> dict:
     """
     Calculate S&P 500 vs breadth divergence score using dual windows.
 
@@ -59,9 +57,7 @@ def calculate_divergence(rows: List[Dict]) -> Dict:
     early_warning = w20["score"] <= 25 and w60["score"] >= 50
 
     # Signal uses the composite
-    signal = _generate_signal(
-        w60["sp_pct"], w60["breadth_chg"], w60["div_type"], score
-    )
+    signal = _generate_signal(w60["sp_pct"], w60["breadth_chg"], w60["div_type"], score)
 
     return {
         "score": score,
@@ -96,7 +92,7 @@ def calculate_divergence(rows: List[Dict]) -> Dict:
     }
 
 
-def _compute_window(rows: List[Dict], lookback: int) -> Dict:
+def _compute_window(rows: list[dict], lookback: int) -> dict:
     """Compute divergence metrics for a single lookback window."""
     actual_lookback = min(lookback, len(rows))
     latest = rows[-1]
@@ -135,7 +131,7 @@ def _compute_window(rows: List[Dict], lookback: int) -> Dict:
     }
 
 
-def _score_divergence(sp_pct: float, breadth_chg: float) -> Tuple[int, str]:
+def _score_divergence(sp_pct: float, breadth_chg: float) -> tuple[int, str]:
     """Score based on price/breadth divergence. Returns (score, type_label)."""
     sp_up = sp_pct > 0
     breadth_up = breadth_chg > 0
@@ -165,11 +161,6 @@ def _score_divergence(sp_pct: float, breadth_chg: float) -> Tuple[int, str]:
     return 50, "Mixed signals"
 
 
-def _generate_signal(
-    sp_pct: float, breadth_chg: float, div_type: str, score: int
-) -> str:
+def _generate_signal(sp_pct: float, breadth_chg: float, div_type: str, score: int) -> str:
     """Generate human-readable signal."""
-    return (
-        f"{div_type}: S&P {sp_pct:+.1f}%, "
-        f"Breadth 8MA {breadth_chg:+.3f} over 60d"
-    )
+    return f"{div_type}: S&P {sp_pct:+.1f}%, Breadth 8MA {breadth_chg:+.3f} over 60d"

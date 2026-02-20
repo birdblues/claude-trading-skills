@@ -18,22 +18,22 @@ Transition signals:
 - SPY/TLT ratio crossover + correlation regime change = high confidence
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
+
 from .utils import (
-    downsample_to_monthly,
     calculate_ratio,
+    compute_percentile,
+    compute_roc,
+    compute_rolling_correlation,
     compute_sma,
     detect_crossover,
-    compute_roc,
-    compute_percentile,
-    compute_rolling_correlation,
-    score_transition_signal,
     determine_direction,
+    downsample_to_monthly,
+    score_transition_signal,
 )
 
 
-def calculate_equity_bond(spy_history: List[Dict],
-                          tlt_history: List[Dict]) -> Dict:
+def calculate_equity_bond(spy_history: list[dict], tlt_history: list[dict]) -> dict:
     """
     Calculate equity-bond relationship transition signal.
 
@@ -102,8 +102,10 @@ def calculate_equity_bond(spy_history: List[Dict],
 
     # Direction
     direction, momentum_qualifier = determine_direction(
-        crossover, roc_3m,
-        positive_label="risk_on", negative_label="risk_off",
+        crossover,
+        roc_3m,
+        positive_label="risk_on",
+        negative_label="risk_off",
         neutral_label="neutral",
     )
 
@@ -130,7 +132,7 @@ def calculate_equity_bond(spy_history: List[Dict],
     }
 
 
-def _compute_monthly_returns(closes: List[float]) -> List[float]:
+def _compute_monthly_returns(closes: list[float]) -> list[float]:
     """Compute month-over-month returns from closes (most recent first)."""
     if len(closes) < 2:
         return []
@@ -142,8 +144,7 @@ def _compute_monthly_returns(closes: List[float]) -> List[float]:
     return returns
 
 
-def _classify_correlation_regime(corr_6m: Optional[float],
-                                 corr_12m: Optional[float]) -> str:
+def _classify_correlation_regime(corr_6m: Optional[float], corr_12m: Optional[float]) -> str:
     """Classify the stock-bond correlation regime."""
     if corr_6m is None:
         return "unknown"
@@ -158,8 +159,7 @@ def _classify_correlation_regime(corr_6m: Optional[float],
         return "positive"  # Inflationary regime
 
 
-def _describe_signal(score: int, direction: str, corr_regime: str,
-                     ratio: float) -> str:
+def _describe_signal(score: int, direction: str, corr_regime: str, ratio: float) -> str:
     corr_labels = {
         "negative_strong": "strong negative correlation (normal hedging)",
         "negative_mild": "mild negative correlation",
@@ -177,7 +177,7 @@ def _describe_signal(score: int, direction: str, corr_regime: str,
         return f"STABLE: Equity-bond stable, {corr_label} (SPY/TLT={ratio:.4f})"
 
 
-def _insufficient_data(reason: str) -> Dict:
+def _insufficient_data(reason: str) -> dict:
     return {
         "score": 0,
         "signal": f"INSUFFICIENT DATA: {reason}",

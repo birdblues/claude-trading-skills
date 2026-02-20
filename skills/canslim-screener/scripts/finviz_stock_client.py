@@ -17,14 +17,16 @@ Usage:
 
 import sys
 import time
-import re
-from typing import Dict, Optional
+from typing import Optional
 
 try:
     import requests
     from bs4 import BeautifulSoup
 except ImportError:
-    print("ERROR: required libraries not found. Install with: pip install beautifulsoup4 requests lxml", file=sys.stderr)
+    print(
+        "ERROR: required libraries not found. Install with: pip install beautifulsoup4 requests lxml",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 
@@ -45,11 +47,11 @@ class FinvizStockClient:
         self.cache = {}
         self.session = requests.Session()
         # Use a realistic user agent to avoid blocking
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-        })
+        self.session.headers.update(
+            {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+        )
 
-    def _rate_limited_fetch(self, symbol: str) -> Optional[Dict]:
+    def _rate_limited_fetch(self, symbol: str) -> Optional[dict]:
         """
         Fetch stock data with rate limiting
 
@@ -72,7 +74,10 @@ class FinvizStockClient:
             if response.status_code == 200:
                 return self._parse_finviz_page(response.text)
             else:
-                print(f"WARNING: Finviz request failed with status {response.status_code} for {symbol}", file=sys.stderr)
+                print(
+                    f"WARNING: Finviz request failed with status {response.status_code} for {symbol}",
+                    file=sys.stderr,
+                )
                 return None
 
         except Exception as e:
@@ -80,7 +85,7 @@ class FinvizStockClient:
             self.last_request_time = time.time()
             return None
 
-    def _parse_finviz_page(self, html: str) -> Dict:
+    def _parse_finviz_page(self, html: str) -> dict:
         """
         Parse Finviz stock page HTML
 
@@ -90,18 +95,18 @@ class FinvizStockClient:
         Returns:
             Dict with extracted data fields
         """
-        soup = BeautifulSoup(html, 'lxml')
+        soup = BeautifulSoup(html, "lxml")
 
         # Finviz uses a table structure with label-value pairs
         data = {}
 
         # Find all table rows containing data
-        tables = soup.find_all('table', {'class': 'snapshot-table2'})
+        tables = soup.find_all("table", {"class": "snapshot-table2"})
 
         for table in tables:
-            rows = table.find_all('tr')
+            rows = table.find_all("tr")
             for row in rows:
-                cells = row.find_all('td')
+                cells = row.find_all("td")
                 # Each row has pairs of (label, value, label, value, ...)
                 for i in range(0, len(cells), 2):
                     if i + 1 < len(cells):
@@ -111,7 +116,7 @@ class FinvizStockClient:
 
         return data
 
-    def get_institutional_ownership(self, symbol: str) -> Dict:
+    def get_institutional_ownership(self, symbol: str) -> dict:
         """
         Get institutional ownership data from Finviz
 
@@ -142,7 +147,7 @@ class FinvizStockClient:
             result = {
                 "inst_own_pct": None,
                 "inst_trans_pct": None,
-                "error": f"Failed to fetch data from Finviz for {symbol}"
+                "error": f"Failed to fetch data from Finviz for {symbol}",
             }
             self.cache[cache_key] = result
             return result
@@ -156,11 +161,7 @@ class FinvizStockClient:
         inst_own_pct = self._parse_percentage(inst_own_str)
         inst_trans_pct = self._parse_percentage(inst_trans_str)
 
-        result = {
-            "inst_own_pct": inst_own_pct,
-            "inst_trans_pct": inst_trans_pct,
-            "error": None
-        }
+        result = {"inst_own_pct": inst_own_pct, "inst_trans_pct": inst_trans_pct, "error": None}
 
         # Cache result
         self.cache[cache_key] = result
@@ -182,11 +183,11 @@ class FinvizStockClient:
 
         try:
             # Remove '%' and convert to float
-            return float(pct_str.rstrip('%'))
+            return float(pct_str.rstrip("%"))
         except (ValueError, AttributeError):
             return None
 
-    def get_stock_data(self, symbol: str) -> Optional[Dict]:
+    def get_stock_data(self, symbol: str) -> Optional[dict]:
         """
         Get full stock data dict from Finviz
 
@@ -220,8 +221,16 @@ if __name__ == "__main__":
 
     print("\nFinviz Institutional Ownership Data:")
     print(f"  Symbol: {args.symbol}")
-    print(f"  Inst Own: {data['inst_own_pct']}%" if data['inst_own_pct'] is not None else "  Inst Own: N/A")
-    print(f"  Inst Trans: {data['inst_trans_pct']}%" if data['inst_trans_pct'] is not None else "  Inst Trans: N/A")
+    print(
+        f"  Inst Own: {data['inst_own_pct']}%"
+        if data["inst_own_pct"] is not None
+        else "  Inst Own: N/A"
+    )
+    print(
+        f"  Inst Trans: {data['inst_trans_pct']}%"
+        if data["inst_trans_pct"] is not None
+        else "  Inst Trans: N/A"
+    )
 
-    if data.get('error'):
+    if data.get("error"):
         print(f"  Error: {data['error']}")

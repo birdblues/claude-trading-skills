@@ -2,7 +2,6 @@
 
 from scorer import (
     COMPONENT_WEIGHTS,
-    CORRELATION_THRESHOLD,
     CORRELATION_DISCOUNT,
     _apply_correlation_adjustment,
     calculate_composite_score,

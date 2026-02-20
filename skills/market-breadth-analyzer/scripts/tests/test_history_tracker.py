@@ -1,12 +1,9 @@
 """Tests for history_tracker.py — score history persistence."""
 
 import json
-import os
-import tempfile
 
 import pytest
-
-from history_tracker import load_history, append_history, get_trend_summary
+from history_tracker import append_history, get_trend_summary, load_history
 
 
 @pytest.fixture
@@ -106,8 +103,7 @@ class TestGetTrendSummary:
 
     def test_n_limits_entries(self):
         history = [
-            {"data_date": f"2025-01-{i + 1:02d}", "composite_score": 50.0 + i}
-            for i in range(10)
+            {"data_date": f"2025-01-{i + 1:02d}", "composite_score": 50.0 + i} for i in range(10)
         ]
         summary = get_trend_summary(history, n=3)
         assert len(summary["entries"]) == 3

@@ -27,9 +27,9 @@ except ImportError:
 
 def load_credentials():
     """Load Alpaca API credentials from environment variables."""
-    api_key = os.environ.get('ALPACA_API_KEY')
-    secret_key = os.environ.get('ALPACA_SECRET_KEY')
-    paper = os.environ.get('ALPACA_PAPER', 'true').lower() == 'true'
+    api_key = os.environ.get("ALPACA_API_KEY")
+    secret_key = os.environ.get("ALPACA_SECRET_KEY")
+    paper = os.environ.get("ALPACA_PAPER", "true").lower() == "true"
 
     if not api_key or not secret_key:
         print("ERROR: Alpaca API credentials not found")
@@ -57,14 +57,11 @@ def get_base_url(paper=True):
 
 def test_account_info(api_key, secret_key, base_url):
     """Test account information endpoint."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Alpaca Account API Connection")
-    print("="*60)
+    print("=" * 60)
 
-    headers = {
-        'APCA-API-KEY-ID': api_key,
-        'APCA-API-SECRET-KEY': secret_key
-    }
+    headers = {"APCA-API-KEY-ID": api_key, "APCA-API-SECRET-KEY": secret_key}
 
     try:
         response = requests.get(f"{base_url}/v2/account", headers=headers)
@@ -80,11 +77,11 @@ def test_account_info(api_key, secret_key, base_url):
             print(f"Portfolio Value: ${float(account.get('portfolio_value', 0)):,.2f}")
 
             # Check if account is restricted
-            if account.get('account_blocked') or account.get('trading_blocked'):
+            if account.get("account_blocked") or account.get("trading_blocked"):
                 print("\n⚠ WARNING: Account has restrictions")
-                if account.get('account_blocked'):
+                if account.get("account_blocked"):
                     print("  - Account is blocked")
-                if account.get('trading_blocked'):
+                if account.get("trading_blocked"):
                     print("  - Trading is blocked")
 
             return True
@@ -127,14 +124,11 @@ def test_account_info(api_key, secret_key, base_url):
 
 def test_positions(api_key, secret_key, base_url):
     """Test positions endpoint."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Positions API")
-    print("="*60)
+    print("=" * 60)
 
-    headers = {
-        'APCA-API-KEY-ID': api_key,
-        'APCA-API-SECRET-KEY': secret_key
-    }
+    headers = {"APCA-API-KEY-ID": api_key, "APCA-API-SECRET-KEY": secret_key}
 
     try:
         response = requests.get(f"{base_url}/v2/positions", headers=headers)
@@ -146,32 +140,34 @@ def test_positions(api_key, secret_key, base_url):
                 print("✓ API connection successful")
                 print("Portfolio is empty (no positions)")
             else:
-                print(f"✓ API connection successful")
+                print("✓ API connection successful")
                 print(f"Found {len(positions)} position(s):\n")
 
                 total_value = 0
                 total_pl = 0
 
                 for pos in positions:
-                    symbol = pos.get('symbol')
-                    qty = float(pos.get('qty', 0))
-                    avg_price = float(pos.get('avg_entry_price', 0))
-                    current_price = float(pos.get('current_price', 0))
-                    market_value = float(pos.get('market_value', 0))
-                    unrealized_pl = float(pos.get('unrealized_pl', 0))
-                    unrealized_plpc = float(pos.get('unrealized_plpc', 0)) * 100
+                    symbol = pos.get("symbol")
+                    qty = float(pos.get("qty", 0))
+                    avg_price = float(pos.get("avg_entry_price", 0))
+                    current_price = float(pos.get("current_price", 0))
+                    market_value = float(pos.get("market_value", 0))
+                    unrealized_pl = float(pos.get("unrealized_pl", 0))
+                    unrealized_plpc = float(pos.get("unrealized_plpc", 0)) * 100
 
                     total_value += market_value
                     total_pl += unrealized_pl
 
-                    pl_sign = '+' if unrealized_pl >= 0 else ''
+                    pl_sign = "+" if unrealized_pl >= 0 else ""
 
                     print(f"{symbol}:")
                     print(f"  Quantity: {qty:.2f} shares")
                     print(f"  Avg Entry: ${avg_price:.2f}")
                     print(f"  Current Price: ${current_price:.2f}")
                     print(f"  Market Value: ${market_value:,.2f}")
-                    print(f"  Unrealized P/L: {pl_sign}${unrealized_pl:,.2f} ({pl_sign}{unrealized_plpc:.2f}%)")
+                    print(
+                        f"  Unrealized P/L: {pl_sign}${unrealized_pl:,.2f} ({pl_sign}{unrealized_plpc:.2f}%)"
+                    )
                     print()
 
                 print(f"Total Portfolio Value: ${total_value:,.2f}")
@@ -191,30 +187,26 @@ def test_positions(api_key, secret_key, base_url):
 
 def test_market_data(api_key, secret_key):
     """Test market data API (optional)."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Testing Market Data API (Optional)")
-    print("="*60)
+    print("=" * 60)
 
     # Market data uses different base URL
     base_url = "https://data.alpaca.markets"
 
-    headers = {
-        'APCA-API-KEY-ID': api_key,
-        'APCA-API-SECRET-KEY': secret_key
-    }
+    headers = {"APCA-API-KEY-ID": api_key, "APCA-API-SECRET-KEY": secret_key}
 
     # Test with a simple quote request for AAPL
     try:
-        response = requests.get(
-            f"{base_url}/v2/stocks/AAPL/quotes/latest",
-            headers=headers
-        )
+        response = requests.get(f"{base_url}/v2/stocks/AAPL/quotes/latest", headers=headers)
 
         if response.status_code == 200:
             print("✓ Market data API accessible")
-            quote = response.json().get('quote', {})
+            quote = response.json().get("quote", {})
             if quote:
-                print(f"Sample quote (AAPL): Bid ${quote.get('bp', 0):.2f}, Ask ${quote.get('ap', 0):.2f}")
+                print(
+                    f"Sample quote (AAPL): Bid ${quote.get('bp', 0):.2f}, Ask ${quote.get('ap', 0):.2f}"
+                )
         elif response.status_code == 402:
             print("⚠ Market data requires paid subscription")
             print("  Free tier provides delayed data only")
@@ -231,7 +223,7 @@ def test_market_data(api_key, secret_key):
 def main():
     """Main test function."""
     print("Alpaca API Connection Test")
-    print("="*60)
+    print("=" * 60)
 
     # Load credentials
     api_key, secret_key, paper = load_credentials()
@@ -258,9 +250,9 @@ def main():
     test_market_data(api_key, secret_key)
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Test Summary")
-    print("="*60)
+    print("=" * 60)
 
     if success:
         print("✓ All tests passed successfully")

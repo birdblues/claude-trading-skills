@@ -23,12 +23,9 @@ Scoring:
 - 0:   < -20% (laggard)
 """
 
-from typing import Dict, List, Optional
-
-
 # Minervini weighting periods (trading days) and weights
 RS_PERIODS = [
-    (63, 0.40),   # 3 months - 40%
+    (63, 0.40),  # 3 months - 40%
     (126, 0.20),  # 6 months - 20%
     (189, 0.20),  # 9 months - 20%
     (252, 0.20),  # 12 months - 20%
@@ -36,9 +33,9 @@ RS_PERIODS = [
 
 
 def calculate_relative_strength(
-    stock_prices: List[Dict],
-    sp500_prices: List[Dict],
-) -> Dict:
+    stock_prices: list[dict],
+    sp500_prices: list[dict],
+) -> dict:
     """
     Calculate Minervini-weighted relative strength vs S&P 500.
 
@@ -81,13 +78,15 @@ def calculate_relative_strength(
             weighted_rs += relative * weight
             total_weight += weight
 
-            period_details.append({
-                "period_days": period_days,
-                "weight": weight,
-                "stock_return_pct": round(stock_return, 2),
-                "sp500_return_pct": round(sp500_return, 2),
-                "relative_pct": round(relative, 2),
-            })
+            period_details.append(
+                {
+                    "period_days": period_days,
+                    "weight": weight,
+                    "stock_return_pct": round(stock_return, 2),
+                    "sp500_return_pct": round(sp500_return, 2),
+                    "relative_pct": round(relative, 2),
+                }
+            )
         elif len(stock_closes) > period_days // 2 and len(sp500_closes) > period_days // 2:
             # Partial data: use available days with reduced weight
             available = min(len(stock_closes) - 1, len(sp500_closes) - 1)
@@ -99,14 +98,16 @@ def calculate_relative_strength(
             weighted_rs += relative * reduced_weight
             total_weight += reduced_weight
 
-            period_details.append({
-                "period_days": period_days,
-                "weight": reduced_weight,
-                "stock_return_pct": round(stock_return, 2),
-                "sp500_return_pct": round(sp500_return, 2),
-                "relative_pct": round(relative, 2),
-                "note": f"Partial data ({available} days available)",
-            })
+            period_details.append(
+                {
+                    "period_days": period_days,
+                    "weight": reduced_weight,
+                    "stock_return_pct": round(stock_return, 2),
+                    "sp500_return_pct": round(sp500_return, 2),
+                    "relative_pct": round(relative, 2),
+                    "note": f"Partial data ({available} days available)",
+                }
+            )
 
     if total_weight > 0:
         weighted_rs = weighted_rs / total_weight
@@ -130,14 +131,14 @@ def calculate_relative_strength(
     }
 
 
-def _period_return(closes: List[float], period: int) -> float:
+def _period_return(closes: list[float], period: int) -> float:
     """Calculate return over period. Closes are most-recent-first."""
     if len(closes) <= period or closes[period] <= 0:
         return 0.0
     return ((closes[0] - closes[period]) / closes[period]) * 100
 
 
-def rank_relative_strength_universe(rs_results: Dict[str, Dict]) -> Dict[str, Dict]:
+def rank_relative_strength_universe(rs_results: dict[str, dict]) -> dict[str, dict]:
     """Rank all candidates by weighted_rs and assign percentile-based scores.
 
     Stocks with weighted_rs=None are excluded from percentile ranking and
@@ -223,11 +224,11 @@ def _score_to_max_percentile(max_score: int) -> int:
     if max_score >= 100:
         return 100
     if max_score >= 90:
-        return 94   # _percentile_to_score(94) == 90
+        return 94  # _percentile_to_score(94) == 90
     if max_score >= 80:
-        return 84   # _percentile_to_score(84) == 80
+        return 84  # _percentile_to_score(84) == 80
     if max_score >= 70:
-        return 74   # _percentile_to_score(74) == 70
+        return 74  # _percentile_to_score(74) == 70
     if max_score >= 60:
         return 59
     if max_score >= 50:

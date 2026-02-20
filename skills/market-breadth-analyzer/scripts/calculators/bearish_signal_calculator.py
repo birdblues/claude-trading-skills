@@ -24,10 +24,8 @@ Scoring (100 = healthy):
     In Pink Zone & Signal=False -> -10 (structural weakness even without signal)
 """
 
-from typing import Dict, List
 
-
-def calculate_bearish_signal(rows: List[Dict]) -> Dict:
+def calculate_bearish_signal(rows: list[dict]) -> dict:
     """
     Calculate bearish signal status score.
 
@@ -59,8 +57,7 @@ def calculate_bearish_signal(rows: List[Dict]) -> Dict:
     if in_pink_zone:
         for i in range(len(rows) - 1, -1, -1):
             r = rows[i]
-            if (r["Breadth_200MA_Trend"] == -1 and
-                    r["Breadth_Index_8MA"] < r["Breadth_Index_200MA"]):
+            if r["Breadth_200MA_Trend"] == -1 and r["Breadth_Index_8MA"] < r["Breadth_Index_200MA"]:
                 pink_zone_days += 1
             else:
                 break
@@ -116,8 +113,11 @@ def _base_score(signal_active: bool, trend: int) -> int:
 
 
 def _generate_signal(
-    signal_active: bool, trend: int, ma8: float,
-    in_pink_zone: bool, score: int,
+    signal_active: bool,
+    trend: int,
+    ma8: float,
+    in_pink_zone: bool,
+    score: int,
 ) -> str:
     """Generate human-readable signal."""
     trend_str = "uptrend" if trend == 1 else "downtrend"
@@ -128,8 +128,7 @@ def _generate_signal(
             return f"ALL CLEAR: No bearish signal, {trend_str}"
         elif in_pink_zone:
             return (
-                f"CAUTION: No bearish signal but in Pink Zone "
-                f"(downtrend + 8MA < 200MA){pink_str}"
+                f"CAUTION: No bearish signal but in Pink Zone (downtrend + 8MA < 200MA){pink_str}"
             )
         else:
             return f"CAUTION: No bearish signal but {trend_str}"
@@ -145,6 +144,4 @@ def _generate_signal(
                 f"8MA={ma8:.3f} extremely weak{pink_str}"
             )
         else:
-            return (
-                f"BEARISH: Signal active in {trend_str}, 8MA={ma8:.3f}{pink_str}"
-            )
+            return f"BEARISH: Signal active in {trend_str}, 8MA={ma8:.3f}{pink_str}"

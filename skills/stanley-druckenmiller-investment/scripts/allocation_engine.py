@@ -9,8 +9,6 @@ Asset classes: equity, bonds, alternatives (gold/commodities), cash
 All allocations sum to 100%.
 """
 
-from typing import Dict
-
 
 # ---------------------------------------------------------------------------
 # Base allocations by conviction zone (sum to 100%)
@@ -77,12 +75,13 @@ PATTERN_ADJUSTMENTS = {
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def generate_allocation(
     conviction_score: float,
     zone: str,
     pattern: str,
     regime: str,
-) -> Dict:
+) -> dict:
     """
     Generate target allocation based on conviction, pattern, and regime.
 
@@ -126,7 +125,7 @@ def generate_allocation(
 def calculate_position_sizing(
     conviction_score: float,
     zone: str,
-) -> Dict:
+) -> dict:
     """
     Calculate position sizing parameters based on conviction level.
 

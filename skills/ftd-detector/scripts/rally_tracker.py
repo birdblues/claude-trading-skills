@@ -17,8 +17,8 @@ O'Neil's FTD Rules:
 - Day 4-10: FTD requires >=1.25% gain on volume > previous day
 """
 
-from typing import Dict, List, Optional, Tuple
 from enum import Enum
+from typing import Optional
 
 
 class MarketState(Enum):
@@ -44,7 +44,7 @@ FTD_GAIN_RECOMMENDED = 1.5
 FTD_GAIN_STRONG = 2.0
 
 
-def find_swing_low(history: List[Dict]) -> Optional[Dict]:
+def find_swing_low(history: list[dict]) -> Optional[dict]:
     """
     Find the most recent swing low in chronological history.
 
@@ -129,7 +129,7 @@ def find_swing_low(history: List[Dict]) -> Optional[Dict]:
     return None
 
 
-def track_rally_attempt(history: List[Dict], swing_low_idx: int) -> Dict:
+def track_rally_attempt(history: list[dict], swing_low_idx: int) -> dict:
     """
     Track rally attempt starting after swing low.
 
@@ -199,13 +199,15 @@ def track_rally_attempt(history: List[Dict], swing_low_idx: int) -> Dict:
 
     # Track days from Day 1 onward
     day_count = 1
-    rally_days = [{
-        "day": 1,
-        "idx": day1_idx,
-        "date": history[day1_idx].get("date", "N/A"),
-        "close": history[day1_idx].get("close", 0),
-        "volume": history[day1_idx].get("volume", 0),
-    }]
+    rally_days = [
+        {
+            "day": 1,
+            "idx": day1_idx,
+            "date": history[day1_idx].get("date", "N/A"),
+            "close": history[day1_idx].get("close", 0),
+            "volume": history[day1_idx].get("volume", 0),
+        }
+    ]
 
     for i in range(day1_idx + 1, n):
         curr_close = history[i].get("close", 0)
@@ -235,26 +237,30 @@ def track_rally_attempt(history: List[Dict], swing_low_idx: int) -> Dict:
         if prev_close > 0:
             change_pct = (curr_close - prev_close) / prev_close * 100
 
-        rally_days.append({
-            "day": day_count,
-            "idx": i,
-            "date": history[i].get("date", "N/A"),
-            "close": curr_close,
-            "volume": curr_volume,
-            "change_pct": round(change_pct, 2),
-            "volume_vs_prev": (
-                round((curr_volume / history[i - 1].get("volume", 1) - 1) * 100, 1)
-                if history[i - 1].get("volume", 0) > 0 else 0
-            ),
-        })
+        rally_days.append(
+            {
+                "day": day_count,
+                "idx": i,
+                "date": history[i].get("date", "N/A"),
+                "close": curr_close,
+                "volume": curr_volume,
+                "change_pct": round(change_pct, 2),
+                "volume_vs_prev": (
+                    round((curr_volume / history[i - 1].get("volume", 1) - 1) * 100, 1)
+                    if history[i - 1].get("volume", 0) > 0
+                    else 0
+                ),
+            }
+        )
 
     result["current_day_count"] = day_count
     result["rally_days"] = rally_days
     return result
 
 
-def detect_ftd(history: List[Dict], rally_data: Dict,
-               avg_volume_50d: Optional[float] = None) -> Dict:
+def detect_ftd(
+    history: list[dict], rally_data: dict, avg_volume_50d: Optional[float] = None
+) -> dict:
     """
     Detect Follow-Through Day within the FTD window (Day 4-10).
 
@@ -318,23 +324,25 @@ def detect_ftd(history: List[Dict], rally_data: Dict,
         if avg_volume_50d and avg_volume_50d > 0:
             volume_above_avg = curr_volume > avg_volume_50d
 
-        result.update({
-            "ftd_detected": True,
-            "ftd_day_number": day_num,
-            "ftd_date": day_info.get("date", "N/A"),
-            "ftd_price": day_info.get("close", 0),
-            "gain_pct": change_pct,
-            "volume": curr_volume,
-            "prev_day_volume": prev_volume,
-            "volume_above_avg": volume_above_avg,
-            "gain_tier": gain_tier,
-        })
+        result.update(
+            {
+                "ftd_detected": True,
+                "ftd_day_number": day_num,
+                "ftd_date": day_info.get("date", "N/A"),
+                "ftd_price": day_info.get("close", 0),
+                "gain_pct": change_pct,
+                "volume": curr_volume,
+                "prev_day_volume": prev_volume,
+                "volume_above_avg": volume_above_avg,
+                "gain_tier": gain_tier,
+            }
+        )
         break  # Take the first qualifying FTD
 
     return result
 
 
-def calculate_avg_volume(history: List[Dict], period: int = 50) -> float:
+def calculate_avg_volume(history: list[dict], period: int = 50) -> float:
     """Calculate average volume over the specified period (most recent data)."""
     if not history:
         return 0
@@ -342,7 +350,7 @@ def calculate_avg_volume(history: List[Dict], period: int = 50) -> float:
     return sum(volumes) / len(volumes) if volumes else 0
 
 
-def analyze_single_index(history: List[Dict], index_name: str) -> Dict:
+def analyze_single_index(history: list[dict], index_name: str) -> dict:
     """
     Run full FTD analysis for a single index.
 
@@ -371,7 +379,7 @@ def analyze_single_index(history: List[Dict], index_name: str) -> Dict:
     # Use last 60 trading days for analysis
     lookback = min(60, len(history))
     analysis_window = history[-lookback:]
-    n = len(analysis_window)
+    len(analysis_window)
 
     result["current_price"] = analysis_window[-1].get("close", 0)
 
@@ -438,8 +446,7 @@ def analyze_single_index(history: List[Dict], index_name: str) -> Dict:
     return result
 
 
-def get_market_state(sp500_history: List[Dict],
-                     nasdaq_history: List[Dict]) -> Dict:
+def get_market_state(sp500_history: list[dict], nasdaq_history: list[dict]) -> dict:
     """
     Analyze both indices and produce a merged market state assessment.
 

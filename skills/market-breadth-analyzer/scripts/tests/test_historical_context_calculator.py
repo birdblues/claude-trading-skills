@@ -1,7 +1,5 @@
 """Tests for Component 5: Historical Context (Percentile) Calculator."""
 
-import pytest
-
 from calculators.historical_context_calculator import (
     calculate_historical_percentile,
 )

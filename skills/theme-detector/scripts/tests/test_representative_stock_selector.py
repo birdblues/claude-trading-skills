@@ -1,26 +1,23 @@
 """Tests for representative_stock_selector module."""
 
 import time
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from representative_stock_selector import (
-    RepresentativeStockSelector,
-    _SourceState,
-    _parse_market_cap,
-    _parse_change,
-    _parse_volume,
     _MAX_CONSECUTIVE_FAILURES,
+    RepresentativeStockSelector,
+    _parse_change,
+    _parse_market_cap,
+    _parse_volume,
 )
-
 
 # ---------------------------------------------------------------------------
 # Parse helpers
 # ---------------------------------------------------------------------------
 
-class TestParseMarketCap:
 
+class TestParseMarketCap:
     def test_trillions(self):
         assert _parse_market_cap("2.8T") == 2_800_000_000_000
 
@@ -44,7 +41,6 @@ class TestParseMarketCap:
 
 
 class TestParseChange:
-
     def test_percent_string(self):
         assert _parse_change("12.50%") == pytest.approx(12.50)
 
@@ -73,7 +69,6 @@ class TestParseChange:
 
 
 class TestParseVolume:
-
     def test_comma_string(self):
         assert _parse_volume("1,234,567") == 1234567
 
@@ -97,8 +92,8 @@ class TestParseVolume:
 # Composite score
 # ---------------------------------------------------------------------------
 
-class TestCompositeScore:
 
+class TestCompositeScore:
     def _make_selector(self):
         return RepresentativeStockSelector()
 
@@ -106,12 +101,24 @@ class TestCompositeScore:
         """A stock with large market_cap but low change/volume is not #1."""
         sel = self._make_selector()
         stocks = [
-            {"symbol": "BIG", "source": "finviz_public",
-             "market_cap": 2_000_000_000_000, "change": 1.0, "volume": 100_000,
-             "matched_industries": ["X"], "reasons": []},
-            {"symbol": "SMALL", "source": "finviz_public",
-             "market_cap": 10_000_000_000, "change": 20.0, "volume": 5_000_000,
-             "matched_industries": ["X"], "reasons": []},
+            {
+                "symbol": "BIG",
+                "source": "finviz_public",
+                "market_cap": 2_000_000_000_000,
+                "change": 1.0,
+                "volume": 100_000,
+                "matched_industries": ["X"],
+                "reasons": [],
+            },
+            {
+                "symbol": "SMALL",
+                "source": "finviz_public",
+                "market_cap": 10_000_000_000,
+                "change": 20.0,
+                "volume": 5_000_000,
+                "matched_industries": ["X"],
+                "reasons": [],
+            },
         ]
         scored = sel._compute_composite_score(stocks, is_bearish=False)
         # SMALL ranks #1: cap_rank=2 (0.4*0) but change_rank=1 (0.3*1) + vol_rank=1 (0.3*1)
@@ -124,9 +131,15 @@ class TestCompositeScore:
         """composite = 0.4 * cap_rank + 0.3 * change_rank + 0.3 * vol_rank"""
         sel = self._make_selector()
         stocks = [
-            {"symbol": "A", "source": "finviz_public",
-             "market_cap": 100_000_000_000, "change": 10.0, "volume": 1_000_000,
-             "matched_industries": [], "reasons": []},
+            {
+                "symbol": "A",
+                "source": "finviz_public",
+                "market_cap": 100_000_000_000,
+                "change": 10.0,
+                "volume": 1_000_000,
+                "matched_industries": [],
+                "reasons": [],
+            },
         ]
         scored = sel._compute_composite_score(stocks, is_bearish=False)
         # Single stock => rank 1/1 => score = 0.4*1 + 0.3*1 + 0.3*1 = 1.0
@@ -136,12 +149,24 @@ class TestCompositeScore:
         """is_bearish=True => abs(change) ranks descending."""
         sel = self._make_selector()
         stocks = [
-            {"symbol": "DROP", "source": "finviz_public",
-             "market_cap": 50_000_000_000, "change": -15.0, "volume": 1_000_000,
-             "matched_industries": [], "reasons": []},
-            {"symbol": "FLAT", "source": "finviz_public",
-             "market_cap": 50_000_000_000, "change": -1.0, "volume": 1_000_000,
-             "matched_industries": [], "reasons": []},
+            {
+                "symbol": "DROP",
+                "source": "finviz_public",
+                "market_cap": 50_000_000_000,
+                "change": -15.0,
+                "volume": 1_000_000,
+                "matched_industries": [],
+                "reasons": [],
+            },
+            {
+                "symbol": "FLAT",
+                "source": "finviz_public",
+                "market_cap": 50_000_000_000,
+                "change": -1.0,
+                "volume": 1_000_000,
+                "matched_industries": [],
+                "reasons": [],
+            },
         ]
         scored = sel._compute_composite_score(stocks, is_bearish=True)
         # DROP has larger abs(change), should score higher
@@ -153,12 +178,24 @@ class TestCompositeScore:
         """change/volume=None => re-normalize with available metrics only."""
         sel = self._make_selector()
         stocks = [
-            {"symbol": "A", "source": "etf_holdings",
-             "market_cap": 100_000_000_000, "change": None, "volume": None,
-             "matched_industries": [], "reasons": []},
-            {"symbol": "B", "source": "etf_holdings",
-             "market_cap": 50_000_000_000, "change": None, "volume": None,
-             "matched_industries": [], "reasons": []},
+            {
+                "symbol": "A",
+                "source": "etf_holdings",
+                "market_cap": 100_000_000_000,
+                "change": None,
+                "volume": None,
+                "matched_industries": [],
+                "reasons": [],
+            },
+            {
+                "symbol": "B",
+                "source": "etf_holdings",
+                "market_cap": 50_000_000_000,
+                "change": None,
+                "volume": None,
+                "matched_industries": [],
+                "reasons": [],
+            },
         ]
         scored = sel._compute_composite_score(stocks, is_bearish=False)
         # Should not crash; A has bigger cap so should rank higher
@@ -174,20 +211,30 @@ class TestCompositeScore:
 # Merge and rank
 # ---------------------------------------------------------------------------
 
-class TestMergeAndRank:
 
+class TestMergeAndRank:
     def _make_selector(self):
         return RepresentativeStockSelector()
 
     def test_deduplicates_by_symbol(self):
         sel = self._make_selector()
         candidates = [
-            {"symbol": "NVDA", "source": "finviz_public",
-             "market_cap": 100, "matched_industries": ["Semi"],
-             "reasons": ["reason1"], "composite_score": 0.9},
-            {"symbol": "NVDA", "source": "finviz_public",
-             "market_cap": 100, "matched_industries": ["Hardware"],
-             "reasons": ["reason2"], "composite_score": 0.8},
+            {
+                "symbol": "NVDA",
+                "source": "finviz_public",
+                "market_cap": 100,
+                "matched_industries": ["Semi"],
+                "reasons": ["reason1"],
+                "composite_score": 0.9,
+            },
+            {
+                "symbol": "NVDA",
+                "source": "finviz_public",
+                "market_cap": 100,
+                "matched_industries": ["Hardware"],
+                "reasons": ["reason2"],
+                "composite_score": 0.8,
+            },
         ]
         result = sel._merge_and_rank(candidates, max_stocks=10)
         assert len(result) == 1
@@ -196,12 +243,22 @@ class TestMergeAndRank:
     def test_merges_matched_industries_on_duplicate(self):
         sel = self._make_selector()
         candidates = [
-            {"symbol": "NVDA", "source": "finviz_public",
-             "market_cap": 100, "matched_industries": ["Semi"],
-             "reasons": [], "composite_score": 0.9},
-            {"symbol": "NVDA", "source": "finviz_public",
-             "market_cap": 100, "matched_industries": ["Hardware"],
-             "reasons": [], "composite_score": 0.8},
+            {
+                "symbol": "NVDA",
+                "source": "finviz_public",
+                "market_cap": 100,
+                "matched_industries": ["Semi"],
+                "reasons": [],
+                "composite_score": 0.9,
+            },
+            {
+                "symbol": "NVDA",
+                "source": "finviz_public",
+                "market_cap": 100,
+                "matched_industries": ["Hardware"],
+                "reasons": [],
+                "composite_score": 0.8,
+            },
         ]
         result = sel._merge_and_rank(candidates, max_stocks=10)
         assert "Semi" in result[0]["matched_industries"]
@@ -210,12 +267,22 @@ class TestMergeAndRank:
     def test_accumulates_reasons_on_duplicate(self):
         sel = self._make_selector()
         candidates = [
-            {"symbol": "X", "source": "finviz_public",
-             "market_cap": 0, "matched_industries": [],
-             "reasons": ["r1"], "composite_score": 0.5},
-            {"symbol": "X", "source": "finviz_public",
-             "market_cap": 0, "matched_industries": [],
-             "reasons": ["r2"], "composite_score": 0.4},
+            {
+                "symbol": "X",
+                "source": "finviz_public",
+                "market_cap": 0,
+                "matched_industries": [],
+                "reasons": ["r1"],
+                "composite_score": 0.5,
+            },
+            {
+                "symbol": "X",
+                "source": "finviz_public",
+                "market_cap": 0,
+                "matched_industries": [],
+                "reasons": ["r2"],
+                "composite_score": 0.4,
+            },
         ]
         result = sel._merge_and_rank(candidates, max_stocks=10)
         assert "r1" in result[0]["reasons"]
@@ -224,12 +291,30 @@ class TestMergeAndRank:
     def test_sorts_by_composite_score_descending(self):
         sel = self._make_selector()
         candidates = [
-            {"symbol": "A", "source": "s", "market_cap": 0,
-             "matched_industries": [], "reasons": [], "composite_score": 0.3},
-            {"symbol": "B", "source": "s", "market_cap": 0,
-             "matched_industries": [], "reasons": [], "composite_score": 0.9},
-            {"symbol": "C", "source": "s", "market_cap": 0,
-             "matched_industries": [], "reasons": [], "composite_score": 0.6},
+            {
+                "symbol": "A",
+                "source": "s",
+                "market_cap": 0,
+                "matched_industries": [],
+                "reasons": [],
+                "composite_score": 0.3,
+            },
+            {
+                "symbol": "B",
+                "source": "s",
+                "market_cap": 0,
+                "matched_industries": [],
+                "reasons": [],
+                "composite_score": 0.9,
+            },
+            {
+                "symbol": "C",
+                "source": "s",
+                "market_cap": 0,
+                "matched_industries": [],
+                "reasons": [],
+                "composite_score": 0.6,
+            },
         ]
         result = sel._merge_and_rank(candidates, max_stocks=10)
         assert [r["symbol"] for r in result] == ["B", "C", "A"]
@@ -237,8 +322,14 @@ class TestMergeAndRank:
     def test_respects_max_stocks(self):
         sel = self._make_selector()
         candidates = [
-            {"symbol": f"S{i}", "source": "s", "market_cap": 0,
-             "matched_industries": [], "reasons": [], "composite_score": i * 0.1}
+            {
+                "symbol": f"S{i}",
+                "source": "s",
+                "market_cap": 0,
+                "matched_industries": [],
+                "reasons": [],
+                "composite_score": i * 0.1,
+            }
             for i in range(20)
         ]
         result = sel._merge_and_rank(candidates, max_stocks=5)
@@ -251,10 +342,22 @@ class TestMergeAndRank:
     def test_duplicate_uses_max_composite_score(self):
         sel = self._make_selector()
         candidates = [
-            {"symbol": "X", "source": "s", "market_cap": 0,
-             "matched_industries": [], "reasons": [], "composite_score": 0.3},
-            {"symbol": "X", "source": "s", "market_cap": 0,
-             "matched_industries": [], "reasons": [], "composite_score": 0.9},
+            {
+                "symbol": "X",
+                "source": "s",
+                "market_cap": 0,
+                "matched_industries": [],
+                "reasons": [],
+                "composite_score": 0.3,
+            },
+            {
+                "symbol": "X",
+                "source": "s",
+                "market_cap": 0,
+                "matched_industries": [],
+                "reasons": [],
+                "composite_score": 0.9,
+            },
         ]
         result = sel._merge_and_rank(candidates, max_stocks=10)
         assert result[0]["composite_score"] == 0.9
@@ -264,13 +367,19 @@ class TestMergeAndRank:
 # select_stocks fallback chain
 # ---------------------------------------------------------------------------
 
+
 def _mock_finviz_public_stocks(industry, limit, is_bearish):
     """Return fake stocks for FINVIZ public."""
     return [
-        {"symbol": f"{industry[:3].upper()}{i}", "source": "finviz_public",
-         "market_cap": (10 - i) * 1_000_000_000, "change": 5.0 + i,
-         "volume": 1_000_000, "matched_industries": [industry],
-         "reasons": [f"Top in {industry}"]}
+        {
+            "symbol": f"{industry[:3].upper()}{i}",
+            "source": "finviz_public",
+            "market_cap": (10 - i) * 1_000_000_000,
+            "change": 5.0 + i,
+            "volume": 1_000_000,
+            "matched_industries": [industry],
+            "reasons": [f"Top in {industry}"],
+        }
         for i in range(min(limit, 8))
     ]
 
@@ -278,10 +387,15 @@ def _mock_finviz_public_stocks(industry, limit, is_bearish):
 def _mock_finviz_elite_stocks(industry, limit, is_bearish):
     """Return fake stocks for FINVIZ elite."""
     return [
-        {"symbol": f"E{industry[:2].upper()}{i}", "source": "finviz_elite",
-         "market_cap": (10 - i) * 2_000_000_000, "change": 8.0 + i,
-         "volume": 2_000_000, "matched_industries": [industry],
-         "reasons": [f"Elite top in {industry}"]}
+        {
+            "symbol": f"E{industry[:2].upper()}{i}",
+            "source": "finviz_elite",
+            "market_cap": (10 - i) * 2_000_000_000,
+            "change": 8.0 + i,
+            "volume": 2_000_000,
+            "matched_industries": [industry],
+            "reasons": [f"Elite top in {industry}"],
+        }
         for i in range(min(limit, 8))
     ]
 
@@ -289,25 +403,31 @@ def _mock_finviz_elite_stocks(industry, limit, is_bearish):
 def _mock_etf_holdings(etf, limit):
     """Return fake ETF holdings."""
     return [
-        {"symbol": f"ETF{etf}{i}", "source": "etf_holdings",
-         "market_cap": (5 - i) * 500_000_000, "change": None,
-         "volume": None, "matched_industries": [],
-         "reasons": [f"Held by {etf}"]}
+        {
+            "symbol": f"ETF{etf}{i}",
+            "source": "etf_holdings",
+            "market_cap": (5 - i) * 500_000_000,
+            "change": None,
+            "volume": None,
+            "matched_industries": [],
+            "reasons": [f"Held by {etf}"],
+        }
         for i in range(min(limit, 5))
     ]
 
 
 class TestSelectStocks:
-
     def test_finviz_elite_priority(self):
         """finviz_mode=elite + key => Elite is used."""
         sel = RepresentativeStockSelector(
             finviz_elite_key="test_key",
             finviz_mode="elite",
         )
-        with patch.object(sel, '_fetch_finviz_elite', side_effect=_mock_finviz_elite_stocks), \
-             patch.object(sel, '_fetch_finviz_public', side_effect=_mock_finviz_public_stocks), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_elite", side_effect=_mock_finviz_elite_stocks),
+            patch.object(sel, "_fetch_finviz_public", side_effect=_mock_finviz_public_stocks),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [{"name": "Gold"}],
@@ -324,9 +444,13 @@ class TestSelectStocks:
             finviz_elite_key="test_key",
             finviz_mode="public",
         )
-        with patch.object(sel, '_fetch_finviz_elite', side_effect=_mock_finviz_elite_stocks) as elite_mock, \
-             patch.object(sel, '_fetch_finviz_public', side_effect=_mock_finviz_public_stocks), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(
+                sel, "_fetch_finviz_elite", side_effect=_mock_finviz_elite_stocks
+            ) as elite_mock,
+            patch.object(sel, "_fetch_finviz_public", side_effect=_mock_finviz_public_stocks),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [{"name": "Gold"}],
@@ -340,8 +464,10 @@ class TestSelectStocks:
     def test_finviz_public_fallback(self):
         """No elite key => public screener."""
         sel = RepresentativeStockSelector()
-        with patch.object(sel, '_fetch_finviz_public', side_effect=_mock_finviz_public_stocks), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=_mock_finviz_public_stocks),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [{"name": "Gold"}],
@@ -359,9 +485,11 @@ class TestSelectStocks:
         def empty_finviz(industry, limit, is_bearish):
             return []
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=empty_finviz), \
-             patch.object(sel, '_fetch_etf_holdings', side_effect=_mock_etf_holdings), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=empty_finviz),
+            patch.object(sel, "_fetch_etf_holdings", side_effect=_mock_etf_holdings),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [{"name": "Gold"}],
@@ -379,8 +507,10 @@ class TestSelectStocks:
         def fail_finviz(industry, limit, is_bearish):
             return []
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=fail_finviz), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=fail_finviz),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [{"name": "Gold"}],
@@ -395,8 +525,10 @@ class TestSelectStocks:
     def test_vertical_theme_gets_stocks(self):
         """Vertical theme (static_stocks=[]) gets stocks from FINVIZ."""
         sel = RepresentativeStockSelector()
-        with patch.object(sel, '_fetch_finviz_public', side_effect=_mock_finviz_public_stocks), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=_mock_finviz_public_stocks),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [
@@ -419,8 +551,10 @@ class TestSelectStocks:
             calls.append(is_bearish)
             return _mock_finviz_public_stocks(industry, limit, is_bearish)
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=track_finviz), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=track_finviz),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bearish",
                 "matching_industries": [{"name": "Retail"}],
@@ -436,16 +570,30 @@ class TestSelectStocks:
 
         def bearish_stocks(industry, limit, is_bearish):
             return [
-                {"symbol": "BIG_DROP", "source": "finviz_public",
-                 "market_cap": 10_000_000_000, "change": -20.0, "volume": 1_000_000,
-                 "matched_industries": [industry], "reasons": []},
-                {"symbol": "SMALL_DROP", "source": "finviz_public",
-                 "market_cap": 10_000_000_000, "change": -2.0, "volume": 1_000_000,
-                 "matched_industries": [industry], "reasons": []},
+                {
+                    "symbol": "BIG_DROP",
+                    "source": "finviz_public",
+                    "market_cap": 10_000_000_000,
+                    "change": -20.0,
+                    "volume": 1_000_000,
+                    "matched_industries": [industry],
+                    "reasons": [],
+                },
+                {
+                    "symbol": "SMALL_DROP",
+                    "source": "finviz_public",
+                    "market_cap": 10_000_000_000,
+                    "change": -2.0,
+                    "volume": 1_000_000,
+                    "matched_industries": [industry],
+                    "reasons": [],
+                },
             ]
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=bearish_stocks), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=bearish_stocks),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bearish",
                 "matching_industries": [{"name": "Retail"}],
@@ -468,15 +616,22 @@ class TestSelectStocks:
             """Return stocks with industry-unique prefixes."""
             prefix = industry[:3].upper()
             return [
-                {"symbol": f"{prefix}{i}", "source": "finviz_public",
-                 "market_cap": (10 - i) * 1_000_000_000, "change": 5.0,
-                 "volume": 1_000_000, "matched_industries": [industry],
-                 "reasons": []}
+                {
+                    "symbol": f"{prefix}{i}",
+                    "source": "finviz_public",
+                    "market_cap": (10 - i) * 1_000_000_000,
+                    "change": 5.0,
+                    "volume": 1_000_000,
+                    "matched_industries": [industry],
+                    "reasons": [],
+                }
                 for i in range(8)
             ]
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=distinct_stocks), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=distinct_stocks),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [
@@ -489,12 +644,8 @@ class TestSelectStocks:
             result = sel.select_stocks(theme, max_stocks=4)
             assert len(result) == 4
             # Verify each industry contributes exactly 2 (no more)
-            gold_count = sum(
-                1 for r in result if "Gold" in r.get("matched_industries", [])
-            )
-            silver_count = sum(
-                1 for r in result if "Silver" in r.get("matched_industries", [])
-            )
+            gold_count = sum(1 for r in result if "Gold" in r.get("matched_industries", []))
+            silver_count = sum(1 for r in result if "Silver" in r.get("matched_industries", []))
             assert gold_count == 2
             assert silver_count == 2
 
@@ -504,15 +655,22 @@ class TestSelectStocks:
 
         def many_stocks(industry, limit, is_bearish):
             return [
-                {"symbol": f"S{i}", "source": "finviz_public",
-                 "market_cap": (20 - i) * 1_000_000_000, "change": 5.0,
-                 "volume": 1_000_000, "matched_industries": [industry],
-                 "reasons": []}
+                {
+                    "symbol": f"S{i}",
+                    "source": "finviz_public",
+                    "market_cap": (20 - i) * 1_000_000_000,
+                    "change": 5.0,
+                    "volume": 1_000_000,
+                    "matched_industries": [industry],
+                    "reasons": [],
+                }
                 for i in range(min(limit, 15))
             ]
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=many_stocks), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=many_stocks),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [{"name": "Gold"}],
@@ -531,8 +689,10 @@ class TestSelectStocks:
             fetch_limits.append(limit)
             return []
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=track_limit), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=track_limit),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [{"name": "Gold"}],
@@ -552,8 +712,10 @@ class TestSelectStocks:
             call_count += 1
             return _mock_finviz_public_stocks(industry, limit, is_bearish)
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=count_calls), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=count_calls),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme1 = {
                 "direction": "bullish",
                 "matching_industries": [{"name": "Gold"}],
@@ -579,8 +741,10 @@ class TestSelectStocks:
         def fail_finviz(industry, limit, is_bearish):
             return []
 
-        with patch.object(sel, '_fetch_finviz_public', side_effect=fail_finviz), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch.object(sel, "_fetch_finviz_public", side_effect=fail_finviz),
+            patch.object(sel, "_rate_limit"),
+        ):
             theme = {
                 "direction": "bullish",
                 "matching_industries": [],
@@ -595,12 +759,13 @@ class TestSelectStocks:
 # Circuit breaker
 # ---------------------------------------------------------------------------
 
-class TestCircuitBreaker:
 
+class TestCircuitBreaker:
     def test_consecutive_failures_disables_elite_only(self):
         """Elite 3 consecutive failures => Elite disabled, Public still active."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="key", finviz_mode="elite",
+            finviz_elite_key="key",
+            finviz_mode="elite",
         )
         for _ in range(_MAX_CONSECUTIVE_FAILURES):
             sel._record_failure("elite")
@@ -610,7 +775,9 @@ class TestCircuitBreaker:
     def test_mixed_source_failures_independent(self):
         """Elite fail -> Public success -> FMP fail: independent counters."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="key", fmp_api_key="key", finviz_mode="elite",
+            finviz_elite_key="key",
+            fmp_api_key="key",
+            finviz_mode="elite",
         )
         sel._record_failure("elite")
         sel._record_success("public")
@@ -623,7 +790,8 @@ class TestCircuitBreaker:
     def test_success_resets_own_source_count(self):
         """Success resets only that source's consecutive counter."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="key", finviz_mode="elite",
+            finviz_elite_key="key",
+            finviz_mode="elite",
         )
         sel._record_failure("elite")
         sel._record_failure("elite")
@@ -636,7 +804,9 @@ class TestCircuitBreaker:
     def test_status_degraded_when_one_active_source_disabled(self):
         """One active source disabled => status='degraded'."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="key", fmp_api_key="key", finviz_mode="elite",
+            finviz_elite_key="key",
+            fmp_api_key="key",
+            finviz_mode="elite",
         )
         for _ in range(_MAX_CONSECUTIVE_FAILURES):
             sel._record_failure("elite")
@@ -645,7 +815,9 @@ class TestCircuitBreaker:
     def test_status_circuit_broken_when_all_active_disabled(self):
         """All active sources disabled => status='circuit_broken'."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="key", fmp_api_key="key", finviz_mode="elite",
+            finviz_elite_key="key",
+            fmp_api_key="key",
+            finviz_mode="elite",
         )
         for source in ["elite", "public", "fmp"]:
             for _ in range(_MAX_CONSECUTIVE_FAILURES):
@@ -655,7 +827,8 @@ class TestCircuitBreaker:
     def test_status_active_ignores_elite_when_mode_public(self):
         """finviz_mode=public => elite not in active sources."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="key", finviz_mode="public",
+            finviz_elite_key="key",
+            finviz_mode="public",
         )
         for _ in range(_MAX_CONSECUTIVE_FAILURES):
             sel._record_failure("elite")
@@ -674,28 +847,30 @@ class TestCircuitBreaker:
 # FINVIZ Public fetch
 # ---------------------------------------------------------------------------
 
-class TestFetchFinvizPublic:
 
+class TestFetchFinvizPublic:
     def test_returns_stock_dicts_with_schema(self):
         """Each element has required keys."""
         sel = RepresentativeStockSelector()
         pd = pytest.importorskip("pandas")
-        mock_df = pd.DataFrame({
-            "Ticker": ["NVDA", "AMD"],
-            "Company": ["NVIDIA", "AMD Inc"],
-            "Sector": ["Technology", "Technology"],
-            "Industry": ["Semiconductors", "Semiconductors"],
-            "Country": ["USA", "USA"],
-            "Market Cap": [2_800_000_000_000, 200_000_000_000],
-            "P/E": [60.0, 40.0],
-            "Price": [800.0, 150.0],
-            "Change": [0.05, 0.03],
-            "Volume": [50_000_000, 30_000_000],
-        })
+        mock_df = pd.DataFrame(
+            {
+                "Ticker": ["NVDA", "AMD"],
+                "Company": ["NVIDIA", "AMD Inc"],
+                "Sector": ["Technology", "Technology"],
+                "Industry": ["Semiconductors", "Semiconductors"],
+                "Country": ["USA", "USA"],
+                "Market Cap": [2_800_000_000_000, 200_000_000_000],
+                "P/E": [60.0, 40.0],
+                "Price": [800.0, 150.0],
+                "Change": [0.05, 0.03],
+                "Volume": [50_000_000, 30_000_000],
+            }
+        )
         with patch("representative_stock_selector.Overview") as MockOverview:
             mock_instance = MockOverview.return_value
             mock_instance.screener_view.return_value = mock_df
-            with patch.object(sel, '_rate_limit'):
+            with patch.object(sel, "_rate_limit"):
                 result = sel._fetch_finviz_public("Semiconductors", limit=10, is_bearish=False)
         assert len(result) == 2
         for stock in result:
@@ -709,20 +884,28 @@ class TestFetchFinvizPublic:
         """filter_dict uses exact finvizfinance option names."""
         sel = RepresentativeStockSelector(min_cap="small")
         pd = pytest.importorskip("pandas")
-        mock_df = pd.DataFrame({
-            "Ticker": ["X"],
-            "Market Cap": [1_000_000_000],
-            "Change": [0.01],
-            "Volume": [100_000],
-        })
+        mock_df = pd.DataFrame(
+            {
+                "Ticker": ["X"],
+                "Market Cap": [1_000_000_000],
+                "Change": [0.01],
+                "Volume": [100_000],
+            }
+        )
         with patch("representative_stock_selector.Overview") as MockOverview:
             mock_instance = MockOverview.return_value
             mock_instance.screener_view.return_value = mock_df
-            with patch.object(sel, '_rate_limit'):
+            with patch.object(sel, "_rate_limit"):
                 sel._fetch_finviz_public("Gold", limit=10, is_bearish=False)
             # Verify set_filter was called with correct filter names
             call_args = mock_instance.set_filter.call_args
-            filters = call_args[1].get("filters_dict", {}) if call_args[1] else call_args[0][0] if call_args[0] else {}
+            filters = (
+                call_args[1].get("filters_dict", {})
+                if call_args[1]
+                else call_args[0][0]
+                if call_args[0]
+                else {}
+            )
             assert filters.get("Market Cap.") == "+Small (over $300mln)"
             assert filters.get("Average Volume") == "Over 100K"
             assert filters.get("Price") == "Over $10"
@@ -732,31 +915,41 @@ class TestFetchFinvizPublic:
         """Bearish => Performance 2: Month Down."""
         sel = RepresentativeStockSelector()
         pd = pytest.importorskip("pandas")
-        mock_df = pd.DataFrame({
-            "Ticker": ["X"],
-            "Market Cap": [1_000_000_000],
-            "Change": [-0.05],
-            "Volume": [100_000],
-        })
+        mock_df = pd.DataFrame(
+            {
+                "Ticker": ["X"],
+                "Market Cap": [1_000_000_000],
+                "Change": [-0.05],
+                "Volume": [100_000],
+            }
+        )
         with patch("representative_stock_selector.Overview") as MockOverview:
             mock_instance = MockOverview.return_value
             mock_instance.screener_view.return_value = mock_df
-            with patch.object(sel, '_rate_limit'):
+            with patch.object(sel, "_rate_limit"):
                 sel._fetch_finviz_public("Retail", limit=10, is_bearish=True)
             call_args = mock_instance.set_filter.call_args
-            filters = call_args[1].get("filters_dict", {}) if call_args[1] else call_args[0][0] if call_args[0] else {}
+            filters = (
+                call_args[1].get("filters_dict", {})
+                if call_args[1]
+                else call_args[0][0]
+                if call_args[0]
+                else {}
+            )
             assert filters.get("Performance 2") == "Month Down"
 
     def test_rate_limiting(self):
         """Consecutive calls have rate_limit_sec delay."""
         sel = RepresentativeStockSelector(rate_limit_sec=0.1)
         pd = pytest.importorskip("pandas")
-        mock_df = pd.DataFrame({
-            "Ticker": ["X"],
-            "Market Cap": [1_000_000_000],
-            "Change": [0.01],
-            "Volume": [100_000],
-        })
+        mock_df = pd.DataFrame(
+            {
+                "Ticker": ["X"],
+                "Market Cap": [1_000_000_000],
+                "Change": [0.01],
+                "Volume": [100_000],
+            }
+        )
         with patch("representative_stock_selector.Overview") as MockOverview:
             mock_instance = MockOverview.return_value
             mock_instance.screener_view.return_value = mock_df
@@ -772,7 +965,7 @@ class TestFetchFinvizPublic:
         with patch("representative_stock_selector.Overview") as MockOverview:
             mock_instance = MockOverview.return_value
             mock_instance.screener_view.side_effect = Exception("network error")
-            with patch.object(sel, '_rate_limit'):
+            with patch.object(sel, "_rate_limit"):
                 result = sel._fetch_finviz_public("Gold", limit=10, is_bearish=False)
         assert result == []
         assert sel._source_states["public"].consecutive_failures == 1
@@ -782,44 +975,55 @@ class TestFetchFinvizPublic:
 # FINVIZ Elite fetch
 # ---------------------------------------------------------------------------
 
-class TestFetchFinvizElite:
 
+class TestFetchFinvizElite:
     def test_csv_parsing(self):
         """CSV response is correctly parsed."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="test_key", finviz_mode="elite",
+            finviz_elite_key="test_key",
+            finviz_mode="elite",
         )
         csv_content = (
-            'No.,Ticker,Company,Sector,Industry,Country,Market Cap,P/E,Price,Change,Volume\n'
+            "No.,Ticker,Company,Sector,Industry,Country,Market Cap,P/E,Price,Change,Volume\n"
             '1,NEM,Newmont,Basic Materials,Gold,USA,50.5B,20.5,45.30,5.20%,"1,234,567"\n'
             '2,GOLD,Barrick Gold,Basic Materials,Gold,Canada,30.2B,15.3,18.50,3.10%,"2,345,678"\n'
         )
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = csv_content
-        with patch("representative_stock_selector.requests.get", return_value=mock_response), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch("representative_stock_selector.requests.get", return_value=mock_response),
+            patch.object(sel, "_rate_limit"),
+        ):
             result = sel._fetch_finviz_elite("Gold", limit=10, is_bearish=False)
         assert len(result) == 2
         assert result[0]["symbol"] == "NEM"
         assert result[0]["source"] == "finviz_elite"
 
-    @pytest.mark.parametrize("min_cap,expected_code", [
-        ("micro", "cap_microover"),
-        ("small", "cap_smallover"),
-        ("mid", "cap_midover"),
-    ])
+    @pytest.mark.parametrize(
+        "min_cap,expected_code",
+        [
+            ("micro", "cap_microover"),
+            ("small", "cap_smallover"),
+            ("mid", "cap_midover"),
+        ],
+    )
     def test_filter_string_format(self, min_cap, expected_code):
         """Filter string contains correct cap code."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="test_key", finviz_mode="elite",
+            finviz_elite_key="test_key",
+            finviz_mode="elite",
             min_cap=min_cap,
         )
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = "No.,Ticker,Company\n"
-        with patch("representative_stock_selector.requests.get", return_value=mock_response) as mock_get, \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch(
+                "representative_stock_selector.requests.get", return_value=mock_response
+            ) as mock_get,
+            patch.object(sel, "_rate_limit"),
+        ):
             sel._fetch_finviz_elite("Gold", limit=10, is_bearish=False)
             url = mock_get.call_args[0][0]
             assert expected_code in url
@@ -827,13 +1031,18 @@ class TestFetchFinvizElite:
     def test_bearish_filter_uses_4wdown(self):
         """is_bearish=True => ta_perf2_4wdown in URL."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="test_key", finviz_mode="elite",
+            finviz_elite_key="test_key",
+            finviz_mode="elite",
         )
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = "No.,Ticker,Company\n"
-        with patch("representative_stock_selector.requests.get", return_value=mock_response) as mock_get, \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch(
+                "representative_stock_selector.requests.get", return_value=mock_response
+            ) as mock_get,
+            patch.object(sel, "_rate_limit"),
+        ):
             sel._fetch_finviz_elite("Gold", limit=10, is_bearish=True)
             url = mock_get.call_args[0][0]
             assert "ta_perf2_4wdown" in url
@@ -841,13 +1050,16 @@ class TestFetchFinvizElite:
     def test_auth_failure_returns_empty(self):
         """401/403 => empty list."""
         sel = RepresentativeStockSelector(
-            finviz_elite_key="bad_key", finviz_mode="elite",
+            finviz_elite_key="bad_key",
+            finviz_mode="elite",
         )
         mock_response = MagicMock()
         mock_response.status_code = 403
         mock_response.text = "Forbidden"
-        with patch("representative_stock_selector.requests.get", return_value=mock_response), \
-             patch.object(sel, '_rate_limit'):
+        with (
+            patch("representative_stock_selector.requests.get", return_value=mock_response),
+            patch.object(sel, "_rate_limit"),
+        ):
             result = sel._fetch_finviz_elite("Gold", limit=10, is_bearish=False)
         assert result == []
         assert sel._source_states["elite"].consecutive_failures == 1
@@ -857,8 +1069,8 @@ class TestFetchFinvizElite:
 # Properties
 # ---------------------------------------------------------------------------
 
-class TestProperties:
 
+class TestProperties:
     def test_query_count(self):
         sel = RepresentativeStockSelector()
         sel._source_states["public"].total_queries = 5
@@ -881,7 +1093,9 @@ class TestProperties:
 
     def test_active_sources_elite_mode(self):
         sel = RepresentativeStockSelector(
-            finviz_elite_key="key", finviz_mode="elite", fmp_api_key="key",
+            finviz_elite_key="key",
+            finviz_mode="elite",
+            fmp_api_key="key",
         )
         assert sel._active_sources == ["elite", "public", "fmp"]
 

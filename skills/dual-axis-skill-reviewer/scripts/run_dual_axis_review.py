@@ -304,6 +304,7 @@ def load_llm_review(llm_review_json: str | None, project_root: Path) -> dict | N
 
 def collect_skill_inventory(project_root: Path, skill_dir: Path) -> dict:
     """List key files so the LLM can review concrete artifacts."""
+
     def rel(items: list[Path]) -> list[str]:
         return [str(item.relative_to(project_root)) for item in sorted(items)]
 
@@ -565,7 +566,9 @@ def score_skill(
             )
 
         output_dir_values = collect_output_dir_values(bash_blocks)
-        unsafe_output_dir = any("/scripts" in value or value.endswith("scripts") for value in output_dir_values)
+        unsafe_output_dir = any(
+            "/scripts" in value or value.endswith("scripts") for value in output_dir_values
+        )
         if output_dir_values and not unsafe_output_dir:
             exec_score += 5
         elif output_dir_values and unsafe_output_dir:
@@ -596,7 +599,10 @@ def score_skill(
 
     # API key handling: exempt skills that don't use API keys
     api_key_patterns = [
-        r"FMP_API_KEY", r"FINVIZ_API_KEY", r"ALPACA_API_KEY", r"--api-key",
+        r"FMP_API_KEY",
+        r"FINVIZ_API_KEY",
+        r"ALPACA_API_KEY",
+        r"--api-key",
     ]
     requires_api = frontmatter.get("requires_api_key")
     if requires_api is not None:
@@ -616,7 +622,9 @@ def score_skill(
 
     if not skill_uses_api:
         exec_score += 4
-    elif re.search(r"export\s+(FMP_API_KEY|FINVIZ_API_KEY|ALPACA_API_KEY)=", text) or re.search(r"--api-key\s+\S+", text):
+    elif re.search(r"export\s+(FMP_API_KEY|FINVIZ_API_KEY|ALPACA_API_KEY)=", text) or re.search(
+        r"--api-key\s+\S+", text
+    ):
         exec_score += 4
     elif any(re.search(pat, text) for pat in api_key_patterns):
         exec_score += 2
@@ -634,9 +642,7 @@ def score_skill(
     if not ref_paths:
         exec_score += 3
     else:
-        fully_qualified = [
-            p for p in ref_paths if p.startswith(f"skills/{skill_name}/references/")
-        ]
+        fully_qualified = [p for p in ref_paths if p.startswith(f"skills/{skill_name}/references/")]
         if len(fully_qualified) == len(ref_paths):
             exec_score += 5
         else:
@@ -802,7 +808,9 @@ def to_markdown(report: dict) -> str:
         f"- Selection mode: `{report['selection_mode']}`",
         f"- Seed: `{report['seed']}`",
         f"- Auto score: **{auto_review['score']} / 100**",
-        f"- LLM score: **{llm_review['score']} / 100**" if llm_review["provided"] else "- LLM score: `not provided`",
+        f"- LLM score: **{llm_review['score']} / 100**"
+        if llm_review["provided"]
+        else "- LLM score: `not provided`",
         f"- Final score: **{final_review['score']} / 100**",
         "",
         "## Auto Score Breakdown",
@@ -956,11 +964,7 @@ def main() -> int:
         print(f"LLM prompt: {report['llm_prompt_file']}")
     if auto_review["test_status"] == "passed":
         summary_line = next(
-            (
-                line
-                for line in auto_review["test_output"].splitlines()
-                if " passed" in line
-            ),
+            (line for line in auto_review["test_output"].splitlines() if " passed" in line),
             "",
         )
         if summary_line:
@@ -981,9 +985,7 @@ def _run_all(
             continue
         auto_review = report["auto_review"]
         final_review = report["final_review"]
-        high_count = sum(
-            1 for f in final_review.get("findings", []) if f.get("severity") == "high"
-        )
+        high_count = sum(1 for f in final_review.get("findings", []) if f.get("severity") == "high")
         rows.append(
             {
                 "skill": auto_review["skill_name"],
@@ -1014,7 +1016,11 @@ def _run_all(
     now = datetime.now()
     summary_path = output_dir / f"skill_review_all_{now.strftime('%Y-%m-%d_%H%M%S')}.json"
     summary_path.write_text(
-        json.dumps({"generated_at": now.strftime("%Y-%m-%d %H:%M:%S"), "results": rows}, ensure_ascii=False, indent=2),
+        json.dumps(
+            {"generated_at": now.strftime("%Y-%m-%d %H:%M:%S"), "results": rows},
+            ensure_ascii=False,
+            indent=2,
+        ),
         encoding="utf-8",
     )
     print(f"Summary JSON: {summary_path}")
