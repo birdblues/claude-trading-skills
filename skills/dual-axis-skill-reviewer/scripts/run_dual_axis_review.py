@@ -70,6 +70,11 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Review all skills sequentially and output a summary table",
+    )
+    parser.add_argument(
         "--auto-weight",
         type=float,
         default=0.5,
@@ -437,6 +442,12 @@ def score_skill(
     text = "".join(lines)
     frontmatter = parse_frontmatter(lines)
     findings: list[Finding] = []
+    ref_count = len(list((skill_dir / "references").glob("*.md")))
+    script_count = len(list((skill_dir / "scripts").glob("*.py")))
+    test_count = 0
+    for tests_dir in discover_test_dirs(skill_dir):
+        test_count += len(list(tests_dir.glob("test_*.py")))
+    skill_type = "knowledge_only" if script_count == 0 and ref_count > 0 else "execution_or_hybrid"
 
     # 1) Metadata & use-case clarity (max 20)
     metadata_score = 0
@@ -484,13 +495,35 @@ def score_skill(
     required_sections = {
         "When to Use": [r"^##\s*When to Use", r"^##\s*When to Use This Skill"],
         "Prerequisites": [r"^##\s*Prerequisites", r"^##\s*Input Requirements"],
-        "Workflow": [r"^##\s*Workflow", r"^##\s*Execution Workflow", r"^##\s*Evaluation Process"],
+        "Workflow": [
+            r"^##\s*Workflow",
+            r"^##\s*Execution Workflow",
+            r"^##\s*Evaluation Process",
+            r"^##\s*.+\s+Workflow$",
+        ],
         "Output": [r"^##\s*Output", r"^##\s*Output Files"],
-        "Resources": [r"^##\s*Resources", r"^##\s*Reference Documents", r"^##\s*Data Sources"],
+        "Resources": [
+            r"^##\s*Resources",
+            r"^##\s*Reference Documents",
+            r"^##\s*Data Sources",
+            r"^##\s*Available Reference Documentation",
+            r"^##\s*.+\s+Reference Documentation$",
+        ],
     }
     for section_name, heading_patterns in required_sections.items():
         if has_heading(text, heading_patterns):
             workflow_score += 5
+        elif section_name == "Output" and skill_type == "knowledge_only":
+            workflow_score += 3
+            findings.append(
+                Finding(
+                    severity="low",
+                    path=rel_skill_file,
+                    line=None,
+                    message="No explicit `## Output` section for advisory/knowledge skill.",
+                    improvement="Add `## Output` and state that output is conversational guidance (no file generation).",
+                )
+            )
         else:
             findings.append(
                 Finding(
@@ -506,6 +539,40 @@ def score_skill(
     exec_score = 0
     bash_blocks = extract_bash_blocks(text)
     if bash_blocks:
+        exec_score += 6
+
+        skill_script_prefix = f"skills/{skill_name}/scripts/"
+        if any(skill_script_prefix in block for block in bash_blocks):
+            exec_score += 5
+        else:
+            findings.append(
+                Finding(
+                    severity="low",
+                    path=rel_skill_file,
+                    line=None,
+                    message="Examples do not clearly anchor script paths from repository root.",
+                    improvement=f"Use repo-root paths like `{skill_script_prefix}...` in commands.",
+                )
+            )
+
+        output_dir_values = collect_output_dir_values(bash_blocks)
+        unsafe_output_dir = any("/scripts" in value or value.endswith("scripts") for value in output_dir_values)
+        if output_dir_values and not unsafe_output_dir:
+            exec_score += 5
+        elif output_dir_values and unsafe_output_dir:
+            findings.append(
+                Finding(
+                    severity="medium",
+                    path=rel_skill_file,
+                    line=find_line(lines, r"--output-dir"),
+                    message="Sample commands write generated reports into source `scripts/` directory.",
+                    improvement="Use a dedicated output path like `reports/` to avoid source tree pollution.",
+                )
+            )
+        else:
+            exec_score += 3
+    elif skill_type == "knowledge_only":
+        # Knowledge-centric skills may be intentionally non-executable.
         exec_score += 8
     else:
         findings.append(
@@ -518,46 +585,37 @@ def score_skill(
             )
         )
 
-    skill_script_prefix = f"skills/{skill_name}/scripts/"
-    if any(skill_script_prefix in block for block in bash_blocks):
-        exec_score += 6
+    # API key handling: exempt skills that don't use API keys
+    api_key_patterns = [
+        r"FMP_API_KEY", r"FINVIZ_API_KEY", r"ALPACA_API_KEY", r"--api-key",
+    ]
+    requires_api = frontmatter.get("requires_api_key")
+    if requires_api is not None:
+        skill_uses_api = requires_api.lower() not in ("false", "no", "0")
     else:
-        findings.append(
-            Finding(
-                severity="low",
-                path=rel_skill_file,
-                line=None,
-                message="Examples do not clearly anchor script paths from repository root.",
-                improvement=f"Use repo-root paths like `{skill_script_prefix}...` in commands.",
-            )
-        )
+        # Check SKILL.md and scripts for API key patterns
+        scripts_text = ""
+        scripts_dir = skill_dir / "scripts"
+        if scripts_dir.is_dir():
+            for script_file in sorted(scripts_dir.glob("*.py")):
+                try:
+                    scripts_text += script_file.read_text(encoding="utf-8")
+                except OSError:
+                    pass
+        combined_text = text + scripts_text
+        skill_uses_api = any(re.search(pat, combined_text) for pat in api_key_patterns)
 
-    output_dir_values = collect_output_dir_values(bash_blocks)
-    unsafe_output_dir = any("/scripts" in value or value.endswith("scripts") for value in output_dir_values)
-    if output_dir_values and not unsafe_output_dir:
-        exec_score += 6
-    elif output_dir_values and unsafe_output_dir:
-        findings.append(
-            Finding(
-                severity="medium",
-                path=rel_skill_file,
-                line=find_line(lines, r"--output-dir"),
-                message="Sample commands write generated reports into source `scripts/` directory.",
-                improvement="Use a dedicated output path like `reports/` to avoid source tree pollution.",
-            )
-        )
-    else:
-        exec_score += 3
-
-    if re.search(r"export\s+FMP_API_KEY=", text) or re.search(r"--api-key\s+\S+", text):
-        exec_score += 5
-    elif "FMP_API_KEY" in text:
+    if not skill_uses_api:
+        exec_score += 4
+    elif re.search(r"export\s+(FMP_API_KEY|FINVIZ_API_KEY|ALPACA_API_KEY)=", text) or re.search(r"--api-key\s+\S+", text):
+        exec_score += 4
+    elif any(re.search(pat, text) for pat in api_key_patterns):
         exec_score += 2
         findings.append(
             Finding(
                 severity="low",
                 path=rel_skill_file,
-                line=find_line(lines, r"FMP_API_KEY"),
+                line=find_line(lines, r"(FMP|FINVIZ|ALPACA)_API_KEY|--api-key"),
                 message="API key is documented, but no copy-paste setup command is shown.",
                 improvement="Add an explicit example like `export FMP_API_KEY=...`.",
             )
@@ -589,11 +647,6 @@ def score_skill(
 
     # 4) Supporting artifacts (max 10)
     artifact_score = 0
-    ref_count = len(list((skill_dir / "references").glob("*.md")))
-    script_count = len(list((skill_dir / "scripts").glob("*.py")))
-    test_count = 0
-    for tests_dir in discover_test_dirs(skill_dir):
-        test_count += len(list(tests_dir.glob("test_*.py")))
 
     if ref_count > 0:
         artifact_score += 4
@@ -610,6 +663,8 @@ def score_skill(
 
     if script_count > 0:
         artifact_score += 3
+    elif skill_type == "knowledge_only":
+        artifact_score += 3
     else:
         findings.append(
             Finding(
@@ -623,6 +678,8 @@ def score_skill(
 
     if test_count > 0:
         artifact_score += 3
+    elif skill_type == "knowledge_only":
+        artifact_score += 2
     else:
         findings.append(
             Finding(
@@ -640,35 +697,43 @@ def score_skill(
     test_command: str | None = None
     test_output = ""
     if skip_tests:
-        test_status = "skipped"
-        test_score = 8 if test_count > 0 else 0
-    else:
-        test_status, test_command, test_output = run_tests(project_root, skill_dir)
-        if test_status == "passed":
-            test_score = 20
-        elif test_status in {"not_found", "tool_missing"}:
-            test_score = 6 if test_count > 0 else 0
-        elif test_status == "timeout":
-            test_score = 2
-            findings.append(
-                Finding(
-                    severity="medium",
-                    path=rel_skill_file,
-                    line=None,
-                    message="Skill tests timed out; health could not be verified.",
-                    improvement="Optimize tests or split slower integration tests.",
-                )
-            )
+        if skill_type == "knowledge_only" and test_count == 0:
+            test_status = "not_applicable"
+            test_score = 12
         else:
-            findings.append(
-                Finding(
-                    severity="high",
-                    path=rel_skill_file,
-                    line=None,
-                    message="Skill tests failed.",
-                    improvement="Fix failing tests before relying on this skill in automation.",
+            test_status = "skipped"
+            test_score = 8 if test_count > 0 else 0
+    else:
+        if skill_type == "knowledge_only" and script_count == 0:
+            test_status = "not_applicable"
+            test_score = 12
+        else:
+            test_status, test_command, test_output = run_tests(project_root, skill_dir)
+            if test_status == "passed":
+                test_score = 20
+            elif test_status in {"not_found", "tool_missing"}:
+                test_score = 6 if test_count > 0 else 0
+            elif test_status == "timeout":
+                test_score = 2
+                findings.append(
+                    Finding(
+                        severity="medium",
+                        path=rel_skill_file,
+                        line=None,
+                        message="Skill tests timed out; health could not be verified.",
+                        improvement="Optimize tests or split slower integration tests.",
+                    )
                 )
-            )
+            else:
+                findings.append(
+                    Finding(
+                        severity="high",
+                        path=rel_skill_file,
+                        line=None,
+                        message="Skill tests failed.",
+                        improvement="Fix failing tests before relying on this skill in automation.",
+                    )
+                )
 
     total_score = metadata_score + workflow_score + exec_score + artifact_score + test_score
     total_score = max(0, min(100, total_score))
@@ -686,6 +751,7 @@ def score_skill(
     return {
         "skill_name": skill_name,
         "skill_file": rel_skill_file,
+        "skill_type": skill_type,
         "score": total_score,
         "score_breakdown": {
             "metadata_use_case": metadata_score,
@@ -723,6 +789,7 @@ def to_markdown(report: dict) -> str:
         f"- Generated at: {report['generated_at']}",
         f"- Selected skill: `{report['skill_name']}`",
         f"- Skill file: `{report['skill_file']}`",
+        f"- Skill type: `{auto_review.get('skill_type', 'unknown')}`",
         f"- Selection mode: `{report['selection_mode']}`",
         f"- Seed: `{report['seed']}`",
         f"- Auto score: **{auto_review['score']} / 100**",
@@ -777,23 +844,15 @@ def to_markdown(report: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> int:
-    args = parse_args()
-    project_root = Path(args.project_root).resolve()
-    skills = discover_skills(project_root)
-    if not skills:
-        print("No skills found at skills/*/SKILL.md", file=sys.stderr)
-        return 1
-
-    try:
-        selected = pick_skill(skills, args.skill, args.seed)
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
-
+def review_single_skill(
+    args: argparse.Namespace,
+    project_root: Path,
+    skill_file: Path,
+) -> dict:
+    """Run review for a single skill and write output files. Returns the report dict."""
     auto_review = score_skill(
         project_root=project_root,
-        skill_file=selected,
+        skill_file=skill_file,
         skip_tests=args.skip_tests,
     )
 
@@ -801,7 +860,7 @@ def main() -> int:
         llm_review = load_llm_review(args.llm_review_json, project_root)
     except (json.JSONDecodeError, ValueError) as exc:
         print(f"Invalid --llm-review-json: {exc}", file=sys.stderr)
-        return 1
+        return {}
     if llm_review is None:
         llm_review = {
             "provided": False,
@@ -818,10 +877,11 @@ def main() -> int:
         llm_weight=args.llm_weight,
     )
 
-    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now()
+    generated_at = now.strftime("%Y-%m-%d %H:%M:%S")
     output_dir = (project_root / args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    timestamp = now.strftime("%Y-%m-%d_%H%M%S")
     stem = f"skill_review_{auto_review['skill_name']}_{timestamp}"
     json_path = output_dir / f"{stem}.json"
     md_path = output_dir / f"{stem}.md"
@@ -830,7 +890,7 @@ def main() -> int:
     if args.emit_llm_prompt:
         prompt_file = output_dir / f"skill_review_prompt_{auto_review['skill_name']}_{timestamp}.md"
         prompt_file.write_text(
-            build_llm_prompt(project_root, selected.parent, auto_review),
+            build_llm_prompt(project_root, skill_file.parent, auto_review),
             encoding="utf-8",
         )
         llm_prompt_file = str(prompt_file)
@@ -850,15 +910,41 @@ def main() -> int:
     json_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     md_path.write_text(to_markdown(report), encoding="utf-8")
 
+    return report
+
+
+def main() -> int:
+    args = parse_args()
+    project_root = Path(args.project_root).resolve()
+    skills = discover_skills(project_root)
+    if not skills:
+        print("No skills found at skills/*/SKILL.md", file=sys.stderr)
+        return 1
+
+    if args.all:
+        return _run_all(args, project_root, skills)
+
+    try:
+        selected = pick_skill(skills, args.skill, args.seed)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    report = review_single_skill(args, project_root, selected)
+    if not report:
+        return 1
+
+    auto_review = report["auto_review"]
+    llm_review = report["llm_review"]
+    final_review = report["final_review"]
+
     print(f"Selected skill: {auto_review['skill_name']}")
     print(f"Auto score: {auto_review['score']}/100")
     if llm_review["provided"]:
         print(f"LLM score: {llm_review['score']}/100")
     print(f"Final score: {final_review['score']}/100")
-    print(f"JSON report: {json_path}")
-    print(f"Markdown report: {md_path}")
-    if llm_prompt_file:
-        print(f"LLM prompt: {llm_prompt_file}")
+    if report.get("llm_prompt_file"):
+        print(f"LLM prompt: {report['llm_prompt_file']}")
     if auto_review["test_status"] == "passed":
         summary_line = next(
             (
@@ -871,6 +957,60 @@ def main() -> int:
         if summary_line:
             print(f"Tests: {summary_line.strip()}")
     return 0
+
+
+def _run_all(
+    args: argparse.Namespace,
+    project_root: Path,
+    skills: list[Path],
+) -> int:
+    """Review all skills sequentially and output a summary table."""
+    rows: list[dict] = []
+    for skill_file in skills:
+        report = review_single_skill(args, project_root, skill_file)
+        if not report:
+            continue
+        auto_review = report["auto_review"]
+        final_review = report["final_review"]
+        high_count = sum(
+            1 for f in final_review.get("findings", []) if f.get("severity") == "high"
+        )
+        rows.append(
+            {
+                "skill": auto_review["skill_name"],
+                "score": final_review["score"],
+                "pass": final_review["score"] >= 90,
+                "high_findings": high_count,
+            }
+        )
+
+    if not rows:
+        print("No skills reviewed.", file=sys.stderr)
+        return 1
+
+    # Print summary table
+    header = f"{'Skill':<40} {'Score':>5} {'Pass':>4} {'High':>4}"
+    print(header)
+    print("-" * len(header))
+    for row in rows:
+        status = "YES" if row["pass"] else "NO"
+        print(f"{row['skill']:<40} {row['score']:>5} {status:>4} {row['high_findings']:>4}")
+
+    passed = sum(1 for r in rows if r["pass"])
+    print(f"\nTotal: {len(rows)} skills, {passed} passed, {len(rows) - passed} failed")
+
+    # Write summary JSON
+    output_dir = (project_root / args.output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    now = datetime.now()
+    summary_path = output_dir / f"skill_review_all_{now.strftime('%Y-%m-%d_%H%M%S')}.json"
+    summary_path.write_text(
+        json.dumps({"generated_at": now.strftime("%Y-%m-%d %H:%M:%S"), "results": rows}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print(f"Summary JSON: {summary_path}")
+
+    return 0 if all(r["pass"] for r in rows) else 1
 
 
 if __name__ == "__main__":

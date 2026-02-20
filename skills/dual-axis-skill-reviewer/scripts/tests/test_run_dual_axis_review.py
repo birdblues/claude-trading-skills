@@ -269,6 +269,200 @@ def test_to_markdown_contains_combined_sections(reviewer_module):
     assert "## Improvement Items (Final Score < 90)" in md
 
 
+def test_execution_safety_max_25(reviewer_module, tmp_path: Path):
+    """Verify execution_safety_reproducibility never exceeds 25."""
+    project_root = tmp_path
+    skill_dir = project_root / "skills" / "perfect-skill"
+    skill_md = skill_dir / "SKILL.md"
+    write_text(
+        skill_md,
+        "\n".join(
+            [
+                "---",
+                "name: perfect-skill",
+                "description: test",
+                "requires_api_key: true",
+                "---",
+                "",
+                "## When to Use",
+                "x",
+                "## Prerequisites",
+                "x",
+                "## Workflow",
+                "```bash",
+                "export FMP_API_KEY=your_key_here",
+                "python3 skills/perfect-skill/scripts/run.py --output-dir reports/ --api-key $FMP_API_KEY",
+                "```",
+                "## Output",
+                "x",
+                "## Resources",
+                "- `skills/perfect-skill/references/ref.md`",
+                "",
+            ]
+        ),
+    )
+    write_text(skill_dir / "scripts" / "run.py", "print('ok')\n")
+    write_text(skill_dir / "references" / "ref.md", "# ref\n")
+    write_text(skill_dir / "tests" / "test_sample.py", "def test():\n    assert True\n")
+
+    review = reviewer_module.score_skill(project_root, skill_md, skip_tests=True)
+    exec_safety = review["score_breakdown"]["execution_safety_reproducibility"]
+    assert exec_safety <= 25, f"execution_safety_reproducibility={exec_safety} exceeds max 25"
+
+
+def test_api_key_score_exempt_with_frontmatter_flag(reviewer_module, tmp_path: Path):
+    """Skills with requires_api_key: false should get full API key points."""
+    project_root = tmp_path
+    skill_dir = project_root / "skills" / "no-api-skill"
+    skill_md = skill_dir / "SKILL.md"
+    write_text(
+        skill_md,
+        "\n".join(
+            [
+                "---",
+                "name: no-api-skill",
+                "description: test",
+                "requires_api_key: false",
+                "---",
+                "",
+                "## When to Use",
+                "x",
+                "## Prerequisites",
+                "x",
+                "## Workflow",
+                "```bash",
+                "python3 skills/no-api-skill/scripts/run.py --output-dir reports/",
+                "```",
+                "## Output",
+                "x",
+                "## Resources",
+                "- `skills/no-api-skill/references/ref.md`",
+                "",
+            ]
+        ),
+    )
+    write_text(skill_dir / "scripts" / "run.py", "print('ok')\n")
+    write_text(skill_dir / "references" / "ref.md", "# ref\n")
+
+    review = reviewer_module.score_skill(project_root, skill_md, skip_tests=True)
+    # API key exempt: should not have API key finding
+    messages = [f["message"] for f in review["findings"]]
+    assert not any("API key" in m for m in messages), f"Unexpected API key finding: {messages}"
+
+
+def test_api_key_score_exempt_when_no_api_reference(reviewer_module, tmp_path: Path):
+    """Skills with no API key references should get full API key points."""
+    project_root = tmp_path
+    skill_dir = project_root / "skills" / "chart-skill"
+    skill_md = skill_dir / "SKILL.md"
+    write_text(
+        skill_md,
+        "\n".join(
+            [
+                "---",
+                "name: chart-skill",
+                "description: Chart analysis skill",
+                "---",
+                "",
+                "## When to Use",
+                "x",
+                "## Prerequisites",
+                "x",
+                "## Workflow",
+                "```bash",
+                "python3 skills/chart-skill/scripts/analyze.py --output-dir reports/",
+                "```",
+                "## Output",
+                "x",
+                "## Resources",
+                "- `skills/chart-skill/references/ref.md`",
+                "",
+            ]
+        ),
+    )
+    write_text(skill_dir / "scripts" / "analyze.py", "print('ok')\n")
+    write_text(skill_dir / "references" / "ref.md", "# ref\n")
+
+    review = reviewer_module.score_skill(project_root, skill_md, skip_tests=True)
+    messages = [f["message"] for f in review["findings"]]
+    assert not any("API key" in m for m in messages), f"Unexpected API key finding: {messages}"
+
+
+def test_domain_specific_workflow_and_reference_headings_are_recognized(reviewer_module, tmp_path: Path):
+    project_root = tmp_path
+    skill_dir = project_root / "skills" / "knowledge-workflow"
+    skill_md = skill_dir / "SKILL.md"
+    write_text(
+        skill_md,
+        "\n".join(
+            [
+                "---",
+                "name: knowledge-workflow",
+                "description: guide",
+                "---",
+                "",
+                "## When to Use This Skill",
+                "x",
+                "## Prerequisites",
+                "x",
+                "## Backtesting Workflow",
+                "x",
+                "## Available Reference Documentation",
+                "- `skills/knowledge-workflow/references/ref.md`",
+                "",
+            ]
+        ),
+    )
+    write_text(skill_dir / "references" / "ref.md", "# ref\n")
+
+    review = reviewer_module.score_skill(project_root, skill_md, skip_tests=True)
+    assert review["score_breakdown"]["workflow_coverage"] >= 18
+    messages = [f["message"] for f in review["findings"]]
+    assert "Missing section: `## Workflow`." not in messages
+    assert "Missing section: `## Resources`." not in messages
+
+
+def test_knowledge_only_skill_not_penalized_for_no_scripts_or_tests(reviewer_module, tmp_path: Path):
+    project_root = tmp_path
+    skill_dir = project_root / "skills" / "knowledge-only"
+    skill_md = skill_dir / "SKILL.md"
+    write_text(
+        skill_md,
+        "\n".join(
+            [
+                "---",
+                "name: knowledge-only",
+                "description: guide",
+                "---",
+                "",
+                "## When to Use",
+                "x",
+                "## Prerequisites",
+                "x",
+                "## Backtesting Workflow",
+                "x",
+                "## Output",
+                "Conversational guidance only",
+                "## Available Reference Documentation",
+                "- `skills/knowledge-only/references/ref.md`",
+                "",
+            ]
+        ),
+    )
+    write_text(skill_dir / "references" / "ref.md", "# ref\n")
+
+    review = reviewer_module.score_skill(project_root, skill_md, skip_tests=False)
+    assert review["skill_type"] == "knowledge_only"
+    assert review["score_breakdown"]["supporting_artifacts"] == 9
+    assert review["score_breakdown"]["test_health"] == 12
+    assert review["test_status"] == "not_applicable"
+
+    messages = [f["message"] for f in review["findings"]]
+    assert "No runnable bash examples found." not in messages
+    assert "No executable helper scripts found in `scripts/`." not in messages
+    assert "No `test_*.py` tests found for skill scripts." not in messages
+
+
 def test_combine_reviews_boundary_at_90_no_improvement(reviewer_module):
     auto = {
         "score": 90,
@@ -329,3 +523,85 @@ def test_main_e2e_generates_report_files(tmp_path: Path):
     assert proc.returncode == 0
     report_files = list((project_root / "reports").glob("skill_review_e2e-skill_*.json"))
     assert report_files
+
+
+def test_api_key_detected_from_scripts(reviewer_module, tmp_path: Path):
+    """API key reference in scripts (not SKILL.md) should be detected."""
+    project_root = tmp_path
+    skill_dir = project_root / "skills" / "api-in-scripts"
+    skill_md = skill_dir / "SKILL.md"
+    # SKILL.md has no API key references
+    write_text(
+        skill_md,
+        "\n".join(
+            [
+                "---",
+                "name: api-in-scripts",
+                "description: test",
+                "---",
+                "",
+                "## When to Use",
+                "x",
+                "## Prerequisites",
+                "x",
+                "## Workflow",
+                "```bash",
+                "python3 skills/api-in-scripts/scripts/run.py --output-dir reports/",
+                "```",
+                "## Output",
+                "x",
+                "## Resources",
+                "- `skills/api-in-scripts/references/ref.md`",
+                "",
+            ]
+        ),
+    )
+    # Script uses FMP_API_KEY
+    write_text(
+        skill_dir / "scripts" / "run.py",
+        'import os\napi_key = os.environ.get("FMP_API_KEY")\nprint(api_key)\n',
+    )
+    write_text(skill_dir / "references" / "ref.md", "# ref\n")
+
+    review = reviewer_module.score_skill(project_root, skill_md, skip_tests=True)
+
+    # Compare with a skill that truly doesn't use APIs
+    no_api_dir = project_root / "skills" / "no-api-skill2"
+    no_api_md = no_api_dir / "SKILL.md"
+    write_text(
+        no_api_md,
+        "\n".join(
+            [
+                "---",
+                "name: no-api-skill2",
+                "description: test",
+                "---",
+                "",
+                "## When to Use",
+                "x",
+                "## Prerequisites",
+                "x",
+                "## Workflow",
+                "```bash",
+                "python3 skills/no-api-skill2/scripts/run.py --output-dir reports/",
+                "```",
+                "## Output",
+                "x",
+                "## Resources",
+                "- `skills/no-api-skill2/references/ref.md`",
+                "",
+            ]
+        ),
+    )
+    write_text(no_api_dir / "scripts" / "run.py", "print('ok')\n")
+    write_text(no_api_dir / "references" / "ref.md", "# ref\n")
+
+    no_api_review = reviewer_module.score_skill(project_root, no_api_md, skip_tests=True)
+
+    # API-using skill should have lower exec score (0 for API handling)
+    # vs non-API skill (4 for API exempt)
+    api_exec = review["score_breakdown"]["execution_safety_reproducibility"]
+    no_api_exec = no_api_review["score_breakdown"]["execution_safety_reproducibility"]
+    assert api_exec < no_api_exec, (
+        f"API skill exec_score ({api_exec}) should be lower than non-API skill ({no_api_exec})"
+    )

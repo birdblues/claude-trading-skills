@@ -29,3 +29,12 @@ Why: runtime confidence is critical; passing tests strongly increases trust in a
 ## Improvement Trigger
 
 When final score is `< 90`, improvement items are mandatory in report output.
+
+## Knowledge-Only Skill Handling
+
+For skills with no executable scripts (`scripts/*.py` absent) but with reference docs:
+
+- Classify as `knowledge_only`.
+- Do not penalize missing bash command examples.
+- Treat script/test artifacts as mostly not-applicable (`supporting_artifacts` and `test_health` adjusted).
+- Still require clear `When to Use`, `Prerequisites`, and workflow structure.
