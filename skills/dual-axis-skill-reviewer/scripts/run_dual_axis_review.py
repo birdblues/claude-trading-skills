@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+import yaml
+
 
 @dataclass
 class Finding:
@@ -83,10 +85,12 @@ def parse_args() -> argparse.Namespace:
 
 
 def discover_skills(project_root: Path) -> list[Path]:
+    """Find candidate skill definition files."""
     return sorted(project_root.glob("skills/*/SKILL.md"))
 
 
 def pick_skill(skills: list[Path], user_value: str | None, seed: int | None) -> Path:
+    """Select a skill by explicit value or random choice."""
     if user_value:
         requested = Path(user_value)
         if requested.name == "SKILL.md" and requested.exists():
@@ -105,6 +109,7 @@ def pick_skill(skills: list[Path], user_value: str | None, seed: int | None) -> 
 
 
 def find_line(lines: list[str], pattern: str) -> int | None:
+    """Find the first line matching a regex pattern."""
     for idx, line in enumerate(lines, start=1):
         if re.search(pattern, line):
             return idx
@@ -112,24 +117,40 @@ def find_line(lines: list[str], pattern: str) -> int | None:
 
 
 def has_heading(text: str, patterns: list[str]) -> bool:
+    """Check whether markdown includes at least one heading pattern."""
     return any(re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE) for pattern in patterns)
 
 
 def parse_frontmatter(lines: list[str]) -> dict[str, str]:
+    """Parse YAML frontmatter block from a markdown file."""
     if not lines or lines[0].strip() != "---":
         return {}
-    try:
-        end = lines[1:].index("---\n") + 1
-    except ValueError:
+
+    end = None
+    for idx, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            end = idx
+            break
+    if end is None:
         return {}
 
-    data: dict[str, str] = {}
-    for line in lines[1:end]:
-        if ":" not in line:
+    block = "".join(lines[1:end]).strip()
+    if not block:
+        return {}
+
+    try:
+        parsed = yaml.safe_load(block)
+    except yaml.YAMLError:
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+
+    result: dict[str, str] = {}
+    for key, value in parsed.items():
+        if value is None:
             continue
-        key, value = line.split(":", 1)
-        data[key.strip()] = value.strip()
-    return data
+        result[str(key)] = str(value)
+    return result
 
 
 def extract_bash_blocks(text: str) -> list[str]:
@@ -138,6 +159,7 @@ def extract_bash_blocks(text: str) -> list[str]:
 
 
 def collect_output_dir_values(bash_blocks: list[str]) -> list[str]:
+    """Extract output-dir argument values from bash snippets."""
     values: list[str] = []
     pattern = re.compile(r"--output-dir\s+([^\s]+)")
     for block in bash_blocks:
@@ -148,28 +170,41 @@ def collect_output_dir_values(bash_blocks: list[str]) -> list[str]:
     return values
 
 
+def discover_test_dirs(skill_dir: Path) -> list[Path]:
+    """Find test directories supported by this repository."""
+    candidates = [skill_dir / "scripts" / "tests", skill_dir / "tests"]
+    test_dirs = []
+    for tests_dir in candidates:
+        if tests_dir.exists() and list(tests_dir.glob("test_*.py")):
+            test_dirs.append(tests_dir)
+    return test_dirs
+
+
 def run_tests(project_root: Path, skill_dir: Path) -> tuple[str, str | None, str]:
-    tests_dir = skill_dir / "scripts" / "tests"
-    test_files = list(tests_dir.glob("test_*.py"))
-    if not tests_dir.exists() or not test_files:
+    """Run discovered tests and return status, command, and output."""
+    test_dirs = discover_test_dirs(skill_dir)
+    if not test_dirs:
         return "not_found", None, ""
 
-    command = [
+    test_targets = [str(path) for path in test_dirs]
+    uv_command = [
         "uv",
         "run",
         "--extra",
         "dev",
         "pytest",
-        str(tests_dir),
+        *test_targets,
         "-q",
     ]
-    command_text = " ".join(command)
+    uv_command_text = " ".join(uv_command)
+    py_command = [sys.executable, "-m", "pytest", *test_targets, "-q"]
+    py_command_text = " ".join(py_command)
 
     try:
         env = dict(os.environ)
         env["UV_CACHE_DIR"] = str(project_root / ".uv-cache")
         proc = subprocess.run(
-            command,
+            uv_command,
             cwd=project_root,
             capture_output=True,
             text=True,
@@ -177,10 +212,24 @@ def run_tests(project_root: Path, skill_dir: Path) -> tuple[str, str | None, str
             check=False,
             env=env,
         )
+        command_text = uv_command_text
     except FileNotFoundError:
-        return "tool_missing", command_text, "uv command not found"
+        try:
+            proc = subprocess.run(
+                py_command,
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=180,
+                check=False,
+            )
+            command_text = py_command_text
+        except FileNotFoundError:
+            return "tool_missing", None, "Neither `uv` nor `python -m pytest` is available."
+        except subprocess.TimeoutExpired:
+            return "timeout", py_command_text, "pytest timeout (>180s)"
     except subprocess.TimeoutExpired:
-        return "timeout", command_text, "pytest timeout (>180s)"
+        return "timeout", uv_command_text, "pytest timeout (>180s)"
 
     output = f"{proc.stdout}\n{proc.stderr}".strip()
     if proc.returncode == 0:
@@ -189,6 +238,7 @@ def run_tests(project_root: Path, skill_dir: Path) -> tuple[str, str | None, str
 
 
 def normalize_severity(value: str) -> str:
+    """Normalize severity labels to high/medium/low."""
     candidate = (value or "").strip().lower()
     if candidate in {"high", "medium", "low"}:
         return candidate
@@ -196,6 +246,7 @@ def normalize_severity(value: str) -> str:
 
 
 def load_llm_review(llm_review_json: str | None, project_root: Path) -> dict | None:
+    """Load and validate LLM review JSON."""
     if not llm_review_json:
         return None
 
@@ -238,13 +289,18 @@ def load_llm_review(llm_review_json: str | None, project_root: Path) -> dict | N
 
 
 def collect_skill_inventory(project_root: Path, skill_dir: Path) -> dict:
+    """List key files so the LLM can review concrete artifacts."""
     def rel(items: list[Path]) -> list[str]:
         return [str(item.relative_to(project_root)) for item in sorted(items)]
+
+    test_files = []
+    for tests_dir in discover_test_dirs(skill_dir):
+        test_files.extend(list(tests_dir.glob("test_*.py")))
 
     return {
         "skill_md": str((skill_dir / "SKILL.md").relative_to(project_root)),
         "scripts": rel(list((skill_dir / "scripts").glob("*.py"))),
-        "tests": rel(list((skill_dir / "scripts" / "tests").glob("test_*.py"))),
+        "tests": rel(test_files),
         "references": rel(list((skill_dir / "references").glob("*.md"))),
     }
 
@@ -254,6 +310,7 @@ def build_llm_prompt(
     skill_dir: Path,
     auto_review: dict,
 ) -> str:
+    """Create a strict prompt for LLM-axis review output."""
     inventory = collect_skill_inventory(project_root, skill_dir)
     lines = [
         "# LLM Skill Review Request",
@@ -322,6 +379,7 @@ def combine_reviews(
     auto_weight: float,
     llm_weight: float,
 ) -> dict:
+    """Merge auto and LLM scores into a final weighted assessment."""
     if llm_review and llm_review.get("provided"):
         aw = max(0.0, auto_weight)
         lw = max(0.0, llm_weight)
@@ -371,6 +429,7 @@ def score_skill(
     skill_file: Path,
     skip_tests: bool,
 ) -> dict:
+    """Run deterministic checks and scoring for one skill."""
     skill_dir = skill_file.parent
     skill_name = skill_dir.name
     rel_skill_file = str(skill_file.relative_to(project_root))
@@ -532,7 +591,9 @@ def score_skill(
     artifact_score = 0
     ref_count = len(list((skill_dir / "references").glob("*.md")))
     script_count = len(list((skill_dir / "scripts").glob("*.py")))
-    test_count = len(list((skill_dir / "scripts" / "tests").glob("test_*.py")))
+    test_count = 0
+    for tests_dir in discover_test_dirs(skill_dir):
+        test_count += len(list(tests_dir.glob("test_*.py")))
 
     if ref_count > 0:
         artifact_score += 4
@@ -569,7 +630,7 @@ def score_skill(
                 path=rel_skill_file,
                 line=None,
                 message="No `test_*.py` tests found for skill scripts.",
-                improvement="Add skill-level tests under `scripts/tests/`.",
+                improvement="Add skill-level tests under `scripts/tests/` or `tests/`.",
             )
         )
 
