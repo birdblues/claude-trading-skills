@@ -69,6 +69,7 @@ python3 skills/dual-axis-skill-reviewer/scripts/run_dual_axis_review.py \
 ## Resources
 
 - Auto axis scores metadata, workflow coverage, execution safety, artifact presence, and test health.
+- Auto axis detects `knowledge_only` skills and adjusts script/test expectations to avoid unfair penalties.
 - LLM axis scores deep content quality (correctness, risk, missing logic, maintainability).
 - Final score is weighted average.
 - If final score is below 90, improvement items are required and listed in the markdown report.
