@@ -218,7 +218,7 @@ def run_llm_review(project_root: Path, skill_name: str, prompt_file: str) -> dic
                 [
                     "claude", "-p", "--output-format", "json",
                     "--max-turns", "1",
-                    f"--max-cost-dollars={CLAUDE_BUDGET_REVIEW}",
+                    f"--max-budget-usd={CLAUDE_BUDGET_REVIEW}",
                 ],
                 input=prompt_text,
                 cwd=project_root,
@@ -351,7 +351,7 @@ def apply_improvement(
         result = subprocess.run(
             [
                 "claude", "-p", "--allowedTools", "Read,Edit,Write,Glob,Grep",
-                f"--max-cost-dollars={CLAUDE_BUDGET_IMPROVE}",
+                f"--max-budget-usd={CLAUDE_BUDGET_IMPROVE}",
             ],
             input=prompt,
             cwd=project_root,
