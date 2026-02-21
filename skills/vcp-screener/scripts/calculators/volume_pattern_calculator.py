@@ -28,6 +28,7 @@ def calculate_volume_pattern(
     historical_prices: list[dict],
     pivot_price: Optional[float] = None,
     contractions: Optional[list[dict]] = None,
+    breakout_volume_ratio: float = 1.5,
 ) -> dict:
     """
     Analyze volume behavior near the VCP pivot point.
@@ -103,7 +104,7 @@ def calculate_volume_pattern(
 
     # Modifier: Check for breakout volume (most recent day)
     breakout_volume = False
-    if len(volumes) >= 2 and volumes[0] > avg_volume_50d * 1.5:
+    if len(volumes) >= 2 and volumes[0] > avg_volume_50d * breakout_volume_ratio:
         current_price = closes[0] if closes else 0
         if pivot_price and current_price > pivot_price:
             breakout_volume = True

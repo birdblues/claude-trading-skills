@@ -17,7 +17,13 @@ from calculators.vcp_pattern_calculator import _validate_vcp, calculate_vcp_patt
 from calculators.volume_pattern_calculator import calculate_volume_pattern
 from report_generator import generate_json_report, generate_markdown_report
 from scorer import calculate_composite_score
-from screen_vcp import analyze_stock, compute_entry_ready, is_stale_price
+from screen_vcp import (
+    analyze_stock,
+    compute_entry_ready,
+    is_stale_price,
+    parse_arguments,
+    passes_trend_filter,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -1726,3 +1732,255 @@ class TestFixedTautologicalTests:
         assert result_flat.get("contraction_volume_trend", {}).get("declining") is False
         # Score difference should be exactly 5
         assert result_declining["score"] - result_flat["score"] == 5
+
+
+# ===========================================================================
+# Parameter Passthrough Tests (VCP tuning parameters)
+# ===========================================================================
+
+
+class TestParameterPassthrough:
+    """Test that new tuning parameters correctly affect VCP detection."""
+
+    def test_min_contractions_3_rejects_2_contraction_pattern(self):
+        """min_contractions=3 should reject a pattern with only 2 contractions."""
+        contractions = _make_vcp_contractions([20, 10])
+        result = _validate_vcp(contractions, total_days=120, min_contractions=3)
+        assert result["valid"] is False
+        assert any("3" in issue for issue in result["issues"])
+
+    def test_min_contractions_2_default_backward_compatible(self):
+        """min_contractions=2 (default) accepts a 2-contraction pattern."""
+        contractions = _make_vcp_contractions([20, 10])
+        result = _validate_vcp(contractions, total_days=120)
+        assert result["valid"] is True
+
+    def test_t1_depth_min_12_rejects_shallow(self):
+        """t1_depth_min=12 should reject T1=10% pattern."""
+        contractions = _make_vcp_contractions([10, 5])
+        result = _validate_vcp(contractions, total_days=120, t1_depth_min=12.0)
+        assert result["valid"] is False
+        assert any("12.0" in issue for issue in result["issues"])
+
+    def test_t1_depth_min_default_accepts_8pct(self):
+        """Default t1_depth_min=8.0 accepts T1=10%."""
+        contractions = _make_vcp_contractions([10, 5])
+        result = _validate_vcp(contractions, total_days=120)
+        assert result["valid"] is True
+
+    def test_contraction_ratio_09_accepts_looser(self):
+        """contraction_ratio=0.9 accepts T1=20%, T2=17% (ratio=0.85)."""
+        contractions = _make_vcp_contractions([20, 17])
+        # Default 0.75 rejects
+        result_strict = _validate_vcp(contractions, total_days=120, contraction_ratio=0.75)
+        assert result_strict["valid"] is False
+        # Relaxed 0.9 accepts
+        result_relaxed = _validate_vcp(contractions, total_days=120, contraction_ratio=0.9)
+        assert result_relaxed["valid"] is True
+
+    def test_breakout_volume_ratio_2_rejects_16x(self):
+        """breakout_volume_ratio=2.0 should not detect 1.6x as breakout."""
+        prices = _make_prices(60, volume=1000000)
+        # Most recent bar: 1.6x volume, price above pivot
+        prices[0]["volume"] = 1600000
+        prices[0]["close"] = 102.0
+        result = calculate_volume_pattern(prices, pivot_price=100.0, breakout_volume_ratio=2.0)
+        assert result["breakout_volume_detected"] is False
+
+    def test_breakout_volume_ratio_default_detects_16x(self):
+        """Default breakout_volume_ratio=1.5 detects 1.6x as breakout."""
+        prices = _make_prices(60, volume=1000000)
+        prices[0]["volume"] = 1600000
+        prices[0]["close"] = 102.0
+        result = calculate_volume_pattern(prices, pivot_price=100.0)
+        assert result["breakout_volume_detected"] is True
+
+    def test_calculate_vcp_pattern_min_contractions_3(self):
+        """calculate_vcp_pattern with min_contractions=3 finds fewer patterns."""
+        from calculators.vcp_pattern_calculator import calculate_vcp_pattern
+
+        prices = TestVCPPatternEnhanced._make_vcp_prices(None)
+        result_2 = calculate_vcp_pattern(prices, min_contractions=2)
+        result_3 = calculate_vcp_pattern(prices, min_contractions=3)
+        # With stricter min_contractions, either fewer contractions or not valid
+        if result_2["valid_vcp"] and result_2["num_contractions"] < 3:
+            assert result_3["valid_vcp"] is False
+
+
+class TestTrendMinScore:
+    """Test passes_trend_filter (Phase 2 gate) from screen_vcp.py."""
+
+    def test_trend_min_score_70_passes_raw_75(self):
+        """passes_trend_filter with raw_score=75 and threshold=70 -> True."""
+        tt_result = {"raw_score": 75, "passed": False}
+        assert passes_trend_filter(tt_result, trend_min_score=70) is True
+
+    def test_trend_min_score_85_rejects_raw_80(self):
+        """passes_trend_filter with raw_score=80 and default threshold=85 -> False."""
+        tt_result = {"raw_score": 80, "passed": False}
+        assert passes_trend_filter(tt_result) is False
+
+    def test_trend_min_score_100_rejects_all(self):
+        """passes_trend_filter with threshold=100 rejects 99.9."""
+        tt_result = {"raw_score": 99.9, "passed": True}
+        assert passes_trend_filter(tt_result, trend_min_score=100) is False
+
+    def test_uses_raw_score_not_passed_field(self):
+        """Phase 2 must gate on raw_score, not the passed boolean.
+
+        A stock with raw_score=75 and passed=False should still pass
+        Phase 2 when trend_min_score=70.
+        """
+        tt_result = {"raw_score": 75, "passed": False, "score": 60}
+        assert passes_trend_filter(tt_result, trend_min_score=70) is True
+        # Verify it would NOT pass if we used the 'passed' field
+        assert tt_result["passed"] is False
+
+    def test_missing_raw_score_returns_false(self):
+        """If raw_score key is absent, passes_trend_filter defaults to 0."""
+        tt_result = {"passed": True, "score": 85}
+        assert passes_trend_filter(tt_result, trend_min_score=85) is False
+
+    def test_with_real_calculate_trend_template(self):
+        """Integration: real calculate_trend_template output flows through filter."""
+        prices = _make_prices(250, start=80, daily_change=0.001)
+        quote = {"price": 120, "yearHigh": 125, "yearLow": 70}
+        tt_result = calculate_trend_template(prices, quote, rs_rank=85)
+        raw = tt_result.get("raw_score", 0)
+        # The result must be consistent with passes_trend_filter
+        assert passes_trend_filter(tt_result, trend_min_score=raw) is True
+        assert passes_trend_filter(tt_result, trend_min_score=raw + 0.1) is False
+
+
+class TestBacktestRegression:
+    """Regression tests ensuring stricter params are more selective."""
+
+    def test_min_contractions_3_more_selective_than_2(self):
+        """min_contractions=3 should be at least as selective as =2."""
+        contractions_2 = _make_vcp_contractions([20, 10])
+        result_2 = _validate_vcp(contractions_2, total_days=120, min_contractions=2)
+        result_3 = _validate_vcp(contractions_2, total_days=120, min_contractions=3)
+        # 2-contraction pattern: valid for min=2, invalid for min=3
+        assert result_2["valid"] is True
+        assert result_3["valid"] is False
+
+    def test_higher_t1_depth_min_excludes_shallow(self):
+        """Higher t1_depth_min excludes patterns that default accepts."""
+        contractions = _make_vcp_contractions([10, 5])
+        result_default = _validate_vcp(contractions, total_days=120, t1_depth_min=8.0)
+        result_strict = _validate_vcp(contractions, total_days=120, t1_depth_min=15.0)
+        assert result_default["valid"] is True
+        assert result_strict["valid"] is False
+
+
+class TestTuningParamsMetadata:
+    """Test that tuning_params appear in report metadata."""
+
+    def test_metadata_tuning_params_from_parse_arguments(self):
+        """parse_arguments() produces args with all 8 tuning param attributes.
+
+        This exercises the real CLI parser so a renamed or missing flag
+        causes a test failure.
+        """
+        import sys
+        from unittest.mock import patch
+
+        test_argv = [
+            "screen_vcp.py",
+            "--min-contractions",
+            "3",
+            "--t1-depth-min",
+            "12.0",
+            "--breakout-volume-ratio",
+            "2.0",
+            "--trend-min-score",
+            "90.0",
+            "--atr-multiplier",
+            "2.0",
+            "--contraction-ratio",
+            "0.6",
+            "--min-contraction-days",
+            "7",
+            "--lookback-days",
+            "180",
+        ]
+        with patch.object(sys, "argv", test_argv):
+            args = parse_arguments()
+
+        # Build tuning_params the same way screen_vcp.main() does (line ~620)
+        tuning_params = {
+            "min_contractions": args.min_contractions,
+            "t1_depth_min": args.t1_depth_min,
+            "breakout_volume_ratio": args.breakout_volume_ratio,
+            "trend_min_score": args.trend_min_score,
+            "atr_multiplier": args.atr_multiplier,
+            "contraction_ratio": args.contraction_ratio,
+            "min_contraction_days": args.min_contraction_days,
+            "lookback_days": args.lookback_days,
+        }
+        assert len(tuning_params) == 8
+        assert tuning_params["min_contractions"] == 3
+        assert tuning_params["trend_min_score"] == 90.0
+        assert tuning_params["lookback_days"] == 180
+
+    def test_tuning_params_in_json_report(self):
+        """JSON report should include tuning_params in metadata."""
+        metadata = {
+            "generated_at": "2026-01-01",
+            "universe_description": "Test",
+            "tuning_params": {
+                "min_contractions": 2,
+                "t1_depth_min": 8.0,
+                "breakout_volume_ratio": 1.5,
+                "trend_min_score": 85.0,
+                "atr_multiplier": 1.5,
+                "contraction_ratio": 0.75,
+                "min_contraction_days": 5,
+                "lookback_days": 120,
+            },
+            "funnel": {},
+            "api_stats": {},
+        }
+        stock = {
+            "symbol": "TEST",
+            "company_name": "Test Corp",
+            "sector": "Technology",
+            "price": 150.0,
+            "market_cap": 50e9,
+            "composite_score": 75.0,
+            "rating": "Good VCP",
+            "rating_description": "Test",
+            "guidance": "Test",
+            "weakest_component": "Volume",
+            "weakest_score": 40,
+            "strongest_component": "Trend",
+            "strongest_score": 100,
+            "valid_vcp": True,
+            "entry_ready": False,
+            "trend_template": {"score": 100, "criteria_passed": 7},
+            "vcp_pattern": {
+                "score": 70,
+                "num_contractions": 2,
+                "contractions": [],
+                "pivot_price": 145.0,
+            },
+            "volume_pattern": {"score": 40, "dry_up_ratio": 0.8},
+            "pivot_proximity": {
+                "score": 75,
+                "distance_from_pivot_pct": -3.0,
+                "stop_loss_price": 140.0,
+                "risk_pct": 7.0,
+                "trade_status": "NEAR PIVOT",
+            },
+            "relative_strength": {"score": 80, "rs_rank_estimate": 80, "weighted_rs": 15.0},
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            json_file = os.path.join(tmpdir, "test.json")
+            generate_json_report([stock], metadata, json_file)
+            with open(json_file) as f:
+                data = json.load(f)
+            assert "tuning_params" in data["metadata"]
+            tp = data["metadata"]["tuning_params"]
+            assert len(tp) == 8
+            assert tp["min_contractions"] == 2
+            assert tp["trend_min_score"] == 85.0
