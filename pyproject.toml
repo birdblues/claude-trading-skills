@@ -63,6 +63,8 @@ testpaths = [
     "skills/theme-detector/tests",
     "skills/uptrend-analyzer/scripts/tests",
     "skills/vcp-screener/scripts/tests",
+    "skills/earnings-trade-analyzer/scripts/tests",
+    "skills/pead-screener/scripts/tests",
 ]
 
 [tool.bandit]
