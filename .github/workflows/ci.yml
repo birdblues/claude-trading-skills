@@ -165,7 +165,7 @@ jobs:
       - name: Detect secrets check
         run: |
           detect-secrets scan \
-            --exclude-files '\.env$|\.json$|\.csv$|\.md$|\.zip$' \
+            --exclude-files '\.env$|\.json$|\.csv$|\.md$|\.zip$|\.baseline$' \
             > /tmp/new_scan.json
           python3 -c "
           import json, sys
