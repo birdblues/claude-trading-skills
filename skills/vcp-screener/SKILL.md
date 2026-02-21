@@ -37,6 +37,31 @@ python3 skills/vcp-screener/scripts/screen_vcp.py --universe AAPL NVDA MSFT AMZN
 python3 skills/vcp-screener/scripts/screen_vcp.py --full-sp500 --output-dir skills/vcp-screener/scripts
 ```
 
+### Advanced Tuning (for backtesting)
+
+Adjust VCP detection parameters for research and backtesting:
+
+```bash
+python3 skills/vcp-screener/scripts/screen_vcp.py \
+  --min-contractions 3 \
+  --t1-depth-min 12.0 \
+  --breakout-volume-ratio 2.0 \
+  --trend-min-score 90 \
+  --atr-multiplier 1.5 \
+  --output-dir reports/
+```
+
+| Parameter | Default | Range | Effect |
+|-----------|---------|-------|--------|
+| `--min-contractions` | 2 | 2-4 | Higher = fewer but higher-quality patterns |
+| `--t1-depth-min` | 8.0% | 1-50 | Higher = excludes shallow first corrections |
+| `--breakout-volume-ratio` | 1.5x | 0.5-10 | Higher = stricter volume confirmation |
+| `--trend-min-score` | 85 | 0-100 | Higher = stricter Stage 2 filter |
+| `--atr-multiplier` | 1.5 | 0.5-5 | Lower = more sensitive swing detection |
+| `--contraction-ratio` | 0.75 | 0.1-1 | Lower = requires tighter contractions |
+| `--min-contraction-days` | 5 | 1-30 | Higher = longer minimum contraction |
+| `--lookback-days` | 120 | 30-365 | Longer = finds older patterns |
+
 ### Step 2: Review Results
 
 1. Read the generated JSON and Markdown reports

@@ -100,8 +100,86 @@ def parse_arguments():
         default=8.0,
         help="SMA50 distance %% where extended penalty starts (default: 8.0)",
     )
+    parser.add_argument(
+        "--min-contractions",
+        type=int,
+        default=2,
+        help="Minimum contractions for valid VCP (default: 2)",
+    )
+    parser.add_argument(
+        "--t1-depth-min",
+        type=float,
+        default=8.0,
+        help="Minimum T1 depth %% (default: 8.0)",
+    )
+    parser.add_argument(
+        "--breakout-volume-ratio",
+        type=float,
+        default=1.5,
+        help="Breakout volume ratio vs 50d avg (default: 1.5)",
+    )
+    parser.add_argument(
+        "--trend-min-score",
+        type=float,
+        default=85.0,
+        help="Minimum trend template raw score for Phase 2 pass (default: 85.0)",
+    )
+    parser.add_argument(
+        "--atr-multiplier",
+        type=float,
+        default=1.5,
+        help="ATR multiplier for ZigZag swing detection (default: 1.5)",
+    )
+    parser.add_argument(
+        "--contraction-ratio",
+        type=float,
+        default=0.75,
+        help="Max ratio for successive contractions (default: 0.75)",
+    )
+    parser.add_argument(
+        "--min-contraction-days",
+        type=int,
+        default=5,
+        help="Minimum days per contraction (default: 5)",
+    )
+    parser.add_argument(
+        "--lookback-days",
+        type=int,
+        default=120,
+        help="VCP pattern lookback window in days (default: 120)",
+    )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Lower bound is 2 by design: VCP requires successive contractions, and
+    # contraction_ratio scoring needs at least 2 to compute ratios.
+    if not (2 <= args.min_contractions <= 4):
+        parser.error("--min-contractions must be 2-4")
+    if not (1.0 <= args.t1_depth_min <= 50.0):
+        parser.error("--t1-depth-min must be 1.0-50.0")
+    if not (0.5 <= args.breakout_volume_ratio <= 10.0):
+        parser.error("--breakout-volume-ratio must be 0.5-10.0")
+    if not (0 <= args.trend_min_score <= 100):
+        parser.error("--trend-min-score must be 0-100")
+    if not (0.5 <= args.atr_multiplier <= 5.0):
+        parser.error("--atr-multiplier must be 0.5-5.0")
+    if not (0.1 <= args.contraction_ratio <= 1.0):
+        parser.error("--contraction-ratio must be 0.1-1.0")
+    if not (1 <= args.min_contraction_days <= 30):
+        parser.error("--min-contraction-days must be 1-30")
+    if not (30 <= args.lookback_days <= 365):
+        parser.error("--lookback-days must be 30-365")
+
+    return args
+
+
+def passes_trend_filter(tt_result: dict, trend_min_score: float = 85.0) -> bool:
+    """Check if a stock passes Phase 2 trend template filter.
+
+    Uses raw_score (before extended penalty) so that the CLI --trend-min-score
+    flag can override the calculator's hardcoded 85-point gate.
+    """
+    return tt_result.get("raw_score", 0) >= trend_min_score
 
 
 def pre_filter_stock(quote: dict) -> tuple:
@@ -156,6 +234,13 @@ def analyze_stock(
     sector: str = "Unknown",
     company_name: str = "",
     ext_threshold: float = 8.0,
+    min_contractions: int = 2,
+    t1_depth_min: float = 8.0,
+    contraction_ratio: float = 0.75,
+    atr_multiplier: float = 1.5,
+    min_contraction_days: int = 5,
+    lookback_days: int = 120,
+    breakout_volume_ratio: float = 1.5,
 ) -> Optional[dict]:
     """
     Full VCP analysis for a single stock (Phase 3).
@@ -174,7 +259,15 @@ def analyze_stock(
     )
 
     # 3. VCP Pattern Detection
-    vcp_result = calculate_vcp_pattern(historical, lookback_days=120)
+    vcp_result = calculate_vcp_pattern(
+        historical,
+        lookback_days=lookback_days,
+        atr_multiplier=atr_multiplier,
+        min_contraction_days=min_contraction_days,
+        min_contractions=min_contractions,
+        t1_depth_min=t1_depth_min,
+        contraction_ratio=contraction_ratio,
+    )
 
     # 4. Volume Pattern
     pivot_price = vcp_result.get("pivot_price")
@@ -182,6 +275,7 @@ def analyze_stock(
         historical,
         pivot_price=pivot_price,
         contractions=vcp_result.get("contractions"),
+        breakout_volume_ratio=breakout_volume_ratio,
     )
 
     # 5. Pivot Proximity
@@ -417,7 +511,7 @@ def main():
         tt_result = calculate_trend_template(
             hist, quote, rs_rank=rs_rank, ext_threshold=args.ext_threshold
         )
-        if tt_result.get("passed"):
+        if passes_trend_filter(tt_result, args.trend_min_score):
             trend_passed.append((sym, quote))
 
     print(f"{len(trend_passed)} passed")
@@ -455,6 +549,13 @@ def main():
             sector,
             name,
             ext_threshold=args.ext_threshold,
+            min_contractions=args.min_contractions,
+            t1_depth_min=args.t1_depth_min,
+            contraction_ratio=args.contraction_ratio,
+            atr_multiplier=args.atr_multiplier,
+            min_contraction_days=args.min_contraction_days,
+            lookback_days=args.lookback_days,
+            breakout_volume_ratio=args.breakout_volume_ratio,
         )
 
         if analysis:
@@ -527,6 +628,16 @@ def main():
         "universe_description": universe_desc,
         "max_candidates": max_candidates,
         "ext_threshold": args.ext_threshold,
+        "tuning_params": {
+            "min_contractions": args.min_contractions,
+            "t1_depth_min": args.t1_depth_min,
+            "breakout_volume_ratio": args.breakout_volume_ratio,
+            "trend_min_score": args.trend_min_score,
+            "atr_multiplier": args.atr_multiplier,
+            "contraction_ratio": args.contraction_ratio,
+            "min_contraction_days": args.min_contraction_days,
+            "lookback_days": args.lookback_days,
+        },
         "funnel": {
             "universe": len(symbols),
             "pre_filter_passed": len(pre_filtered),

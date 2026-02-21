@@ -25,6 +25,9 @@ def calculate_vcp_pattern(
     atr_multiplier: float = 1.5,
     atr_period: int = 14,
     min_contraction_days: int = 5,
+    min_contractions: int = 2,
+    t1_depth_min: float = 8.0,
+    contraction_ratio: float = 0.75,
 ) -> dict:
     """
     Detect Volatility Contraction Pattern in price data.
@@ -102,18 +105,22 @@ def calculate_vcp_pattern(
             min_contraction_days=min_contraction_days,
         )
         if len(candidate) > len(best_contractions) or (
-            len(candidate) == len(best_contractions) and len(candidate) >= 2
+            len(candidate) == len(best_contractions) and len(candidate) >= min_contractions
         ):
             # Evaluate which has better validation
-            v = _validate_vcp(candidate, n) if len(candidate) >= 2 else {"valid": False}
-            s = _score_vcp(candidate, v) if len(candidate) >= 2 else 0
+            v = (
+                _validate_vcp(candidate, n, min_contractions, t1_depth_min, contraction_ratio)
+                if len(candidate) >= min_contractions
+                else {"valid": False}
+            )
+            s = _score_vcp(candidate, v) if len(candidate) >= min_contractions else 0
             if s > best_score:
                 best_contractions = candidate
                 best_score = s
 
     contractions = best_contractions
 
-    if len(contractions) < 2:
+    if len(contractions) < min_contractions:
         return {
             "score": 0,
             "valid_vcp": False,
@@ -121,11 +128,11 @@ def calculate_vcp_pattern(
             "num_contractions": len(contractions),
             "pivot_price": _get_pivot_price(contractions, highs, swing_highs),
             "atr_value": round(atr_val, 4) if atr_val else None,
-            "error": "Fewer than 2 contractions found",
+            "error": f"Fewer than {min_contractions} contractions found",
         }
 
     # Step C: Validate VCP
-    validation = _validate_vcp(contractions, n)
+    validation = _validate_vcp(contractions, n, min_contractions, t1_depth_min, contraction_ratio)
 
     # Pivot price = high of the last contraction
     pivot_price = _get_pivot_price(contractions, highs, swing_highs)
@@ -452,18 +459,24 @@ def _build_contractions_from(
     return contractions
 
 
-def _validate_vcp(contractions: list[dict], total_days: int) -> dict:
+def _validate_vcp(
+    contractions: list[dict],
+    total_days: int,
+    min_contractions: int = 2,
+    t1_depth_min: float = 8.0,
+    contraction_ratio: float = 0.75,
+) -> dict:
     """Validate whether the contraction pattern qualifies as a VCP."""
     issues = []
     valid = True
 
-    if len(contractions) < 2:
-        return {"valid": False, "issues": ["Need at least 2 contractions"]}
+    if len(contractions) < min_contractions:
+        return {"valid": False, "issues": [f"Need at least {min_contractions} contractions"]}
 
     # Check T1 depth (8-35% for large-caps)
     t1_depth = contractions[0]["depth_pct"]
-    if t1_depth < 8:
-        issues.append(f"T1 depth too shallow ({t1_depth:.1f}%, need >= 8%)")
+    if t1_depth < t1_depth_min:
+        issues.append(f"T1 depth too shallow ({t1_depth:.1f}%, need >= {t1_depth_min}%)")
         valid = False
     elif t1_depth > 35:
         issues.append(f"T1 depth too deep ({t1_depth:.1f}%, prefer <= 35%)")
@@ -477,11 +490,11 @@ def _validate_vcp(contractions: list[dict], total_days: int) -> dict:
         if prev_depth > 0:
             ratio = curr_depth / prev_depth
             contraction_ratios.append(ratio)
-            if ratio > 0.75:
+            if ratio > contraction_ratio:
                 issues.append(
                     f"{contractions[i]['label']} ({curr_depth:.1f}%) does not contract "
-                    f"25%+ vs {contractions[i - 1]['label']} ({prev_depth:.1f}%), "
-                    f"ratio={ratio:.2f} (need <= 0.75)"
+                    f"vs {contractions[i - 1]['label']} ({prev_depth:.1f}%), "
+                    f"ratio={ratio:.2f} (need <= {contraction_ratio})"
                 )
                 valid = False
 
