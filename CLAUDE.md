@@ -126,6 +126,8 @@ If no test exists for the changed behavior, add one whenever practical.
 | **Value Dividend Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | FMP for analysis; FINVIZ reduces execution time by 70-80% |
 | **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | FMP for analysis; FINVIZ for RSI pre-screening |
 | **Pair Trade Screener** | ✅ Required | ❌ Not used | ❌ Not used | Statistical arbitrage analysis |
+| **Earnings Trade Analyzer** | ✅ Required | ❌ Not used | ❌ Not used | 5-factor earnings scoring; free tier sufficient |
+| **PEAD Screener** | ✅ Required | ❌ Not used | ❌ Not used | Weekly candle PEAD analysis; free tier sufficient |
 | **Options Strategy Advisor** | 🟡 Optional | ❌ Not used | ❌ Not used | FMP for stock data; Black-Scholes works without |
 | **Portfolio Manager** | ❌ Not used | ❌ Not used | ✅ Required | Real-time holdings via Alpaca MCP Server |
 | Sector Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
@@ -275,6 +277,31 @@ python3 pair-trade-screener/scripts/find_pairs.py \
   --sector Financials \
   --min-correlation 0.7 \
   --lookback-days 365
+```
+
+**Earnings Trade Analyzer:** ⚠️ Requires FMP API key
+```bash
+# Default: 2-day lookback, top 20 results
+python3 skills/earnings-trade-analyzer/scripts/analyze_earnings_trades.py \
+  --output-dir reports/
+
+# Custom parameters with entry quality filter
+python3 skills/earnings-trade-analyzer/scripts/analyze_earnings_trades.py \
+  --lookback-days 3 --top 10 --max-api-calls 200 \
+  --apply-entry-filter --output-dir reports/
+```
+
+**PEAD Screener:** ⚠️ Requires FMP API key
+```bash
+# Mode A: FMP earnings calendar (standalone)
+python3 skills/pead-screener/scripts/screen_pead.py \
+  --lookback-days 14 --min-gap 3.0 --max-api-calls 200 \
+  --output-dir reports/
+
+# Mode B: Pipeline from earnings-trade-analyzer output
+python3 skills/pead-screener/scripts/screen_pead.py \
+  --candidates-json reports/earnings_trade_*.json \
+  --min-grade B --output-dir reports/
 ```
 
 **Options Strategy Advisor:** 🟡 FMP API optional
@@ -462,6 +489,12 @@ Skills are designed to be combined for comprehensive analysis:
 2. Review asset allocation and risk metrics
 3. Market Environment Analysis → Assess macro conditions
 4. Execute rebalancing plan with buy/sell actions
+
+**Earnings Momentum Trading:**
+1. Earnings Trade Analyzer → Score recent earnings reactions (5-factor: gap, trend, volume, MA200, MA50)
+2. PEAD Screener (Mode B) → Feed analyzer output, screen for red candle pullback → breakout patterns
+3. Technical Analyst → Confirm weekly chart setups on SIGNAL_READY/BREAKOUT candidates
+4. Monitor BREAKOUT entries with stop-loss (red candle low) and 2R profit targets
 
 **Statistical Arbitrage:**
 1. Pair Trade Screener → Identify cointegrated pairs

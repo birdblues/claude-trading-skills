@@ -170,6 +170,27 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - Generates quality score (0-100) with exposure guidance for re-entering the market after corrections.
   - FMP API required for index price data.
 
+### Earnings Momentum Screening
+
+- **Earnings Trade Analyzer** (`earnings-trade-analyzer`)
+  - Scores recent post-earnings stocks using a 5-factor weighted system: Gap Size (25%), Pre-Earnings Trend (30%), Volume Trend (20%), MA200 Position (15%), MA50 Position (10%).
+  - Assigns A/B/C/D grades (A: 85+, B: 70-84, C: 55-69, D: <55) with composite score 0-100.
+  - BMO/AMC timing-aware gap calculation — different base prices depending on when earnings were announced.
+  - Optional entry quality filter excludes low-win-rate patterns (low price range, extreme gap + high score combinations).
+  - API call budget management with `--max-api-calls` flag (default: 200) and automatic candidate trimming.
+  - Outputs JSON with `schema_version: "1.0"` for downstream consumption by PEAD Screener.
+  - FMP API required (free tier sufficient for typical 2-day lookback screening).
+
+- **PEAD Screener** (`pead-screener`)
+  - Screens post-earnings gap-up stocks for PEAD (Post-Earnings Announcement Drift) patterns using weekly candle analysis.
+  - Stage-based monitoring: MONITORING → SIGNAL_READY (red candle found) → BREAKOUT (price breaks above red candle high) → EXPIRED (>5 weeks).
+  - 4-component scoring: Setup Quality (30%), Breakout Strength (25%), Liquidity (25%), Risk/Reward (20%).
+  - Two input modes: Mode A (FMP earnings calendar, standalone) and Mode B (earnings-trade-analyzer JSON output, pipeline).
+  - Weekly candle aggregation using ISO week (Monday start) with earnings week splitting and partial week handling.
+  - Liquidity filters: ADV20 >= $25M, avg volume >= 1M shares, price >= $10.
+  - Trade setup output: entry price, stop (red candle low), target (2R), risk/reward ratio.
+  - FMP API required (free tier sufficient for 14-day lookback screening).
+
 ### Stock Screening & Selection
 
 - **VCP Screener** (`vcp-screener`)
@@ -240,6 +261,13 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
 2. Use **Economic Calendar Fetcher** to time entries around major data releases
 3. Use **Breadth Chart Analyst** and **Technical Analyst** for confirmation signals
 4. Use **US Market Bubble Detector** for risk management and profit-taking guidance
+
+### Earnings Momentum Trading
+1. Use **Earnings Trade Analyzer** to score recent earnings reactions (gap size, trend, volume, MA position)
+2. Use **PEAD Screener** (Mode B) with analyzer output to find PEAD setups (red candle pullbacks → breakout signals)
+3. Use **Technical Analyst** to confirm weekly chart patterns and support/resistance levels
+4. Use **Liquidity** filters in PEAD Screener to ensure position sizing feasibility
+5. Monitor SIGNAL_READY stocks for breakout entries with defined stop-loss (red candle low) and 2R targets
 
 ### Income Portfolio Construction
 1. Use **Value Dividend Screener** to identify high-quality dividend stocks with sustainable yields
