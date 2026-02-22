@@ -13,6 +13,7 @@ Prioritize signal quality and interface compatibility over aggressive strategy p
 ## When to Use
 
 - Convert market observations, anomalies, or hypotheses into structured research tickets.
+- Run daily auto-detection to discover new edge candidates from EOD OHLCV and optional hints.
 - Export validated tickets as `strategy.yaml` + `metadata.json` for `trade-strategy-pipeline` Phase I.
 - Run preflight compatibility checks for `edge-finder-candidate/v1` before pipeline execution.
 
@@ -27,19 +28,43 @@ Prioritize signal quality and interface compatibility over aggressive strategy p
 - `strategies/<candidate_id>/strategy.yaml`: Phase I-compatible strategy spec.
 - `strategies/<candidate_id>/metadata.json`: provenance metadata including interface version and ticket context.
 - Validation status from `scripts/validate_candidate.py` (pass/fail + reasons).
+- Daily detection artifacts:
+  - `daily_report.md`
+  - `market_summary.json`
+  - `anomalies.json`
+  - `watchlist.csv`
+  - `tickets/exportable/*.yaml`
+  - `tickets/research_only/*.yaml`
 
 ## Workflow
 
-1. Load the contract and mapping references:
+1. Run auto-detection from EOD OHLCV:
+   - `skills/edge-candidate-agent/scripts/auto_detect_candidates.py`
+   - Optional: `--hints` for human ideation input
+   - Optional: `--llm-ideas-cmd` for external LLM ideation loop
+2. Load the contract and mapping references:
    - `skills/edge-candidate-agent/references/pipeline_if_v1.md`
    - `skills/edge-candidate-agent/references/signal_mapping.md`
    - `skills/edge-candidate-agent/references/research_ticket_schema.md`
-2. Build or update a research ticket using `skills/edge-candidate-agent/references/research_ticket_schema.md`.
-3. Export candidate artifacts with `skills/edge-candidate-agent/scripts/export_candidate.py`.
-4. Validate interface and Phase I constraints with `skills/edge-candidate-agent/scripts/validate_candidate.py`.
-5. Hand off candidate directory to `trade-strategy-pipeline` and run dry-run first.
+   - `skills/edge-candidate-agent/references/ideation_loop.md`
+3. Build or update a research ticket using `skills/edge-candidate-agent/references/research_ticket_schema.md`.
+4. Export candidate artifacts with `skills/edge-candidate-agent/scripts/export_candidate.py`.
+5. Validate interface and Phase I constraints with `skills/edge-candidate-agent/scripts/validate_candidate.py`.
+6. Hand off candidate directory to `trade-strategy-pipeline` and run dry-run first.
 
 ## Quick Commands
+
+Daily auto-detection (with optional export/validation):
+
+```bash
+python3 skills/edge-candidate-agent/scripts/auto_detect_candidates.py \
+  --ohlcv /path/to/ohlcv.parquet \
+  --output-dir reports/edge_candidate_auto \
+  --top-n 10 \
+  --hints path/to/hints.yaml \
+  --export-strategies-dir /path/to/trade-strategy-pipeline/strategies \
+  --pipeline-root /path/to/trade-strategy-pipeline
+```
 
 Create a candidate directory from a ticket:
 
@@ -89,6 +114,9 @@ Generate `strategies/<candidate_id>/strategy.yaml` and `metadata.json` from a re
 ### `skills/edge-candidate-agent/scripts/validate_candidate.py`
 Run interface checks and optional `StrategySpec`/`validate_spec` checks against `trade-strategy-pipeline`.
 
+### `skills/edge-candidate-agent/scripts/auto_detect_candidates.py`
+Auto-detect edge ideas from EOD OHLCV, generate exportable/research tickets, and optionally export/validate automatically.
+
 ### `skills/edge-candidate-agent/references/pipeline_if_v1.md`
 Condensed integration contract for `edge-finder-candidate/v1`.
 
@@ -97,3 +125,6 @@ Map hypothesis families to currently exportable signal families.
 
 ### `skills/edge-candidate-agent/references/research_ticket_schema.md`
 Ticket schema used by `export_candidate.py`.
+
+### `skills/edge-candidate-agent/references/ideation_loop.md`
+Hint schema and external LLM ideation command contract.
