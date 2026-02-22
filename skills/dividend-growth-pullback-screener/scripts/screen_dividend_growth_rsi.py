@@ -313,6 +313,10 @@ class StockAnalyzer:
             year = div["date"][:4]
             annual_dividends[year] = annual_dividends.get(year, 0) + div.get("dividend", 0)
 
+        # Exclude current year because partial-year dividends distort CAGR calculations.
+        current_year = str(date.today().year)
+        annual_dividends.pop(current_year, None)
+
         if len(annual_dividends) < 4:
             return None, False, None, 0
 
@@ -1224,8 +1228,8 @@ Environment Variables:
 
     # Determine output directory (project root logs/ folder)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Navigate from .claude/skills/dividend-growth-pullback-screener/scripts to project root
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir))))
+    # Navigate from skills/dividend-growth-pullback-screener/scripts to project root
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
     logs_dir = os.path.join(project_root, "logs")
     os.makedirs(logs_dir, exist_ok=True)
 
