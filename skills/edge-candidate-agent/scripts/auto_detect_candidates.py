@@ -1354,8 +1354,9 @@ def scan_futures_trigger_candidates(
     frame = frame.sort_values(["symbol", "timestamp"])
     frame["ret_1d"] = frame.groupby("symbol")["close"].pct_change()
     frame["ret_z"] = frame.groupby("symbol")["ret_1d"].transform(
-        lambda s: (s - s.rolling(60, min_periods=30).mean())
-        / s.rolling(60, min_periods=30).std(ddof=0)
+        lambda s: (
+            (s - s.rolling(60, min_periods=30).mean()) / s.rolling(60, min_periods=30).std(ddof=0)
+        )
     )
 
     day = frame[frame["date"] == target_date].copy()
