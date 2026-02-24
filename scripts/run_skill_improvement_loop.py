@@ -556,6 +556,8 @@ def apply_improvement(
                 "gh",
                 "pr",
                 "create",
+                "--head",
+                branch_name,
                 "--title",
                 f"Improve {skill_name} skill (score {pre_score} -> {re_score})",
                 "--body",
