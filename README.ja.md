@@ -237,6 +237,13 @@ English README is available at [`README.md`](README.md).
   - ヘッジ比率、平均回帰速度（半減期）、zスコアベースのエントリー/エグジットシグナルを算出。
   - セクターワイドスクリーニングとカスタムペア分析をサポート。FMP APIキーが必要。
 
+- **FinVizスクリーナー** (`finviz-screener`)
+  - 自然言語（日本語/英語）によるスクリーニング指示をFinVizフィルターコードに変換し、Chromeで結果を表示。
+  - ファンダメンタル（P/E、配当、成長性、マージン）、テクニカル（RSI、SMA、パターン）、記述的フィルター（セクター、時価総額、国）等500以上のフィルターコードに対応。
+  - `$FINVIZ_API_KEY`環境変数からFINVIZ Eliteを自動検出。未設定時はパブリックスクリーナーにフォールバック。
+  - 高配当バリュー、小型成長株、売られすぎ大型株、ブレイクアウト候補、AI/テーマ投資等、14のプリセットレシピを収録。
+  - 基本利用にAPIキー不要（パブリックFinVizスクリーナー）。FINVIZ Eliteは任意で拡張機能利用可能。
+
 ## ワークフロー例
 
 ### 日次マーケット監視
@@ -354,6 +361,7 @@ launchctl start com.trade-analysis.skill-improvement
   - または、プロンプト時にコマンドライン引数でキーを提供
 - **マーケットブレッドアナライザー**、**アップトレンドアナライザー**: APIキー不要（GitHubの無料CSVデータを使用）
 - **テーマ検出器**: コア機能にAPIキー不要（FINVIZパブリック + yfinance）。FMP APIは銘柄選定強化用（オプション）、FINVIZ Eliteは銘柄リスト取得用（オプション）
+- **FinVizスクリーナー**: APIキー不要（パブリックFinVizスクリーナー）。FINVIZ Eliteは`$FINVIZ_API_KEY`環境変数から自動検出（オプション）
 - **かんち式配当3スキル**（`kanchi-dividend-sop` / `kanchi-dividend-review-monitor` / `kanchi-dividend-us-tax-accounting`）: APIキー不要（上流データは他スキル出力または手動入力を利用）
 - **エッジ候補エージェント** (`edge-candidate-agent`): APIキー不要（ローカルYAML生成、ローカルパイプラインリポジトリに対して検証）
 
