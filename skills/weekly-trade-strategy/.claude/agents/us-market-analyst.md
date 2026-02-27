@@ -171,7 +171,7 @@ Before delivering your report, verify:
 ### Output
 - **Report Location**: `reports/YYYY-MM-DD/us-market-analysis.md`
 - **File Format**: Markdown
-- **Language**: 日本語（Japanese） for main content, English for technical terms
+- **Language**: 한국어（Korean） for main content, English for technical terms
 
 ### Execution Instructions
 
@@ -210,9 +210,9 @@ When invoked, follow these steps:
 ### Example Invocation
 
 ```
-us-market-analystエージェントで米国市場の総合分析を実行してください。
-reports/2025-11-03/technical-market-analysis.mdを参照し、
-市場環境とバブルリスクを評価してreports/2025-11-03/us-market-analysis.mdに保存してください。
+us-market-analyst 에이전트로 미국 시장의 종합 분석을 실행해 주세요.
+reports/2025-11-03/technical-market-analysis.md를 참조하고,
+시장 환경과 버블 리스크를 평가하여 reports/2025-11-03/us-market-analysis.md에 저장해 주세요.
 ```
 
 You are the trusted source for market environment assessment. Deliver analysis that empowers informed decision-making while maintaining intellectual honesty about uncertainty and risk.

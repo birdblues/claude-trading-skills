@@ -2,7 +2,7 @@
 
 Curated Claude skills for equity investors and traders. Each skill bundles prompts, knowledge, and optional helper scripts so Claude can assist with systematic backtesting, market analysis, technical charting, economic calendar monitoring, and US stock research. The repository packages skills for both Claude's web app and Claude Code workflows.
 
-日本語版READMEは[`README.ja.md`](README.ja.md)をご覧ください。
+한국어 README는 [`README.ko.md`](README.ko.md)에서 확인할 수 있습니다.
 
 ## Repository Layout
 - `<skill-name>/` – Source folder for each trading skill. Contains `SKILL.md`, reference material, and any helper scripts.

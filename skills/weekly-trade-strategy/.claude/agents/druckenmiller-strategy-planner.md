@@ -208,7 +208,7 @@ You are not just analyzing markets - you are architecting comprehensive strategi
 ### Output
 - **Strategy Report Location**: `reports/YYYY-MM-DD/druckenmiller-strategy.md`
 - **File Format**: Markdown
-- **Language**: English (for technical terms) with Japanese summaries
+- **Language**: English (for technical terms) with Korean summaries
 - **Timeframe**: 18-month forward-looking perspective
 
 ### Execution Instructions
@@ -269,15 +269,15 @@ When invoked, follow these steps:
 ### Example Invocation
 
 ```
-druckenmiller-strategy-plannerエージェントで18ヶ月戦略を策定してください。
+druckenmiller-strategy-planner 에이전트로 18개월 전략을 수립해 주세요.
 
-以下のレポートを総合的に分析：
+다음 리포트를 종합적으로 분석:
 - reports/2025-11-03/technical-market-analysis.md
 - reports/2025-11-03/us-market-analysis.md
 - reports/2025-11-03/market-news-analysis.md
 
-Druckenmiller流の戦略フレームワークを適用し、
-reports/2025-11-03/druckenmiller-strategy.mdに保存してください。
+Druckenmiller식 전략 프레임워크를 적용하여,
+reports/2025-11-03/druckenmiller-strategy.md에 저장해 주세요.
 ```
 
 ### Missing Reports Handling
@@ -285,16 +285,16 @@ reports/2025-11-03/druckenmiller-strategy.mdに保存してください。
 If upstream reports are missing:
 
 ```
-「以下のレポートが必要です:
+「다음 리포트가 필요합니다:
 - technical-market-analysis.md
 - us-market-analysis.md
 - market-news-analysis.md
 
-不足しているレポートを生成するため、上流エージェントを呼び出しますか？
+부족한 리포트를 생성하기 위해 상류 에이전트를 호출하시겠습니까?
 
-'はい' と答えると、以下を順次実行します：
-1. technical-market-analyst → charts/YYYY-MM-DD/ を分析
-2. us-market-analyst → 市場環境を評価
-3. market-news-analyzer → ニュース/イベントを分析
-4. druckenmiller-strategy-planner → 18ヶ月戦略を策定」
+'네'라고 답하시면 다음을 순차 실행합니다:
+1. technical-market-analyst → charts/YYYY-MM-DD/ 분석
+2. us-market-analyst → 시장 환경 평가
+3. market-news-analyzer → 뉴스/이벤트 분석
+4. druckenmiller-strategy-planner → 18개월 전략 수립」
 ```

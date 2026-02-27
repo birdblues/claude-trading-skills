@@ -1,191 +1,191 @@
-# 米国株エッジ創出エージェント設計（実装反映版）
+# 미국주식 에지 창출 에이전트 설계 (구현 반영판)
 
-## 0. 目的
-日次の観察データから、
-**「再現可能なエッジ仮説」を継続生成し、戦略ネタ（strategy draft）までを安定供給する**
-運用系を、現行の4スキル実装に合わせて再設計する。
+## 0. 목적
+일간 관찰 데이터로부터,
+**"재현 가능한 에지 가설"을 지속 생성하고, 전략 소재(strategy draft)까지 안정 공급하는**
+운용 체계를, 현행 4스킬 구현에 맞추어 재설계한다.
 
-- 対象市場：米国株（ロング中心）
-- 主ホライズン：数日〜数週間（研究テーマによっては60営業日）
-- 本設計のゴール：
-  1) 観察を `hints.yaml` に構造化
-  2) チケット群を `edge_concepts.yaml` に抽象化
-  3) 概念を `strategy_drafts/*.yaml` に戦略化
-  4) export可能案を `ticket -> strategy.yaml + metadata.json` へ昇格可能にする
+- 대상 시장: 미국주식 (롱 중심)
+- 주 호라이즌: 수일~수주 (연구 테마에 따라서는 60영업일)
+- 본 설계의 목표:
+  1) 관찰을 `hints.yaml`로 구조화
+  2) 티켓군을 `edge_concepts.yaml`로 추상화
+  3) 개념을 `strategy_drafts/*.yaml`로 전략화
+  4) export 가능한 안을 `ticket -> strategy.yaml + metadata.json`으로 승격 가능하게 한다
 
-> 旧 `docs/edge_candidate_agent_design.md` は構想段階の単一エージェント前提。
-> 本書は、実装済みの分割アーキテクチャ（4スキル）に対応した運用設計である。
+> 구 `docs/edge_candidate_agent_design.md`는 구상 단계의 단일 에이전트 전제.
+> 본 문서는 구현 완료된 분할 아키텍처(4스킬)에 대응한 운용 설계이다.
 
 ---
 
-## 1. スコープ
+## 1. 스코프
 ### 1.1 In Scope
-- 日次EOD観察からのエッジ仮説生成
-- 仮説の抽象化（メカニズム仮説 + 失効シグナル）
-- 戦略ドラフト化（複数バリアント）
-- `edge-finder-candidate/v1` 互換候補への変換準備
+- 일간 EOD 관찰로부터의 에지 가설 생성
+- 가설의 추상화 (메커니즘 가설 + 실효 시그널)
+- 전략 드래프트화 (복수 배리언트)
+- `edge-finder-candidate/v1` 호환 후보로의 변환 준비
 
 ### 1.2 Out of Scope
-- 本番執行（発注/約定管理）
-- 完全自動の採用判断（最終採択は人間レビューを残す）
-- v1未対応シグナルの自動strategy export（research-onlyとして保持）
+- 실전 집행 (발주/약정 관리)
+- 완전 자동 채용 판단 (최종 채택은 사람 리뷰를 남긴다)
+- v1 미대응 시그널의 자동 strategy export (research-only로 유지)
 
 ---
 
-## 2. 設計原則
-1. 観察と戦略実装を直結させない（抽象化レイヤー必須）
-2. 「説明可能性」を保持する（`thesis` / `invalidation_signals` を必須化）
-3. export可能性を明示分離する（`export_ready_v1` と `research_only`）
-4. 相場環境依存を前提化する（`regime` を全段で保持）
-5. 日次で回し、週次で選別し、月次で劣化監視する
+## 2. 설계 원칙
+1. 관찰과 전략 구현을 직결시키지 않는다 (추상화 레이어 필수)
+2. "설명 가능성"을 유지한다 (`thesis` / `invalidation_signals`를 필수화)
+3. export 가능성을 명시 분리한다 (`export_ready_v1`과 `research_only`)
+4. 시장 환경 의존을 전제화한다 (`regime`을 전 단계에서 유지)
+5. 일간으로 돌리고, 주간으로 선별하고, 월간으로 열화 모니터링한다
 
 ---
 
-## 3. システム全体像（4スキル分割）
+## 3. 시스템 전체상 (4스킬 분할)
 
 ```mermaid
 flowchart LR
-    A[edge-hint-extractor\n観察の構造化] --> B[edge-concept-synthesizer\n仮説の抽象化]
-    B --> C[edge-strategy-designer\n戦略ドラフト生成]
+    A[edge-hint-extractor\n관찰의 구조화] --> B[edge-concept-synthesizer\n가설의 추상화]
+    B --> C[edge-strategy-designer\n전략 드래프트 생성]
     C --> D[edge-candidate-agent\nexport/validate]
 
-    D --> E[(trade-strategy-pipeline\nPhase I以降)]
+    D --> E[(trade-strategy-pipeline\nPhase I 이후)]
 
-    A2[edge-candidate-agent\nauto_detectモード] --> B
+    A2[edge-candidate-agent\nauto_detect 모드] --> B
     A2 --> D
 ```
 
-- 主系（推奨）：`Hint -> Concept -> Draft -> Export/Validate`
-- 近道（補助）：`auto_detect_candidates.py` でチケットを自動生成し、概念化へ流す
+- 주계열(권장): `Hint -> Concept -> Draft -> Export/Validate`
+- 지름길(보조): `auto_detect_candidates.py`로 티켓을 자동 생성하여 개념화로 흘린다
 
 ---
 
-## 4. 各スキルの責務とI/O
+## 4. 각 스킬의 책무와 I/O
 
-| スキル | 主責務 | 主入力 | 主出力 |
+| 스킬 | 주 책무 | 주 입력 | 주 출력 |
 |---|---|---|---|
-| `edge-hint-extractor` | 観察データをヒント化 | `market_summary.json`, `anomalies.json`, `news_reactions.*`(任意) | `hints.yaml` |
-| `edge-concept-synthesizer` | チケット群を概念クラスタに抽象化 | `tickets/**/*.yaml`, `hints.yaml`(任意) | `edge_concepts.yaml` |
-| `edge-strategy-designer` | 概念を戦略ドラフトへ変換 | `edge_concepts.yaml` | `strategy_drafts/*.yaml`, `run_manifest.json`, `exportable_tickets/*.yaml`(任意) |
-| `edge-candidate-agent` | 検出/チケット化/export/契約検証 | `ohlcv.parquet`, `hints.yaml`(任意), `ticket.yaml` | `daily_report.md`, `tickets/*`, `strategies/<id>/strategy.yaml`, `metadata.json` |
+| `edge-hint-extractor` | 관찰 데이터를 힌트화 | `market_summary.json`, `anomalies.json`, `news_reactions.*`(임의) | `hints.yaml` |
+| `edge-concept-synthesizer` | 티켓군을 개념 클러스터로 추상화 | `tickets/**/*.yaml`, `hints.yaml`(임의) | `edge_concepts.yaml` |
+| `edge-strategy-designer` | 개념을 전략 드래프트로 변환 | `edge_concepts.yaml` | `strategy_drafts/*.yaml`, `run_manifest.json`, `exportable_tickets/*.yaml`(임의) |
+| `edge-candidate-agent` | 탐지/티켓화/export/계약 검증 | `ohlcv.parquet`, `hints.yaml`(임의), `ticket.yaml` | `daily_report.md`, `tickets/*`, `strategies/<id>/strategy.yaml`, `metadata.json` |
 
 ---
 
-## 5. データ契約（現行実装ベース）
+## 5. 데이터 계약 (현행 구현 기반)
 
-### 5.1 Hint 契約 (`hints.yaml`)
-必須最小は `hints: []`。各 hint は以下を推奨。
+### 5.1 Hint 계약 (`hints.yaml`)
+필수 최소는 `hints: []`. 각 hint는 아래를 권장.
 
 - `title`
 - `observation`
-- `preferred_entry_family`（任意、`pivot_breakout` / `gap_up_continuation`）
-- `symbols`（任意）
-- `regime_bias`（任意）
-- `mechanism_tag`（任意）
+- `preferred_entry_family` (임의, `pivot_breakout` / `gap_up_continuation`)
+- `symbols` (임의)
+- `regime_bias` (임의)
+- `mechanism_tag` (임의)
 
-### 5.2 Concept 契約 (`edge_concepts.yaml`)
-クラスタキーは実装上 `hypothesis_type x mechanism_tag x regime`。
+### 5.2 Concept 계약 (`edge_concepts.yaml`)
+클러스터 키는 구현상 `hypothesis_type x mechanism_tag x regime`.
 
-必須運用項目：
+필수 운용 항목:
 - `abstraction.thesis`
 - `abstraction.invalidation_signals`
 - `strategy_design.recommended_entry_family`
 - `strategy_design.export_ready_v1`
 
-### 5.3 Strategy Draft 契約 (`strategy_drafts/*.yaml`)
+### 5.3 Strategy Draft 계약 (`strategy_drafts/*.yaml`)
 - `variant`: `core` / `conservative` / `research_probe`
-- `entry_family`: exportable なら `pivot_breakout` or `gap_up_continuation`、非対応は `research_only`
-- `risk_profile`: `conservative|balanced|aggressive` を保持（トレーサビリティ用）
-- `validation_plan` を全draftに付与
+- `entry_family`: exportable이면 `pivot_breakout` or `gap_up_continuation`, 비대응은 `research_only`
+- `risk_profile`: `conservative|balanced|aggressive`를 유지 (추적 가능성용)
+- `validation_plan`을 전체 draft에 부여
 
-### 5.4 Export Ticket 契約（candidate-agent投入用）
-- 必須：`id`, `hypothesis_type`, `entry_family`
-- `entry_family` は v1で **2種類のみ**
+### 5.4 Export Ticket 계약 (candidate-agent 투입용)
+- 필수: `id`, `hypothesis_type`, `entry_family`
+- `entry_family`는 v1에서 **2종류만**
   - `pivot_breakout`
   - `gap_up_continuation`
 
-### 5.5 Pipeline IF v1 契約（strategy.yaml）
-`candidate_contract.py` に準拠。特に以下がゲート。
+### 5.5 Pipeline IF v1 계약 (strategy.yaml)
+`candidate_contract.py`에 준거. 특히 아래가 게이트.
 
 - required top keys: `id,name,universe,signals,risk,cost_model,validation,promotion_gates`
-- Phase I制約：
+- Phase I 제약:
   - `validation.method == full_sample`
-  - `validation.oos_ratio` は未設定 or `null`
-- エントリー別必須ブロック：
+  - `validation.oos_ratio`는 미설정 or `null`
+- 엔트리별 필수 블록:
   - `pivot_breakout -> vcp_detection`
   - `gap_up_continuation -> gap_up_detection`
 
 ---
 
-## 6. 処理フロー詳細
+## 6. 처리 플로우 상세
 
-### 6.1 Stage A: Hint Extraction（観察の構造化）
-実装：`skills/edge-hint-extractor/scripts/build_hints.py`
+### 6.1 Stage A: Hint Extraction (관찰의 구조화)
+구현: `skills/edge-hint-extractor/scripts/build_hints.py`
 
-入力ソース：
-- 市場サマリ（任意）
-- 異常検知（任意）
-- ニュース反応（任意）
-- LLM補助（任意、`--llm-ideas-cmd`）
+입력 소스:
+- 시장 서머리 (임의)
+- 이상 탐지 (임의)
+- 뉴스 반응 (임의)
+- LLM 보조 (임의, `--llm-ideas-cmd`)
 
-ロジック要点：
-- regime推定（`RiskOn/RiskOff/Neutral`）
-- anomaly/news をルールベースで hint 化
-- LLM hint を受け取り、スキーマ正規化
-- 重複排除して `max_total_hints` で制限
+로직 요점:
+- regime 추정 (`RiskOn/RiskOff/Neutral`)
+- anomaly/news를 룰 기반으로 hint화
+- LLM hint를 수신하여 스키마 정규화
+- 중복 제거 후 `max_total_hints`로 제한
 
-期待成果：
-- downstreamが再利用可能な観察コンテキストを毎日生成
+기대 성과:
+- downstream이 재사용 가능한 관찰 컨텍스트를 매일 생성
 
-### 6.2 Stage B: Concept Synthesis（仮説の抽象化）
-実装：`skills/edge-concept-synthesizer/scripts/synthesize_edge_concepts.py`
+### 6.2 Stage B: Concept Synthesis (가설의 추상화)
+구현: `skills/edge-concept-synthesizer/scripts/synthesize_edge_concepts.py`
 
-ロジック要点：
-- ticketをクラスタ化（`hypothesis_type/mechanism/regime`）
-- support統計作成（`ticket_count`, `avg_priority_score`, symbol分布）
-- `thesis` / `invalidation_signals` を明示
-- entry family分布から `recommended_entry_family` を決定
-- v1 export可否を `export_ready_v1` として明示
+로직 요점:
+- ticket을 클러스터화 (`hypothesis_type/mechanism/regime`)
+- support 통계 작성 (`ticket_count`, `avg_priority_score`, symbol 분포)
+- `thesis` / `invalidation_signals`를 명시
+- entry family 분포로부터 `recommended_entry_family`를 결정
+- v1 export 가부를 `export_ready_v1`로 명시
 
-期待成果：
-- 過学習を避けた「概念単位レビュー」の土台を作る
+기대 성과:
+- 과적합을 피한 "개념 단위 리뷰"의 토대를 구축
 
-### 6.3 Stage C: Strategy Design（戦略ネタ化）
-実装：`skills/edge-strategy-designer/scripts/design_strategy_drafts.py`
+### 6.3 Stage C: Strategy Design (전략 소재화)
+구현: `skills/edge-strategy-designer/scripts/design_strategy_drafts.py`
 
-ロジック要点：
-- exportable概念は `core + conservative` を生成
-- non-exportable概念は `research_probe` を生成
-- risk profileで `risk_per_trade`, `max_positions` を調整
-- 任意で `exportable_tickets/*.yaml` を吐く
+로직 요점:
+- exportable 개념은 `core + conservative`를 생성
+- non-exportable 개념은 `research_probe`를 생성
+- risk profile로 `risk_per_trade`, `max_positions`를 조정
+- 임의로 `exportable_tickets/*.yaml`을 출력
 
-期待成果：
-- 概念から検証可能な戦略ネタを複数案で供給
+기대 성과:
+- 개념으로부터 검증 가능한 전략 소재를 복수 안으로 공급
 
-### 6.4 Stage D: Candidate Agent（検出/輸出/検証）
-実装：
-- 検出: `auto_detect_candidates.py`
+### 6.4 Stage D: Candidate Agent (탐지/수출/검증)
+구현:
+- 탐지: `auto_detect_candidates.py`
 - export: `export_candidate.py`
 - validate: `validate_candidate.py`
 
-モード1: Auto-detect（観察起点）
-- OHLCVから特徴量作成・regime判定・anomaly検出
-- exportable候補（breakout/gap）と research-only候補（panic_reversal等）を分離出力
+모드 1: Auto-detect (관찰 기점)
+- OHLCV에서 특징량 생성/regime 판정/anomaly 탐지
+- exportable 후보(breakout/gap)와 research-only 후보(panic_reversal 등)를 분리 출력
 
-モード2: Export/Validate（設計起点）
-- `exportable_tickets` を `strategy.yaml + metadata.json` へ変換
-- `edge-finder-candidate/v1` 契約検証
-- 任意で `--pipeline-root` 連携し `uv run` でschema/stage検証
+모드 2: Export/Validate (설계 기점)
+- `exportable_tickets`를 `strategy.yaml + metadata.json`으로 변환
+- `edge-finder-candidate/v1` 계약 검증
+- 임의로 `--pipeline-root` 연계하여 `uv run`으로 schema/stage 검증
 
 ---
 
-## 7. 候補タイプの扱い方針（v1前提）
+## 7. 후보 유형의 취급 방침 (v1 전제)
 
-### 7.1 Export対象（即戦略化可）
+### 7.1 Export 대상 (즉시 전략화 가능)
 - `breakout` -> `pivot_breakout`
 - `earnings_drift` -> `gap_up_continuation`
 
-### 7.2 Research-only（概念資産として蓄積）
+### 7.2 Research-only (개념 자산으로 축적)
 - `panic_reversal`
 - `regime_shift`
 - `sector_x_stock`
@@ -193,12 +193,12 @@ flowchart LR
 - `news_reaction`
 - `futures_trigger`
 
-> 研究候補は捨てない。
-> `edge_concepts.yaml` と `strategy_drafts(research_probe)` で維持し、I/F拡張時に再昇格する。
+> 연구 후보는 버리지 않는다.
+> `edge_concepts.yaml`과 `strategy_drafts(research_probe)`로 유지하며, I/F 확장 시 재승격한다.
 
 ---
 
-## 8. 進級ゲート（運用品質）
+## 8. 승급 게이트 (운용 품질)
 
 ```mermaid
 flowchart TD
@@ -219,35 +219,35 @@ flowchart TD
     G4 -->|Fail| D
 ```
 
-### 8.1 Gate定義
+### 8.1 Gate 정의
 - Hint Gate
-  - 入力欠損や重複でヒント品質が劣化していない
+  - 입력 결손이나 중복으로 힌트 품질이 열화되지 않았음
 - Concept Gate
-  - `thesis` と `invalidation_signals` が明示
-  - supportが最低閾値以上（`--min-ticket-support`）
+  - `thesis`와 `invalidation_signals`가 명시
+  - support가 최저 임계값 이상 (`--min-ticket-support`)
 - Draft Gate
-  - `entry/exit/risk/validation_plan` が埋まっている
+  - `entry/exit/risk/validation_plan`이 채워져 있음
 - Interface Gate
-  - `validate_ticket_payload` と `validate_interface_contract` を通過
+  - `validate_ticket_payload`와 `validate_interface_contract`를 통과
 
 ---
 
-## 9. 日次オーケストレーション仕様
+## 9. 일간 오케스트레이션 사양
 
-### 9.1 標準フロー（推奨）
-1. `edge-candidate-agent` auto detectで `market_summary/anomalies/tickets` を更新
-2. `edge-hint-extractor` で `hints.yaml` を更新（ルール + 必要ならLLM）
-3. `edge-concept-synthesizer` で `edge_concepts.yaml` 作成
-4. `edge-strategy-designer` で `strategy_drafts` と `exportable_tickets` 作成
-5. `edge-candidate-agent` export/validateで手前ゲートを通す
+### 9.1 표준 플로우 (권장)
+1. `edge-candidate-agent` auto detect로 `market_summary/anomalies/tickets`를 갱신
+2. `edge-hint-extractor`로 `hints.yaml`을 갱신 (룰 + 필요 시 LLM)
+3. `edge-concept-synthesizer`로 `edge_concepts.yaml` 생성
+4. `edge-strategy-designer`로 `strategy_drafts`와 `exportable_tickets` 생성
+5. `edge-candidate-agent` export/validate로 전단 게이트를 통과시킨다
 
-注記（運用方針）：
-- 日次運用は **1パス**（hintsは概念化入力として使用）
-- 同日中に `auto_detect_candidates.py` を `--hints` で再実行しない
+주기 (운용 방침):
+- 일간 운용은 **1패스** (hints는 개념화 입력으로 사용)
+- 같은 날 내에 `auto_detect_candidates.py`를 `--hints`로 재실행하지 않는다
 
-### 9.2 代表コマンド
+### 9.2 대표 커맨드
 ```bash
-# 1-pass運用: detectorは先に1回のみ実行（hints反映のための再実行はしない）
+# 1-pass 운용: detector는 먼저 1회만 실행 (hints 반영을 위한 재실행은 하지 않는다)
 
 # 1) detector
 python3 skills/edge-candidate-agent/scripts/auto_detect_candidates.py \
@@ -286,45 +286,45 @@ python3 skills/edge-candidate-agent/scripts/validate_candidate.py \
 
 ---
 
-## 10. スコアリングと優先度運用
+## 10. 스코어링과 우선도 운용
 
-### 10.1 実装上の優先度
-- detectorは `priority_score`（0-100）で候補をランキング
-- hint一致でスコアを加点（symbol一致で強加点）
-- ATR過大はペナルティ
+### 10.1 구현상의 우선도
+- detector는 `priority_score`(0-100)로 후보를 랭킹
+- hint 일치로 스코어를 가점 (symbol 일치로 강가점)
+- ATR 과대는 페널티
 
-### 10.2 運用上の優先順位軸
-- `priority_score`（効果の強さ）
-- `support.ticket_count`（再現頻度）
-- `export_ready_v1`（即検証可能性）
-- `regime` との整合（現局面適合）
+### 10.2 운용상의 우선순위축
+- `priority_score` (효과의 강도)
+- `support.ticket_count` (재현 빈도)
+- `export_ready_v1` (즉시 검증 가능성)
+- `regime`과의 정합 (현 국면 적합)
 
 ---
 
-## 11. 週次・月次運用
+## 11. 주간/월간 운용
 
 ### 11.1 Weekly Review
-- `edge_concepts.yaml` 採択/保留/却下
-- `strategy_drafts` の上位案を検証キューへ
-- research-onlyテーマの再優先順位付け
+- `edge_concepts.yaml` 채택/보류/각하
+- `strategy_drafts`의 상위안을 검증 큐로
+- research-only 테마의 재우선순위 부여
 
 ### 11.2 Monthly Governance
-- export候補の通過率（Draft -> Interface）
-- 概念ごとの失効シグナル発火頻度
-- regime別の候補品質変化
+- export 후보의 통과율 (Draft -> Interface)
+- 개념별 실효 시그널 발화 빈도
+- regime별 후보 품질 변화
 
 ---
 
-## 12. エラー処理とフォールバック
-- optional入力不足は処理継続し、`skipped_modules` に記録
+## 12. 에러 처리와 폴백
+- optional 입력 부족은 처리를 계속하고, `skipped_modules`에 기록
   - `news_reaction(no_input)`
   - `futures_trigger(no_input)`
-- pipeline連携が無くても interface検証までは実行可能
-- LLM連携失敗時は rule-based hints のみで継続
+- pipeline 연계가 없어도 interface 검증까지는 실행 가능
+- LLM 연계 실패 시에는 rule-based hints만으로 계속
 
 ---
 
-## 13. ディレクトリ標準案
+## 13. 디렉토리 표준안
 
 ```text
 reports/
@@ -348,37 +348,37 @@ reports/
 
 ---
 
-## 14. KPI（運用健全性）
-1. 日次：`concept_count`, `draft_count`, `exportable_ticket_count`
-2. 週次：Concept採択率、Draft差し戻し率
-3. 月次：Interface Gate通過率、research-onlyの再昇格件数
-4. 補助：同一conceptの継続期間、失効シグナル発火回数
+## 14. KPI (운용 건전성)
+1. 일간: `concept_count`, `draft_count`, `exportable_ticket_count`
+2. 주간: Concept 채택률, Draft 반려율
+3. 월간: Interface Gate 통과율, research-only의 재승격 건수
+4. 보조: 동일 concept의 지속 기간, 실효 시그널 발화 횟수
 
 ---
 
-## 15. MVP（最小運用）
-1. detector + hints + concept + drafts の4段を日次で実行
-2. `min-ticket-support=2` でノイズ概念を抑制
-3. risk profileは `balanced` 固定から開始
-4. exportは `pivot_breakout` / `gap_up_continuation` のみ
-5. 週1で採択会議、月1で失効監視
+## 15. MVP (최소 운용)
+1. detector + hints + concept + drafts의 4단을 일간으로 실행
+2. `min-ticket-support=2`로 노이즈 개념을 억제
+3. risk profile은 `balanced` 고정으로 시작
+4. export는 `pivot_breakout` / `gap_up_continuation`만
+5. 주 1회 채택 회의, 월 1회 실효 모니터링
 
 ---
 
-## 16. 今後拡張（実装ロードマップ）
-- v2 I/Fで `panic_reversal`, `regime_shift`, `sector_x_stock` を段階的export対応
-- Concept段で regime分解統計（RiskOn/Neutral/RiskOff別支持率）を標準出力
-- Draft段で容量・流動性制約を定量化した validation_plan 自動強化
-- hint生成にニュース要約/イベント分類器を導入し観察品質を向上
+## 16. 향후 확장 (구현 로드맵)
+- v2 I/F로 `panic_reversal`, `regime_shift`, `sector_x_stock`를 단계적 export 대응
+- Concept 단에서 regime 분해 통계(RiskOn/Neutral/RiskOff별 지지율)를 표준 출력
+- Draft 단에서 용량/유동성 제약을 정량화한 validation_plan 자동 강화
+- hint 생성에 뉴스 요약/이벤트 분류기를 도입하여 관찰 품질을 향상
 
 ---
 
-## 付録A: 役割分担の要点
-- `edge-hint-extractor`: 観察のノイズを減らしてヒントに整形
-- `edge-concept-synthesizer`: チケットを概念資産に昇格
-- `edge-strategy-designer`: 概念を比較可能な戦略ネタへ展開
-- `edge-candidate-agent`: 自動検出とv1契約への出口管理
+## 부록 A: 역할 분담의 요점
+- `edge-hint-extractor`: 관찰의 노이즈를 줄여 힌트로 정형화
+- `edge-concept-synthesizer`: 티켓을 개념 자산으로 승격
+- `edge-strategy-designer`: 개념을 비교 가능한 전략 소재로 전개
+- `edge-candidate-agent`: 자동 탐지와 v1 계약으로의 출구 관리
 
-この4分割により、
-「思いつき」を直接strategy化するのではなく、
-**観察資産 -> 概念資産 -> 戦略資産** の順で制度化できる。
+이 4분할에 의해,
+"떠오른 아이디어"를 직접 strategy화하는 것이 아니라,
+**관찰 자산 -> 개념 자산 -> 전략 자산**의 순서로 제도화할 수 있다.

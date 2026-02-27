@@ -130,8 +130,8 @@ Historical calibration is imperfect. Each market environment is unique. The comp
 ## Pattern: Leading Stocks as Early Warning
 
 From the Monty article:
-> 弱気相場の初期段階では、特定の主導株が下降トレンドに抵抗するかのように強く、
-> 上昇できるという印象を与えます。
+> 약세장 초기 단계에서는 특정 주도주가 하락 트렌드에 저항하는 것처럼 강하게 보이며,
+> 여전히 상승할 수 있다는 인상을 줍니다.
 
 This pattern appeared in every historical top:
 - **2000:** Blue-chip tech (MSFT, INTC) held up while dot-coms crashed

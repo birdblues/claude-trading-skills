@@ -20,12 +20,12 @@ Unlike the Market Top Detector (API-based risk scorer), this skill uses free CSV
 - User needs exposure guidance based on breadth analysis
 - User references Monty's Uptrend Dashboard or uptrend ratios
 
-**Japanese:**
-- 「市場のブレドスは健全？」「上昇の裾野は広い？」
-- セクター別のアップトレンド比率を確認したい
-- 相場参加率・ブレドス状況を診断したい
-- ブレドス分析に基づくエクスポージャーガイダンスが欲しい
-- Montyのアップトレンドダッシュボードについて質問
+**Korean:**
+- "시장 브레드스는 건전한가?" "상승의 저변은 넓은가?"
+- 섹터별 업트렌드 비율을 확인하고 싶다
+- 시장 참가율·브레드스 상황을 진단하고 싶다
+- 브레드스 분석에 기반한 익스포저 가이던스가 필요하다
+- Monty의 업트렌드 대시보드에 대한 질문
 
 ## Difference from Market Top Detector
 

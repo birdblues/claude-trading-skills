@@ -23,13 +23,13 @@ Detect Follow-Through Day (FTD) signals that confirm a market bottom, using Will
 - User asks about increasing equity exposure after a correction
 - Market Top Detector shows elevated risk and user wants bottom signals
 
-**Japanese:**
-- 「底打ちした？」「買い戻して良い？」
-- 調整局面（3%以上の下落）からのエントリータイミング
-- フォロースルーデーやラリーアテンプトについて
-- 直近の反発が持続可能か評価したい
-- 調整後のエクスポージャー拡大の判断
-- Market Top Detectorが高リスク表示の後の底打ちシグナル確認
+**Korean:**
+- "바닥을 쳤나?" "다시 매수해도 되나?"
+- 조정 국면(3% 이상 하락)에서의 진입 타이밍
+- 팔로스루 데이나 랠리 어템프트에 대해
+- 최근 반등이 지속 가능한지 평가하고 싶다
+- 조정 후 익스포저 확대 판단
+- Market Top Detector가 고위험 표시 후 바닥 확인 시그널 확인
 
 ## Difference from Market Top Detector
 

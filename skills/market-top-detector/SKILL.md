@@ -25,13 +25,13 @@ Unlike the Bubble Detector (macro/multi-month evaluation), this skill focuses on
 - User asks about reducing equity exposure timing
 - User wants to assess correction probability for the next 2-8 weeks
 
-**Japanese:**
-- 「天井が近い？」「今は利確すべき？」
-- ディストリビューションデーの蓄積を懸念
-- ディフェンシブセクターがグロースをアウトパフォーム
-- 先導株が崩れ始めているが指数はまだ持ちこたえている
-- エクスポージャー縮小のタイミング判断
-- 今後2〜8週間の調整確率を評価したい
+**Korean:**
+- "천장이 가까운가?" "지금 수익 실현을 해야 하나?"
+- 디스트리뷰션 데이의 축적에 대한 우려
+- 디펜시브 섹터가 그로스를 아웃퍼폼
+- 선도주가 무너지기 시작했지만 지수는 아직 버티고 있다
+- 익스포저 축소 타이밍 판단
+- 향후 2~8주간의 조정 확률을 평가하고 싶다
 
 ## Difference from Bubble Detector
 
