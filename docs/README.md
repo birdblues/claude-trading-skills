@@ -47,11 +47,11 @@ When making significant improvements to a skill:
 
 ## Runbooks
 
-- **`kanchi-dividend-skills-runbook.md`** - 運用順序固定用の手順書
-  - 3スキルの実行順序 (`SOP -> 監視 -> 税務/口座配置`)
-  - 日次/週次/月次/四半期/年次の運用リズム
-  - スキル間の入力/出力受け渡し
-- **`edge-institutionalization-process.md`** - エッジのインスティチューション化手順
-  - `観察 -> 抽象化 -> 戦略化 -> パイプライン` の分業フロー
-  - 進級ステート（Hint/Ticket/Concept/Draft/Candidate/Live）
-  - Concept/Draft/Pipeline/Promotion のゲート基準
+- **`kanchi-dividend-skills-runbook.md`** - 운용 순서 고정용 절차서
+  - 3스킬의 실행 순서 (`SOP -> 모니터링 -> 세무/계좌 배치`)
+  - 일간/주간/월간/분기/연간 운용 리듬
+  - 스킬 간 입력/출력 인계
+- **`edge-institutionalization-process.md`** - 에지의 인스티튜셔널라이제이션 절차
+  - `관찰 -> 추상화 -> 전략화 -> 파이프라인`의 분업 플로우
+  - 승급 스테이트 (Hint/Ticket/Concept/Draft/Candidate/Live)
+  - Concept/Draft/Pipeline/Promotion의 게이트 기준

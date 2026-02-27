@@ -1,75 +1,75 @@
 # Kanchi Dividend Skills Runbook
 
-このドキュメントは、以下3スキルの実運用順序を固定するための手順書です。
+이 문서는 아래 3개 스킬의 실운용 순서를 고정하기 위한 절차서입니다.
 
 - `kanchi-dividend-sop`
 - `kanchi-dividend-review-monitor`
 - `kanchi-dividend-us-tax-accounting`
 
-## 結論
+## 결론
 
-開始点は `kanchi-dividend-sop` で正しいです。
-基本フローは `SOP -> 監視 -> 税務/口座配置` です。
+시작점은 `kanchi-dividend-sop`이 맞습니다.
+기본 플로우는 `SOP -> 모니터링 -> 세무/계좌 배치`입니다.
 
-## 標準フロー
+## 표준 플로우
 
-1. 銘柄選定と買い条件を作る
-使用スキル: `kanchi-dividend-sop`
-実行タイミング: 新規検討時、月次見直し時
-成果物:
-- Screening結果 (`PASS/HOLD-FOR-REVIEW/FAIL`)
-- 1ページ銘柄メモ
-- 指値分割プラン
+1. 종목 선정과 매수 조건을 만든다
+사용 스킬: `kanchi-dividend-sop`
+실행 타이밍: 신규 검토 시, 월간 재검토 시
+산출물:
+- Screening 결과 (`PASS/HOLD-FOR-REVIEW/FAIL`)
+- 1페이지 종목 메모
+- 지정가 분할 플랜
 
-2. 保有銘柄の異常検知を回す
-使用スキル: `kanchi-dividend-review-monitor`
-実行タイミング:
-- 日次: T1, T4
-- 週次: T3
-- 四半期: T2, T5
-成果物:
-- `OK/WARN/REVIEW` キュー
-- REVIEWチケット
+2. 보유 종목의 이상 탐지를 실행한다
+사용 스킬: `kanchi-dividend-review-monitor`
+실행 타이밍:
+- 일간: T1, T4
+- 주간: T3
+- 분기: T2, T5
+산출물:
+- `OK/WARN/REVIEW` 큐
+- REVIEW 티켓
 
-3. 税務区分と口座配置を最適化する
-使用スキル: `kanchi-dividend-us-tax-accounting`
-実行タイミング: 新規採用時、大きな入替時、年次点検時
-成果物:
-- 配当区分サマリー
-- 口座配置提案
-- 税務前提の未確定事項リスト
+3. 세무 구분과 계좌 배치를 최적화한다
+사용 스킬: `kanchi-dividend-us-tax-accounting`
+실행 타이밍: 신규 채용 시, 대규모 교체 시, 연간 점검 시
+산출물:
+- 배당 구분 서머리
+- 계좌 배치 제안
+- 세무 전제의 미확정 사항 리스트
 
-## 運用リズム
+## 운용 리듬
 
-- 日次: `kanchi-dividend-review-monitor` のT1/T4のみ確認
-- 週次: REVIEW/WARN銘柄の手動確認
-- 月次: `kanchi-dividend-sop` で候補更新と買い条件更新
-- 四半期: T2/T5再評価 + SOPメモ更新
-- 年次: `kanchi-dividend-us-tax-accounting` で税務メモ確定
+- 일간: `kanchi-dividend-review-monitor`의 T1/T4만 확인
+- 주간: REVIEW/WARN 종목의 수동 확인
+- 월간: `kanchi-dividend-sop`으로 후보 업데이트와 매수 조건 업데이트
+- 분기: T2/T5 재평가 + SOP 메모 업데이트
+- 연간: `kanchi-dividend-us-tax-accounting`으로 세무 메모 확정
 
-## スキル間の受け渡し
+## 스킬 간 인계
 
-1. `kanchi-dividend-sop` から `kanchi-dividend-review-monitor` へ
-引き継ぐもの:
-- 採用/保有ティッカー一覧
-- 配当安全性の基準値
-- 失効条件
+1. `kanchi-dividend-sop`에서 `kanchi-dividend-review-monitor`로
+인계 항목:
+- 채용/보유 티커 목록
+- 배당 안전성 기준값
+- 실효 조건
 
-2. `kanchi-dividend-review-monitor` から `kanchi-dividend-sop` へ
-引き継ぐもの:
-- `REVIEW` 判定理由
-- 前提崩壊の疑い
-- 再評価対象の優先順位
+2. `kanchi-dividend-review-monitor`에서 `kanchi-dividend-sop`으로
+인계 항목:
+- `REVIEW` 판정 사유
+- 전제 붕괴 의심
+- 재평가 대상 우선순위
 
-3. `kanchi-dividend-us-tax-accounting` から `kanchi-dividend-sop` へ
-引き継ぐもの:
-- 口座制約
-- 税務上の優先配置
-- 新規買い付け時の配置ルール
+3. `kanchi-dividend-us-tax-accounting`에서 `kanchi-dividend-sop`으로
+인계 항목:
+- 계좌 제약
+- 세무상 우선 배치
+- 신규 매수 시 배치 규칙
 
-## 最小実行例
+## 최소 실행 예시
 
-`kanchi-dividend-review-monitor` のルールエンジンは以下で実行できます。
+`kanchi-dividend-review-monitor`의 룰 엔진은 아래와 같이 실행할 수 있습니다.
 
 ```bash
 python3 skills/kanchi-dividend-review-monitor/scripts/build_review_queue.py \
@@ -78,4 +78,4 @@ python3 skills/kanchi-dividend-review-monitor/scripts/build_review_queue.py \
   --markdown /path/to/review_queue.md
 ```
 
-入力形式は `skills/kanchi-dividend-review-monitor/references/input-schema.md` を参照してください。
+입력 형식은 `skills/kanchi-dividend-review-monitor/references/input-schema.md`를 참조하십시오.

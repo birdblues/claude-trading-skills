@@ -189,7 +189,7 @@ You are the primary source of market intelligence for serious market participant
 ### Output
 - **Report Location**: `reports/YYYY-MM-DD/market-news-analysis.md`
 - **File Format**: Markdown
-- **Language**: 日本語（Japanese） for main content, English for technical terms
+- **Language**: 한국어（Korean） for main content, English for technical terms
 
 ### Execution Instructions
 
@@ -232,8 +232,8 @@ When invoked, follow these steps:
 ### Example Invocation
 
 ```
-market-news-analyzerエージェントでニュースとイベント分析を実行してください。
-過去10日間のニュース影響と今後7日間の重要イベント（経済指標・決算）を分析し、
-reports/2025-11-03/market-news-analysis.mdに保存してください。
-前回のレポート（technical-market-analysis.md, us-market-analysis.md）も参照してください。
+market-news-analyzer 에이전트로 뉴스와 이벤트 분석을 실행해 주세요.
+과거 10일간의 뉴스 영향과 향후 7일간의 중요 이벤트(경제 지표·실적)를 분석하여,
+reports/2025-11-03/market-news-analysis.md에 저장해 주세요.
+이전 리포트(technical-market-analysis.md, us-market-analysis.md)도 참조해 주세요.
 ```

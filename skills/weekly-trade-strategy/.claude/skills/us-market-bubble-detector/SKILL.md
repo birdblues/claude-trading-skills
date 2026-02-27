@@ -28,12 +28,12 @@ Use this skill when:
 - User mentions narratives like "this time is different" or "revolutionary technology" becoming mainstream
 - User consults about risk management for existing positions
 
-**Japanese:**
-- ユーザーが「今の相場はバブルか?」と尋ねる
-- 投資の利確・新規参入・空売りのタイミング判断を求める
-- 社会現象(非投資家の参入、メディア過熱、IPO氾濫)を観察し懸念を表明
-- 「今回は違う」「革命的技術」などの物語が主流化している状況を報告
-- 保有ポジションのリスク管理方法を相談
+**Korean:**
+- 사용자가 "지금 시장은 버블인가?"라고 묻는 경우
+- 투자의 익절·신규 진입·공매도의 타이밍 판단을 요청
+- 사회 현상(비투자자의 진입, 미디어 과열, IPO 범람)을 관찰하고 우려를 표명
+- "이번에는 다르다", "혁명적 기술" 등의 내러티브가 주류화되고 있는 상황을 보고
+- 보유 포지션의 리스크 관리 방법을 상담
 
 ---
 

@@ -8,19 +8,71 @@ This repository contains Claude Skills for equity investors and traders. Each sk
 
 ⚠️ **Important:** Some skills require paid API subscriptions (FMP API and/or FINVIZ Elite) to function. See the [API Key Management](#api-key-management) section for detailed requirements by skill.
 
+## Development Commands
+
+**Package manager:** `uv` (with `pyproject.toml`; scripts-only project, not an installable package)
+
+```bash
+# Install dependencies
+uv sync --extra dev
+
+# Lint and format
+uv run ruff check skills/ scripts/
+uv run ruff format skills/ scripts/
+uv run codespell --toml pyproject.toml skills/ scripts/
+
+# Run ALL tests (per-skill isolation — see Module Isolation below)
+bash scripts/run_all_tests.sh
+
+# Run a single skill's tests
+uv run --extra dev pytest skills/<skill-name>/scripts/tests/ -v
+
+# Run repo-level tests (orchestrator, etc.)
+uv run --extra dev pytest scripts/tests/ -v
+
+# Security scan
+uv run bandit -c pyproject.toml -r skills/ --exclude "*/tests/*"
+
+# Set up pre-commit and pre-push hooks
+pre-commit install && pre-commit install --hook-type pre-push
+```
+
+**Pre-commit hooks:** trailing-whitespace, end-of-file, YAML/TOML check, ruff lint+format, codespell, detect-secrets.
+**Pre-push hook:** runs `scripts/run_all_tests.sh` (all skill tests).
+
+### Module Isolation (Critical)
+
+Multiple skills have identically-named files (`scorer.py`, `calculators/`, `helpers.py`, `fmp_client.py`). Tests **must** run per-skill in separate pytest invocations to avoid import collisions. Never run `pytest` from the repo root across all skills at once — use `scripts/run_all_tests.sh` instead.
+
+Known test skip list (in `run_all_tests.sh`): `theme-detector` (27 pre-existing failures), `canslim-screener` (requires `bs4`, not in dev extras).
+
+### CI Pipeline (`.github/workflows/ci.yml`)
+
+Three parallel jobs on PR/push to `main`:
+1. **Lint** — ruff check, ruff format, codespell
+2. **Test** — per-skill pytest with coverage (Python 3.9), 40% coverage threshold
+3. **Security** — bandit SAST, detect-secrets baseline comparison
+
 ## Repository Architecture
 
 ### Skill Structure
 
-Each skill follows a standardized directory structure:
+All skills live under `skills/`. Each follows this structure:
 
 ```
-<skill-name>/
-├── SKILL.md              # Required: Skill definition with YAML frontmatter
+skills/<skill-name>/
+├── SKILL.md              # Required: YAML frontmatter (name, description) + workflow body
 ├── references/           # Knowledge bases loaded into Claude's context
-├── scripts/             # Executable Python scripts (not auto-loaded)
-└── assets/              # Templates and resources for output generation
+├── scripts/              # Executable Python scripts (not auto-loaded)
+│   ├── tests/            # Pytest tests for this skill
+│   └── calculators/      # Optional: modular scoring components
+└── assets/               # Templates and resources for output generation
 ```
+
+**Skill type categories:**
+1. **Knowledge-only** (no scripts): technical-analyst, sector-analyst, us-stock-analysis — just SKILL.md + references
+2. **Simple scripts** (1-3 files): earnings-calendar, economic-calendar-fetcher — FMP API wrappers
+3. **Complex modular** (calculators subdir): macro-regime-detector, earnings-trade-analyzer — multiple calculator modules + scorer + report_generator
 
 **SKILL.md Format:**
 - YAML frontmatter with `name` and `description` fields
@@ -73,8 +125,8 @@ The skill-creator will:
 
 **MANDATORY: After creating or committing a new skill, update both READMEs:**
 1. Add skill description to the appropriate category in `README.md` (English)
-2. Add skill description to the matching category in `README.ja.md` (Japanese)
-3. If the skill requires API keys, add it to the API Requirements table in `README.md` and the API要件 section in `README.ja.md`
+2. Add skill description to the matching category in `README.ko.md` (Korean)
+3. If the skill requires API keys, add it to the API Requirements table in `README.md` and the API 요구사항 section in `README.ko.md`
 4. If a new category is needed, create it in both files
 
 ### Packaging Skills for Distribution
@@ -120,26 +172,19 @@ If no test exists for the changed behavior, add one whenever practical.
 
 | Skill | FMP API | FINVIZ Elite | Alpaca | Notes |
 |-------|---------|--------------|--------|-------|
-| **Economic Calendar Fetcher** | ✅ Required | ❌ Not used | ❌ Not used | Fetches economic events from FMP |
-| **Earnings Calendar** | ✅ Required | ❌ Not used | ❌ Not used | Fetches earnings dates from FMP |
-| **Institutional Flow Tracker** | ✅ Required | ❌ Not used | ❌ Not used | 13F filings analysis; free tier sufficient |
-| **Value Dividend Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | FMP for analysis; FINVIZ reduces execution time by 70-80% |
-| **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | FMP for analysis; FINVIZ for RSI pre-screening |
-| **Pair Trade Screener** | ✅ Required | ❌ Not used | ❌ Not used | Statistical arbitrage analysis |
-| **Earnings Trade Analyzer** | ✅ Required | ❌ Not used | ❌ Not used | 5-factor earnings scoring; free tier sufficient |
-| **PEAD Screener** | ✅ Required | ❌ Not used | ❌ Not used | Weekly candle PEAD analysis; free tier sufficient |
-| **Options Strategy Advisor** | 🟡 Optional | ❌ Not used | ❌ Not used | FMP for stock data; Black-Scholes works without |
-| **Portfolio Manager** | ❌ Not used | ❌ Not used | ✅ Required | Real-time holdings via Alpaca MCP Server |
-| Sector Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
-| Technical Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
-| Breadth Chart Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
-| Market News Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Uses WebSearch/WebFetch |
-| US Stock Analysis | ❌ Not required | ❌ Not used | ❌ Not used | User provides data |
-| Backtest Expert | ❌ Not required | ❌ Not used | ❌ Not used | User provides strategy parameters |
-| US Market Bubble Detector | ❌ Not required | ❌ Not used | ❌ Not used | User provides indicators |
-| **Theme Detector** | 🟡 Optional | 🟡 Optional (Recommended) | ❌ Not used | FINVIZ for dynamic stocks; FMP for ETF holdings fallback |
-| **FinViz Screener** | ❌ Not required | 🟡 Optional | ❌ Not used | Public screener free; Elite auto-detected from env var |
-| Dual-Axis Skill Reviewer | ❌ Not required | ❌ Not used | ❌ Not used | Deterministic scoring + optional LLM review |
+| **Economic Calendar Fetcher** | ✅ Required | ❌ | ❌ | Fetches economic events |
+| **Earnings Calendar** | ✅ Required | ❌ | ❌ | Fetches earnings dates |
+| **Institutional Flow Tracker** | ✅ Required | ❌ | ❌ | 13F filings; free tier sufficient |
+| **Value Dividend Screener** | ✅ Required | 🟡 Optional | ❌ | FINVIZ reduces runtime 70-80% |
+| **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional | ❌ | FINVIZ for RSI pre-screening |
+| **Pair Trade Screener** | ✅ Required | ❌ | ❌ | Statistical arbitrage |
+| **Earnings Trade Analyzer** | ✅ Required | ❌ | ❌ | 5-factor scoring; free tier sufficient |
+| **PEAD Screener** | ✅ Required | ❌ | ❌ | Weekly candle PEAD; free tier sufficient |
+| **Options Strategy Advisor** | 🟡 Optional | ❌ | ❌ | Black-Scholes works without |
+| **Portfolio Manager** | ❌ | ❌ | ✅ Required | Real-time holdings via Alpaca MCP |
+| **Theme Detector** | 🟡 Optional | 🟡 Optional | ❌ | FINVIZ for dynamic stocks |
+| **FinViz Screener** | ❌ | 🟡 Optional | ❌ | Public screener free; Elite auto-detected |
+| Chart/News/Analysis skills | ❌ | ❌ | ❌ | Image-based or WebSearch; no API needed |
 
 #### API Key Setup
 
@@ -174,174 +219,26 @@ export ALPACA_PAPER="true"  # or "false" for live trading
 # See portfolio-manager/references/alpaca-mcp-setup.md for detailed setup guide
 ```
 
-#### API Pricing and Access
-
-**Financial Modeling Prep (FMP):**
-- **Free Tier:** 250 API calls/day (sufficient for occasional use)
-- **Starter Tier:** $29.99/month - 750 calls/day
-- **Professional Tier:** $79.99/month - 2,000 calls/day
-- **Sign up:** https://site.financialmodelingprep.com/developer/docs
-
-**FINVIZ Elite:**
-- **Elite Subscription:** $39.99/month or $329.99/year (~$27.50/month)
-- Provides advanced screeners, real-time data, and API access
-- **Sign up:** https://elite.finviz.com/
-- **Note:** FINVIZ Elite is optional for dividend screeners but reduces execution time from 10-15 minutes to 2-3 minutes
-
-**Alpaca Trading:**
-- **Paper Trading:** Free (simulated money, full API access)
-- **Live Trading:** Free brokerage account, no commissions on stocks/ETFs
-- **Sign up:** https://alpaca.markets/
-- **Required for:** Portfolio Manager skill
-- **Note:** Paper trading account recommended for testing MCP integration
-
-**Recommendations by Use Case:**
-- **Dividend Screening:** FMP free tier + FINVIZ Elite ($330/year) for optimal performance
-- **Budget Dividend Screening:** FMP free tier only (slower execution)
-- **Portfolio Management:** Alpaca paper account (free) for practice, live account for production
-- **Options Education:** FMP free tier sufficient; Options Strategy Advisor works with theoretical pricing alone
-
-#### API Script Pattern
-
-All API scripts follow this pattern:
-1. Check for environment variable first
-2. Fall back to command-line argument
-3. Provide clear error messages if key missing
-4. Support both methods for CLI, Desktop, and Web environments
-5. Handle rate limits gracefully with retry logic
+All API scripts follow a consistent pattern: check env var first → fall back to CLI arg → clear error if missing. See README.md for detailed pricing and sign-up links.
 
 ### Running Helper Scripts
 
-**Economic Calendar Fetcher:** ⚠️ Requires FMP API key
+All scripts support `--help` for full usage. Scripts live under `skills/<skill-name>/scripts/`. Common invocation pattern:
+
 ```bash
-# Default: next 7 days
-python3 economic-calendar-fetcher/scripts/get_economic_calendar.py --api-key YOUR_KEY
+# Run any skill script (always pass --output-dir reports/)
+python3 skills/<skill-name>/scripts/<script>.py --output-dir reports/
 
-# Specific date range (max 90 days)
-python3 economic-calendar-fetcher/scripts/get_economic_calendar.py \
-  --from 2025-11-01 --to 2025-11-30 \
-  --api-key YOUR_KEY \
-  --format json
-```
+# Example: earnings trade analyzer
+python3 skills/earnings-trade-analyzer/scripts/analyze_earnings_trades.py --output-dir reports/
 
-**Earnings Calendar:** ⚠️ Requires FMP API key
-```bash
-# Default: next 7 days, market cap > $2B
-python3 earnings-calendar/scripts/fetch_earnings_fmp.py --api-key YOUR_KEY
-
-# Custom date range
-python3 earnings-calendar/scripts/fetch_earnings_fmp.py \
-  --from 2025-11-01 --to 2025-11-07 \
-  --api-key YOUR_KEY
-```
-
-**Value Dividend Screener:** ⚠️ Requires FMP API key; FINVIZ Elite optional but recommended
-```bash
-# Two-stage screening (RECOMMENDED - 70-80% faster)
-python3 value-dividend-screener/scripts/screen_dividend_stocks.py --use-finviz
-
-# FMP-only screening (no FINVIZ required)
-python3 value-dividend-screener/scripts/screen_dividend_stocks.py
-
-# Custom parameters
-python3 value-dividend-screener/scripts/screen_dividend_stocks.py \
-  --use-finviz \
-  --top 50 \
-  --output custom_results.json
-```
-
-**Dividend Growth Pullback Screener:** ⚠️ Requires FMP API key; FINVIZ Elite optional but recommended
-```bash
-# Two-stage screening with RSI filter (RECOMMENDED)
-python3 dividend-growth-pullback-screener/scripts/screen_dividend_growth.py --use-finviz
-
-# FMP-only screening (limited to ~40 stocks due to API limits)
-python3 dividend-growth-pullback-screener/scripts/screen_dividend_growth.py --max-candidates 40
-
-# Custom RSI threshold and dividend growth requirements
-python3 dividend-growth-pullback-screener/scripts/screen_dividend_growth.py \
-  --use-finviz \
-  --rsi-threshold 35 \
-  --min-div-growth 15
-```
-
-**Pair Trade Screener:** ⚠️ Requires FMP API key
-```bash
-# Screen for pairs in specific sector
-python3 pair-trade-screener/scripts/find_pairs.py --sector Technology
-
-# Analyze specific pair
-python3 pair-trade-screener/scripts/analyze_spread.py AAPL MSFT
-
-# Custom cointegration parameters
-python3 pair-trade-screener/scripts/find_pairs.py \
-  --sector Financials \
-  --min-correlation 0.7 \
-  --lookback-days 365
-```
-
-**Earnings Trade Analyzer:** ⚠️ Requires FMP API key
-```bash
-# Default: 2-day lookback, top 20 results
-python3 skills/earnings-trade-analyzer/scripts/analyze_earnings_trades.py \
-  --output-dir reports/
-
-# Custom parameters with entry quality filter
-python3 skills/earnings-trade-analyzer/scripts/analyze_earnings_trades.py \
-  --lookback-days 3 --top 10 --max-api-calls 200 \
-  --apply-entry-filter --output-dir reports/
-```
-
-**PEAD Screener:** ⚠️ Requires FMP API key
-```bash
-# Mode A: FMP earnings calendar (standalone)
+# Example: PEAD screener (pipeline from analyzer output)
 python3 skills/pead-screener/scripts/screen_pead.py \
-  --lookback-days 14 --min-gap 3.0 --max-api-calls 200 \
-  --output-dir reports/
+  --candidates-json reports/earnings_trade_*.json --min-grade B --output-dir reports/
 
-# Mode B: Pipeline from earnings-trade-analyzer output
-python3 skills/pead-screener/scripts/screen_pead.py \
-  --candidates-json reports/earnings_trade_*.json \
-  --min-grade B --output-dir reports/
-```
-
-**Options Strategy Advisor:** 🟡 FMP API optional
-```bash
-# Calculate Black-Scholes price and Greeks
-python3 options-strategy-advisor/scripts/black_scholes.py \
-  --ticker AAPL \
-  --strike 150 \
-  --days-to-expiry 30 \
-  --option-type call
-
-# Analyze covered call strategy
-python3 options-strategy-advisor/scripts/black_scholes.py \
-  --ticker AAPL \
-  --strategy covered_call \
-  --stock-price 155
-```
-
-**Theme Detector:** 🟡 FINVIZ Elite optional; FMP optional
-```bash
-# Static mode (no API keys required)
-python3 skills/theme-detector/scripts/theme_detector.py --output-dir reports/
-
-# Dynamic stock selection (uses FINVIZ Public screener, no key needed)
-python3 skills/theme-detector/scripts/theme_detector.py \
-  --dynamic-stocks --output-dir reports/
-
-# With FINVIZ Elite (faster, more reliable)
-python3 skills/theme-detector/scripts/theme_detector.py \
-  --dynamic-stocks --finviz-api-key $FINVIZ_API_KEY --output-dir reports/
-```
-
-**Portfolio Manager:** ⚠️ Requires Alpaca MCP Server
-```bash
-# Test Alpaca connection
-python3 portfolio-manager/scripts/test_alpaca_connection.py
-
-# Portfolio analysis is done via Claude with Alpaca MCP tools
-# See portfolio-manager/references/alpaca-mcp-setup.md for setup
+# Example: skill reviewer
+uv run skills/dual-axis-skill-reviewer/scripts/run_dual_axis_review.py \
+  --project-root . --skill backtest-expert --output-dir reports/
 ```
 
 ### Skill Self-Improvement Loop
@@ -402,118 +299,19 @@ python3 -m pytest skills/dual-axis-skill-reviewer/scripts/tests/ -v
 python3 -m pytest scripts/tests/test_skill_improvement_loop.py -v
 ```
 
-## Skill Interaction Patterns
-
-### Chart Analysis Skills (Sector Analyst, Breadth Chart Analyst, Technical Analyst)
-
-These skills expect image inputs:
-- User provides chart screenshots
-- Skill analyzes visual patterns
-- Output includes scenario-based probability assessments
-- Analysis follows specific frameworks documented in `references/`
-
-**Workflow:**
-1. User uploads chart image
-2. Skill loads relevant reference framework
-3. Analysis generates structured markdown report
-4. Report saved to `reports/` directory
-
-### News Analysis Skills (Market News Analyst)
-
-This skill uses automated data collection:
-- Executes WebSearch/WebFetch queries to gather news
-- Focuses on past 10 days of market-moving events
-- Applies impact scoring framework: (Price Impact × Breadth) × Forward Significance
-- Ranks events by quantitative score
-
-**Key References:**
-- `trusted_news_sources.md`: Source credibility tiers
-- `market_event_patterns.md`: Historical reaction patterns
-- `geopolitical_commodity_correlations.md`: Event-commodity relationships
-
-### Calendar Skills (Economic Calendar Fetcher, Earnings Calendar)
-
-⚠️ **API Requirement:** These skills require FMP API key to function.
-
-These skills fetch future events via FMP API:
-- Execute Python scripts to call FMP API endpoints
-- Parse JSON responses
-- Generate chronological markdown reports
-- Include impact assessment (High/Medium/Low)
-- Free tier (250 calls/day) is sufficient for most users
-
-**Output Pattern:**
-```markdown
-# Economic Calendar
-**Period:** YYYY-MM-DD to YYYY-MM-DD
-**High Impact Events:** X
-
-## YYYY-MM-DD - Day of Week
-### Event Name (Impact Level)
-- Country: XX (Currency)
-- Time: HH:MM UTC
-- Previous: Value
-- Estimate: Value
-**Market Implications:** Analysis...
-```
-
 ## Multi-Skill Workflows
 
 Skills are designed to be combined for comprehensive analysis:
 
-**Daily Market Monitoring:**
-1. Economic Calendar Fetcher → Check today's events
-2. Earnings Calendar → Identify reporting companies
-3. Market News Analyst → Review overnight developments
-4. Breadth Chart Analyst → Assess market health
-
-**Weekly Strategy Review:**
-1. Sector Analyst → Identify rotation patterns
-2. Technical Analyst → Confirm trends
-3. Market Environment Analysis → Macro briefing
-4. US Market Bubble Detector → Risk assessment
-
-**Individual Stock Research:**
-1. US Stock Analysis → Fundamental/technical review
-2. Earnings Calendar → Check earnings dates
-3. Market News Analyst → Recent news
-4. Backtest Expert → Validate entry/exit strategy
-
-**Options Strategy Development:**
-1. Options Strategy Advisor → Simulate and compare strategies
-2. Technical Analyst → Identify optimal entry timing
-3. Earnings Calendar → Plan earnings-based strategies
-4. US Stock Analysis → Validate fundamental thesis
-
-**Portfolio Review & Rebalancing:**
-1. Portfolio Manager → Fetch holdings via Alpaca MCP
-2. Review asset allocation and risk metrics
-3. Market Environment Analysis → Assess macro conditions
-4. Execute rebalancing plan with buy/sell actions
-
-**Earnings Momentum Trading:**
-1. Earnings Trade Analyzer → Score recent earnings reactions (5-factor: gap, trend, volume, MA200, MA50)
-2. PEAD Screener (Mode B) → Feed analyzer output, screen for red candle pullback → breakout patterns
-3. Technical Analyst → Confirm weekly chart setups on SIGNAL_READY/BREAKOUT candidates
-4. Monitor BREAKOUT entries with stop-loss (red candle low) and 2R profit targets
-
-**Statistical Arbitrage:**
-1. Pair Trade Screener → Identify cointegrated pairs
-2. Technical Analyst → Confirm setups for both legs
-3. Monitor z-score signals and spread convergence
-4. Manage market-neutral positions
-
-**Income Portfolio Construction:**
-1. Value Dividend Screener → High-yield opportunities
-2. Dividend Growth Pullback Screener → Growth stocks at pullbacks
-3. US Stock Analysis → Deep-dive analysis
-4. Portfolio Manager → Monitor and rebalance holdings
-
-**Kanchi Dividend Workflow (US stocks):**
-1. kanchi-dividend-sop → Run Kanchi 5-step screening and pullback entry planning
-2. kanchi-dividend-review-monitor → Execute T1-T5 anomaly detection and review queueing
-3. kanchi-dividend-us-tax-accounting → Validate qualified/ordinary assumptions and account location
-4. Feed REVIEW findings back to kanchi-dividend-sop before any additional buys
+- **Daily Monitoring:** Economic Calendar → Earnings Calendar → Market News → Breadth Chart
+- **Weekly Review:** Sector Analyst → Technical Analyst → Market Environment → Bubble Detector
+- **Stock Research:** US Stock Analysis → Earnings Calendar → Market News → Backtest Expert
+- **Options Development:** Options Strategy Advisor → Technical Analyst → Earnings Calendar → US Stock Analysis
+- **Portfolio Review:** Portfolio Manager (Alpaca MCP) → Risk Metrics → Market Environment → Rebalance
+- **Earnings Momentum:** Earnings Trade Analyzer → PEAD Screener (Mode B) → Technical Analyst → Monitor breakouts
+- **Statistical Arbitrage:** Pair Trade Screener → Technical Analyst → Monitor z-score convergence
+- **Income Portfolio:** Value Dividend Screener → Dividend Growth Pullback → US Stock Analysis → Portfolio Manager
+- **Kanchi Dividend:** kanchi-dividend-sop → kanchi-dividend-review-monitor → kanchi-dividend-us-tax-accounting
 
 ## Important Conventions
 
@@ -541,40 +339,18 @@ All analysis outputs must:
 - Include specific trigger levels for actionable scenarios
 - Cite references to knowledge base sources
 
-### Error Handling in Scripts
-
-Scripts should:
-- Check for API keys before making requests
-- Validate date ranges and input parameters
-- Provide helpful error messages to stderr
-- Return proper exit codes (0 for success, 1 for errors)
-- Support retry logic with exponential backoff for rate limits
-
 ## Language Considerations
 
 - All SKILL.md files are in English
 - Analysis outputs are in English
 - Some reference materials (Stanley Druckenmiller Investment) include Japanese content
-- README files available in both English (README.md) and Japanese (README.ja.md)
-- User interactions may be in Japanese; analysis outputs remain in English
+- README files available in both English (README.md) and Korean (README.ko.md)
+- User interactions may be in Korean or Japanese; analysis outputs remain in English
 
 ## Distribution Workflow
 
-When skills are ready for distribution:
-
 1. Test skill thoroughly in Claude Code
-2. Package skill using skill-creator packaging script
-3. Move .skill file to `skill-packages/`
-4. Update README.md and README.ja.md with skill description
-   - **Important:** Clearly indicate if the skill requires API subscriptions (FMP, FINVIZ Elite)
-   - Include pricing information and sign-up links for required APIs
-   - Specify if APIs are required, optional, or not needed
-5. Commit changes with descriptive message
-
-ZIP packages allow Claude web app users to upload and use skills without cloning the repository.
-
-⚠️ **API Key Requirements in Distribution:**
-- When distributing skills that require API keys, clearly document the requirements in the skill's SKILL.md
-- Include setup instructions for both environment variables and command-line arguments
-- Provide links to API registration and pricing pages
-- Distinguish between required APIs (skill won't work without) and optional APIs (enhances performance)
+2. Package with skill-creator (see [Packaging Skills](#packaging-skills-for-distribution))
+3. Move `.skill` file to `skill-packages/`
+4. Update `README.md` and `README.ko.md` (include API requirements if applicable)
+5. Commit changes
