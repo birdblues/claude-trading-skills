@@ -270,6 +270,13 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - Supports sector-wide screening and custom pair analysis with statistical rigor (ADF tests, correlation analysis).
   - FMP API integration with JSON output for structured results and further analysis.
 
+- **FinViz Screener** (`finviz-screener`)
+  - Translates natural-language stock screening requests (Japanese/English) into FinViz screener filter codes and opens the results in Chrome.
+  - Supports 500+ filter codes across fundamentals (P/E, dividend, growth, margins), technicals (RSI, SMA, patterns), and descriptives (sector, market cap, country).
+  - Auto-detects FINVIZ Elite from `$FINVIZ_API_KEY` environment variable; falls back to public screener when not set.
+  - Includes 14 pre-built screening recipes (high dividend value, small-cap growth, oversold large-caps, breakout candidates, AI/theme investing, etc.).
+  - No API key required for basic use (public FinViz screener). FINVIZ Elite optional for enhanced features.
+
 ## Workflow Examples
 
 ### Daily Market Monitoring
@@ -432,6 +439,7 @@ Several skills require API keys for data access:
 | **Market Breadth Analyzer** | ❌ Not used | ❌ Not used | ❌ Not used | Uses free GitHub CSV data |
 | **Uptrend Analyzer** | ❌ Not used | ❌ Not used | ❌ Not used | Uses free GitHub CSV data |
 | **Theme Detector** | 🟡 Optional | 🟡 Optional | ❌ Not used | Core: FINVIZ public + yfinance (free). FMP for ETF holdings, FINVIZ Elite for stock lists |
+| **FinViz Screener** | ❌ Not used | 🟡 Optional | ❌ Not used | Public screener free; FINVIZ Elite auto-detected from `$FINVIZ_API_KEY` |
 | **Edge Candidate Agent** | ❌ Not used | ❌ Not used | ❌ Not used | Local YAML generation; validates against local pipeline repo |
 | Dual-Axis Skill Reviewer | ❌ Not used | ❌ Not used | ❌ Not used | Deterministic scoring + optional LLM review |
 

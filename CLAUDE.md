@@ -138,6 +138,7 @@ If no test exists for the changed behavior, add one whenever practical.
 | Backtest Expert | ❌ Not required | ❌ Not used | ❌ Not used | User provides strategy parameters |
 | US Market Bubble Detector | ❌ Not required | ❌ Not used | ❌ Not used | User provides indicators |
 | **Theme Detector** | 🟡 Optional | 🟡 Optional (Recommended) | ❌ Not used | FINVIZ for dynamic stocks; FMP for ETF holdings fallback |
+| **FinViz Screener** | ❌ Not required | 🟡 Optional | ❌ Not used | Public screener free; Elite auto-detected from env var |
 | Dual-Axis Skill Reviewer | ❌ Not required | ❌ Not used | ❌ Not used | Deterministic scoring + optional LLM review |
 
 #### API Key Setup
