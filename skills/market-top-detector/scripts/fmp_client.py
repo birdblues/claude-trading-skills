@@ -2,7 +2,7 @@
 """
 FMP API Client for Market Top Detector
 
-Provides rate-limited access to Financial Modeling Prep API endpoints
+Provides rate-limited access to Financial Modeling Prep stable API endpoints
 for market top detection analysis.
 
 Features:
@@ -15,6 +15,7 @@ Features:
 import os
 import sys
 import time
+from datetime import datetime, timedelta
 from typing import Optional
 
 try:
@@ -25,9 +26,9 @@ except ImportError:
 
 
 class FMPClient:
-    """Client for Financial Modeling Prep API with rate limiting and caching"""
+    """Client for Financial Modeling Prep stable API with rate limiting and caching"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
+    STABLE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_DELAY = 0.3  # 300ms between requests
 
     def __init__(self, api_key: Optional[str] = None):
@@ -86,35 +87,38 @@ class FMPClient:
             return None
 
     def get_quote(self, symbols: str) -> Optional[list[dict]]:
-        """Fetch real-time quote data for one or more symbols (comma-separated)"""
+        """Fetch real-time quote data for one or more symbols via stable endpoint"""
         cache_key = f"quote_{symbols}"
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/quote/{symbols}"
-        data = self._rate_limited_get(url)
+        url = f"{self.STABLE_URL}/quote"
+        data = self._rate_limited_get(url, params={"symbol": symbols})
         if data:
             self.cache[cache_key] = data
         return data
 
     def get_historical_prices(self, symbol: str, days: int = 365) -> Optional[dict]:
-        """Fetch historical daily OHLCV data"""
+        """Fetch historical daily OHLCV data via stable endpoint"""
         cache_key = f"prices_{symbol}_{days}"
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/historical-price-full/{symbol}"
-        params = {"timeseries": days}
+        from_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        url = f"{self.STABLE_URL}/historical-price-eod/full"
+        params = {"symbol": symbol, "from": from_date}
         data = self._rate_limited_get(url, params)
+        if data and isinstance(data, list):
+            data = {"symbol": symbol, "historical": data}
         if data:
             self.cache[cache_key] = data
         return data
 
     def get_batch_quotes(self, symbols: list[str]) -> dict[str, dict]:
-        """Fetch quotes for a list of symbols, batching up to 5 per request"""
+        """Fetch quotes for a list of symbols via stable endpoint (one per request)"""
         results = {}
-        # FMP supports comma-separated symbols in quote endpoint
-        batch_size = 5
+        # Stable API doesn't support multi-symbol on all plans
+        batch_size = 1
         for i in range(0, len(symbols), batch_size):
             batch = symbols[i : i + batch_size]
             batch_str = ",".join(batch)

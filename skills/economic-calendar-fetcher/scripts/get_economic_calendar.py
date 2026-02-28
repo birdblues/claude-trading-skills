@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-Economic Calendar Fetcher using FMP API
-Retrieves economic events and data releases for specified date range
+Economic Calendar Fetcher using FMP API (Stable endpoint)
+
+Retrieves economic events and data releases for specified date range.
+Uses the /stable/economic-calendar endpoint (the legacy /api/v3/economic_calendar
+was retired for non-legacy subscriptions after August 31, 2025).
 """
 
 import argparse
@@ -30,7 +33,10 @@ def get_api_key() -> Optional[str]:
 
 def fetch_economic_calendar(from_date: str, to_date: str, api_key: str) -> list[dict]:
     """
-    Fetch economic calendar data from FMP API.
+    Fetch economic calendar data from FMP stable API.
+
+    Uses the /stable/economic-calendar endpoint. The legacy /api/v3/economic_calendar
+    was retired for non-legacy subscriptions after August 31, 2025.
 
     Args:
         from_date: Start date in YYYY-MM-DD format
@@ -44,21 +50,29 @@ def fetch_economic_calendar(from_date: str, to_date: str, api_key: str) -> list[
         urllib.error.HTTPError: If API request fails
         ValueError: If response is invalid
     """
-    base_url = "https://financialmodelingprep.com/api/v3/economic_calendar"
+    stable_url = "https://financialmodelingprep.com/stable/economic-calendar"
 
-    # Build query parameters
     params = {"from": from_date, "to": to_date, "apikey": api_key}
-
-    # Construct URL with parameters
-    url = f"{base_url}?{urllib.parse.urlencode(params)}"
+    url = f"{stable_url}?{urllib.parse.urlencode(params)}"
 
     try:
-        # Make API request
         with urllib.request.urlopen(url) as response:
             if response.status != 200:
                 raise ValueError(f"API returned status code {response.status}")
 
-            data = json.loads(response.read().decode("utf-8"))
+            body = response.read().decode("utf-8")
+
+            # The stable endpoint may return a plain-text error on 200
+            if body.startswith("Restricted Endpoint"):
+                raise ValueError(
+                    "FMP subscription does not include the economic-calendar endpoint. "
+                    "Visit https://site.financialmodelingprep.com/pricing-plans to upgrade."
+                )
+
+            data = json.loads(body)
+
+            if isinstance(data, dict) and "Error Message" in data:
+                raise ValueError(f"FMP API error: {data['Error Message']}")
 
             if not isinstance(data, list):
                 raise ValueError(f"Unexpected API response format: {type(data)}")

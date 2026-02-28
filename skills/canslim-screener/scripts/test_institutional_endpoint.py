@@ -31,8 +31,8 @@ def test_institutional_endpoint():
 
     # Test institutional-holder endpoint
     test_symbol = "AAPL"
-    url = f"https://financialmodelingprep.com/api/v3/institutional-holder/{test_symbol}"
-    params = {"apikey": api_key}
+    url = "https://financialmodelingprep.com/stable/institutional-holder"
+    params = {"apikey": api_key, "symbol": test_symbol}
 
     try:
         response = requests.get(url, params=params, timeout=10)

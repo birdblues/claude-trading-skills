@@ -15,6 +15,7 @@ Features:
 import os
 import sys
 import time
+from datetime import datetime, timedelta
 from typing import Optional
 
 try:
@@ -27,7 +28,7 @@ except ImportError:
 class FMPClient:
     """Client for Financial Modeling Prep API with rate limiting and caching"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
+    STABLE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_DELAY = 0.3  # 300ms between requests (200 requests/minute max)
 
     def __init__(self, api_key: Optional[str] = None):
@@ -133,8 +134,8 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/income-statement/{symbol}"
-        params = {"period": period, "limit": limit}
+        url = f"{self.STABLE_URL}/income-statement"
+        params = {"symbol": symbol, "period": period, "limit": limit}
 
         data = self._rate_limited_get(url, params)
 
@@ -165,9 +166,9 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/quote/{symbols}"
+        url = f"{self.STABLE_URL}/quote"
 
-        data = self._rate_limited_get(url)
+        data = self._rate_limited_get(url, params={"symbol": symbols})
 
         if data:
             self.cache[cache_key] = data
@@ -195,12 +196,15 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/historical-price-full/{symbol}"
-        params = {"timeseries": days}
+        from_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        url = f"{self.STABLE_URL}/historical-price-eod/full"
+        params = {"symbol": symbol, "from": from_date}
 
         data = self._rate_limited_get(url, params)
 
         if data:
+            if data and isinstance(data, list):
+                data = {"symbol": symbol, "historical": data}
             self.cache[cache_key] = data
 
         return data
@@ -224,9 +228,9 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/profile/{symbol}"
+        url = f"{self.STABLE_URL}/profile"
 
-        data = self._rate_limited_get(url)
+        data = self._rate_limited_get(url, params={"symbol": symbol})
 
         if data:
             self.cache[cache_key] = data
@@ -261,9 +265,9 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/institutional-holder/{symbol}"
+        url = f"{self.STABLE_URL}/institutional-holder"
 
-        data = self._rate_limited_get(url)
+        data = self._rate_limited_get(url, params={"symbol": symbol})
 
         if data:
             self.cache[cache_key] = data

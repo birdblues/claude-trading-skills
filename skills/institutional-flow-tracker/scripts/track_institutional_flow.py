@@ -49,7 +49,7 @@ class InstitutionalFlowTracker:
 
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = "https://financialmodelingprep.com/api/v3"
+        self.base_url = "https://financialmodelingprep.com/stable"
 
     def get_stock_screener(self, market_cap_min: int = 1000000000, limit: int = 100) -> list[dict]:
         """Get list of stocks meeting market cap criteria"""
@@ -66,8 +66,8 @@ class InstitutionalFlowTracker:
 
     def get_institutional_holders(self, symbol: str) -> list[dict]:
         """Get institutional holders for a specific stock"""
-        url = f"{self.base_url}/institutional-holder/{symbol}"
-        params = {"apikey": self.api_key}
+        url = f"{self.base_url}/institutional-holder"
+        params = {"apikey": self.api_key, "symbol": symbol}
 
         try:
             response = requests.get(url, params=params, timeout=30)

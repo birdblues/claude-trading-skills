@@ -36,7 +36,7 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# FMP endpoint definitions (R2-1: callable URL builders for stable/v3)
+# FMP endpoint definitions (R2-1: callable URL builders for stable API)
 # ---------------------------------------------------------------------------
 
 
@@ -46,30 +46,18 @@ def _stable_quote_url(base: str, symbols_str: str, params: dict) -> tuple[str, d
     return base, params
 
 
-def _v3_quote_url(base: str, symbols_str: str, params: dict) -> tuple[str, dict]:
-    """api/v3/quote/A,B?apikey=..."""
-    return f"{base}/{symbols_str}", params
-
-
 def _stable_hist_url(base: str, symbols_str: str, params: dict) -> tuple[str, dict]:
-    """stable/historical-price-full?symbol=A,B&..."""
+    """stable/historical-price-eod/full?symbol=A,B&..."""
     params["symbol"] = symbols_str
     return base, params
-
-
-def _v3_hist_url(base: str, symbols_str: str, params: dict) -> tuple[str, dict]:
-    """api/v3/historical-price-full/A,B?..."""
-    return f"{base}/{symbols_str}", params
 
 
 _FMP_ENDPOINTS = {
     "quote": [
         ("https://financialmodelingprep.com/stable/quote", _stable_quote_url),
-        ("https://financialmodelingprep.com/api/v3/quote", _v3_quote_url),
     ],
     "historical": [
-        ("https://financialmodelingprep.com/stable/historical-price-full", _stable_hist_url),
-        ("https://financialmodelingprep.com/api/v3/historical-price-full", _v3_hist_url),
+        ("https://financialmodelingprep.com/stable/historical-price-eod/full", _stable_hist_url),
     ],
 }
 
@@ -131,7 +119,7 @@ class ETFScanner:
     def _fmp_request(
         self, endpoint_key: str, symbols_str: str, extra_params: Optional[dict] = None
     ) -> Optional[Any]:
-        """Try each endpoint (stable -> v3) with correct URL format.
+        """Try stable endpoint with correct URL format.
 
         Args:
             endpoint_key: "quote" or "historical"
@@ -139,7 +127,7 @@ class ETFScanner:
             extra_params: e.g. {"timeseries": 20}
 
         Returns:
-            Parsed JSON or None on all failures.
+            Parsed JSON or None on failure.
         """
         if not HAS_REQUESTS or not self._fmp_api_key:
             return None
