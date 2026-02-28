@@ -29,7 +29,7 @@ import requests
 class FMPEarningsCalendar:
     """FMP Earnings Calendar API client"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
+    STABLE_URL = "https://financialmodelingprep.com/stable"
     MIN_MARKET_CAP = 2_000_000_000  # $2B
     US_EXCHANGES = ["NYSE", "NASDAQ", "AMEX", "NYSEArca", "BATS", "NMS", "NGM", "NCM"]
 
@@ -55,7 +55,7 @@ class FMPEarningsCalendar:
         Returns:
             List of earnings announcements or None on error
         """
-        url = f"{self.BASE_URL}/earning_calendar"
+        url = f"{self.STABLE_URL}/earnings-calendar"
         params = {"apikey": self.api_key, "from": start_date, "to": end_date}
 
         try:
@@ -99,7 +99,7 @@ class FMPEarningsCalendar:
 
     def fetch_company_profiles(self, symbols: list[str]) -> dict[str, dict]:
         """
-        Fetch company profiles for multiple symbols (batch)
+        Fetch company profiles for multiple symbols
 
         Args:
             symbols: List of ticker symbols
@@ -108,7 +108,7 @@ class FMPEarningsCalendar:
             Dictionary mapping symbol to profile data
         """
         profiles = {}
-        batch_size = 100  # FMP allows batch requests
+        batch_size = 1  # Stable API: one symbol per request for broad plan compatibility
 
         print(f"✓ Fetching profiles for {len(symbols)} companies...", file=sys.stderr)
 
@@ -116,8 +116,8 @@ class FMPEarningsCalendar:
             batch = symbols[i : i + batch_size]
             symbols_str = ",".join(batch)
 
-            url = f"{self.BASE_URL}/profile/{symbols_str}"
-            params = {"apikey": self.api_key}
+            url = f"{self.STABLE_URL}/profile"
+            params = {"apikey": self.api_key, "symbol": symbols_str}
 
             try:
                 response = requests.get(url, params=params, timeout=30)

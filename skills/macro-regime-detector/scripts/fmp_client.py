@@ -38,7 +38,6 @@ except ImportError:
 class FMPClient:
     """Client for Financial Modeling Prep API with rate limiting and caching"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
     STABLE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_DELAY = 0.3  # 300ms between requests
 

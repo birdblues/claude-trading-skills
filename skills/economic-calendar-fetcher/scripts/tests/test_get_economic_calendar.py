@@ -11,6 +11,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from get_economic_calendar import (
+    fetch_economic_calendar,
     format_event_output,
     get_api_key,
     validate_date_range,
@@ -158,3 +159,74 @@ class TestFormatEventOutput:
     def test_unknown_format_raises(self):
         with pytest.raises(ValueError, match="Unknown output format"):
             format_event_output([], "csv")
+
+
+# ---------------------------------------------------------------------------
+# fetch_economic_calendar tests
+# ---------------------------------------------------------------------------
+
+
+class TestFetchEconomicCalendar:
+    def test_uses_stable_endpoint(self, monkeypatch):
+        """Verify the function calls the stable endpoint, not legacy v3."""
+        captured_urls = []
+
+        def fake_urlopen(url, *args, **kwargs):
+            captured_urls.append(url)
+            raise urllib.error.URLError("mocked")
+
+        import urllib.request
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+
+        with pytest.raises(ValueError, match="Network error"):
+            fetch_economic_calendar("2026-01-01", "2026-01-07", "FAKE_KEY")
+
+        assert len(captured_urls) == 1
+        assert "/stable/economic-calendar" in captured_urls[0]
+        assert "/api/v3/" not in captured_urls[0]
+
+    def test_restricted_endpoint_error(self, monkeypatch):
+        """Verify Restricted Endpoint plain-text error is caught."""
+        import urllib.request
+
+        class FakeResponse:
+            status = 200
+
+            def read(self):
+                return b"Restricted Endpoint: This endpoint is not available"
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda url, *a, **kw: FakeResponse())
+
+        with pytest.raises(ValueError, match="subscription does not include"):
+            fetch_economic_calendar("2026-01-01", "2026-01-07", "FAKE_KEY")
+
+    def test_api_error_message_in_json(self, monkeypatch):
+        """Verify JSON error messages from FMP are caught."""
+        import json
+        import urllib.request
+
+        error_body = json.dumps({"Error Message": "Invalid API KEY"}).encode()
+
+        class FakeResponse:
+            status = 200
+
+            def read(self):
+                return error_body
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        monkeypatch.setattr(urllib.request, "urlopen", lambda url, *a, **kw: FakeResponse())
+
+        with pytest.raises(ValueError, match="Invalid API KEY"):
+            fetch_economic_calendar("2026-01-01", "2026-01-07", "FAKE_KEY")
