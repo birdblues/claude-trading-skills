@@ -18,14 +18,39 @@ Collect latest market data using web_search tool:
 5. VIX index (Fear gauge)
 6. Market trading status (open/close/current values)
 
-### 2. Market Environment Assessment
+### 2. Data Verification
+
+Before proceeding to analysis, verify collected data through these mandatory checks:
+
+#### Source Verification
+- For key metrics (VIX, Treasury yields, major indices), use WebFetch on
+  the original source page (FRED, Yahoo Finance, etc.) to confirm exact values.
+  Do NOT rely solely on WebSearch summary text — summaries can return
+  stale or incorrect figures.
+
+#### Cross-Consistency Check
+- Verify that individual data points are consistent with each other and with the
+  overall market narrative:
+  - If market is selling off sharply → VIX should be elevated (typically 20+), not low
+  - If inflation data is hot → Treasury yields should be rising, not falling
+  - If USD is strengthening → Gold typically faces headwinds (unless fear-driven)
+  - If risk-off environment → safe havens (Gold, JPY, Treasuries) should be bid
+- If a data point contradicts the broader context, re-verify from the source before
+  using it. Never rationalize contradictory data with a narrative — fix the data first.
+
+#### Date Freshness
+- Confirm that each data point's date matches the intended analysis date.
+  WebSearch may mix values from different dates without clear attribution.
+- For weekend/holiday analysis, explicitly state "as of [last trading date]."
+
+### 3. Market Environment Assessment
 Evaluate the following from collected data:
 - **Trend Direction**: Uptrend/Downtrend/Range-bound
 - **Risk Sentiment**: Risk-on/Risk-off
 - **Volatility Status**: Market anxiety level from VIX
 - **Sector Rotation**: Where capital is flowing
 
-### 3. Report Structure
+### 4. Report Structure
 
 #### Standard Report Format:
 ```
@@ -116,12 +141,20 @@ Categorize by importance:
 3. Broker reports
 4. Analyst consensus estimates
 
+**Verification rule:** For VIX, Treasury yields, and index closes — always
+confirm via WebFetch on at least one primary source (FRED, Yahoo Finance,
+or the exchange's official page). WebSearch summaries alone are insufficient
+for precise numerical data.
+
 ## Troubleshooting
 
 ### Data Collection Notes
 - Check market holidays (holiday calendars)
 - Be aware of daylight saving time changes
 - Distinguish between flash and final data
+- Never rationalize data that contradicts the market context. If VIX seems
+  too low for a sell-off, or yields seem wrong for an inflation shock,
+  the data is likely stale or incorrect — re-verify before writing.
 
 ### Market Volatility Response
 1. First organize the facts
