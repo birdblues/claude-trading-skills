@@ -11,11 +11,13 @@ Features:
 - Session caching for duplicate requests
 - Batch historical data support
 - Treasury rates endpoint support
+- yfinance fallback for ETFs unsupported by FMP Starter plans
 """
 
 import os
 import sys
 import time
+from datetime import datetime, timedelta
 from typing import Optional
 
 try:
@@ -23,6 +25,14 @@ try:
 except ImportError:
     print("ERROR: requests library not found. Install with: pip install requests", file=sys.stderr)
     sys.exit(1)
+
+try:
+    import yfinance as yf
+
+    HAS_YFINANCE = True
+except ImportError:
+    yf = None  # type: ignore[assignment]
+    HAS_YFINANCE = False
 
 
 class FMPClient:
@@ -46,6 +56,7 @@ class FMPClient:
         self.retry_count = 0
         self.max_retries = 1
         self.api_calls_made = 0
+        self.yf_fallback_count = 0
 
     def _rate_limited_get(self, url: str, params: Optional[dict] = None) -> Optional[dict]:
         if self.rate_limit_reached:
@@ -87,18 +98,92 @@ class FMPClient:
             print(f"ERROR: Request exception: {e}", file=sys.stderr)
             return None
 
+    def _fetch_via_yfinance(self, symbol: str, days: int) -> Optional[list[dict]]:
+        """Fetch historical data via yfinance as fallback.
+
+        Converts yfinance DataFrame to FMP-compatible list-of-dicts format.
+        Handles both single-level and multi-level column DataFrames.
+
+        Returns:
+            List of dicts sorted most-recent-first, or None on failure.
+        """
+        if not HAS_YFINANCE or yf is None:
+            return None
+
+        try:
+            import pandas as pd
+
+            df = yf.download(symbol, period=f"{days}d", auto_adjust=False, progress=False)
+
+            if df is None or df.empty:
+                return None
+
+            # Handle MultiIndex columns (yfinance 0.2.31+ default)
+            if isinstance(df.columns, pd.MultiIndex):
+                df = df.droplevel(level=1, axis=1)
+
+            # Map yfinance columns to FMP-compatible keys
+            records = []
+            for idx, row in df.iterrows():
+                records.append(
+                    {
+                        "date": idx.strftime("%Y-%m-%d"),
+                        "open": float(row["Open"]),
+                        "high": float(row["High"]),
+                        "low": float(row["Low"]),
+                        "close": float(row["Close"]),
+                        "adjClose": float(row["Adj Close"]),
+                        "volume": int(row["Volume"]),
+                    }
+                )
+
+            # Sort most-recent-first (FMP convention)
+            records.sort(key=lambda x: x["date"], reverse=True)
+            return records
+        except Exception as e:
+            print(f"WARNING: yfinance fallback failed for {symbol}: {e}", file=sys.stderr)
+            return None
+
     def get_historical_prices(self, symbol: str, days: int = 600) -> Optional[dict]:
-        """Fetch historical daily OHLCV data"""
+        """Fetch historical daily OHLCV data using stable endpoint.
+
+        Uses /stable/historical-price-eod/full (the legacy /api/v3/historical-price-full
+        endpoint was deprecated for subscriptions after August 31, 2025).
+
+        Falls back to yfinance when FMP returns no data (e.g., 402 Premium
+        errors for ETFs on Starter plans).
+
+        Returns data wrapped in {"symbol": ..., "historical": [...]} format
+        for backward compatibility with existing calculators.
+        """
         cache_key = f"prices_{symbol}_{days}"
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/historical-price-full/{symbol}"
-        params = {"timeseries": days}
+        from_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+        url = f"{self.STABLE_URL}/historical-price-eod/full"
+        params = {"symbol": symbol, "from": from_date}
         data = self._rate_limited_get(url, params)
-        if data:
-            self.cache[cache_key] = data
-        return data
+        if data and isinstance(data, list):
+            # Wrap in legacy format for backward compatibility
+            wrapped = {"symbol": symbol, "historical": data}
+            self.cache[cache_key] = wrapped
+            return wrapped
+
+        # FMP failed — try yfinance fallback
+        if HAS_YFINANCE:
+            print(
+                f"FMP unavailable for {symbol}, using yfinance fallback...",
+                file=sys.stderr,
+            )
+            yf_data = self._fetch_via_yfinance(symbol, days)
+            if yf_data:
+                self.yf_fallback_count += 1
+                wrapped = {"symbol": symbol, "historical": yf_data}
+                self.cache[cache_key] = wrapped
+                return wrapped
+
+        return None
 
     def get_batch_historical(self, symbols: list[str], days: int = 600) -> dict[str, list[dict]]:
         """Fetch historical prices for multiple symbols"""
@@ -133,4 +218,5 @@ class FMPClient:
             "cache_entries": len(self.cache),
             "api_calls_made": self.api_calls_made,
             "rate_limit_reached": self.rate_limit_reached,
+            "yf_fallback_count": self.yf_fallback_count,
         }
