@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-FMP API Client for Market Top Detector
+FMP API Client for FTD Detector
 
 Provides rate-limited access to Financial Modeling Prep stable API endpoints
-for market top detection analysis.
+for follow-through day detection analysis.
 
 Features:
 - Rate limiting (0.3s between requests)
 - Automatic retry on 429 errors
 - Session caching for duplicate requests
 - Batch quote support for ETF baskets
+- yfinance fallback for ETFs unsupported by FMP Starter plans
 """
 
 import os
@@ -23,6 +24,14 @@ try:
 except ImportError:
     print("ERROR: requests library not found. Install with: pip install requests", file=sys.stderr)
     sys.exit(1)
+
+try:
+    import yfinance as yf
+
+    HAS_YFINANCE = True
+except ImportError:
+    yf = None  # type: ignore[assignment]
+    HAS_YFINANCE = False
 
 
 class FMPClient:
@@ -45,6 +54,7 @@ class FMPClient:
         self.retry_count = 0
         self.max_retries = 1
         self.api_calls_made = 0
+        self.yf_fallback_count = 0
 
     def _rate_limited_get(self, url: str, params: Optional[dict] = None) -> Optional[dict]:
         if self.rate_limit_reached:
@@ -86,8 +96,84 @@ class FMPClient:
             print(f"ERROR: Request exception: {e}", file=sys.stderr)
             return None
 
+    def _fetch_via_yfinance(self, symbol: str, days: int) -> Optional[list[dict]]:
+        """Fetch historical data via yfinance as fallback.
+
+        Converts yfinance DataFrame to FMP-compatible list-of-dicts format.
+        Handles both single-level and multi-level column DataFrames.
+
+        Returns:
+            List of dicts sorted most-recent-first, or None on failure.
+        """
+        if not HAS_YFINANCE or yf is None:
+            return None
+
+        try:
+            import pandas as pd
+
+            df = yf.download(symbol, period=f"{days}d", auto_adjust=False, progress=False)
+
+            if df is None or df.empty:
+                return None
+
+            # Handle MultiIndex columns (yfinance 0.2.31+ default)
+            if isinstance(df.columns, pd.MultiIndex):
+                df = df.droplevel(level=1, axis=1)
+
+            # Map yfinance columns to FMP-compatible keys
+            records = []
+            for idx, row in df.iterrows():
+                records.append(
+                    {
+                        "date": idx.strftime("%Y-%m-%d"),
+                        "open": float(row["Open"]),
+                        "high": float(row["High"]),
+                        "low": float(row["Low"]),
+                        "close": float(row["Close"]),
+                        "adjClose": float(row["Adj Close"]),
+                        "volume": int(row["Volume"]),
+                    }
+                )
+
+            # Sort most-recent-first (FMP convention)
+            records.sort(key=lambda x: x["date"], reverse=True)
+            return records
+        except Exception as e:
+            print(f"WARNING: yfinance fallback failed for {symbol}: {e}", file=sys.stderr)
+            return None
+
+    def _fetch_quote_via_yfinance(self, symbol: str) -> Optional[list[dict]]:
+        """Fetch quote data via yfinance as fallback.
+
+        Uses yf.Ticker(symbol).fast_info to build an FMP-compatible quote dict.
+
+        Returns:
+            Single-element list with quote dict, or None on failure.
+        """
+        if not HAS_YFINANCE or yf is None:
+            return None
+
+        try:
+            ticker = yf.Ticker(symbol)
+            info = ticker.fast_info
+            quote = {
+                "symbol": symbol,
+                "price": float(info["last_price"]),
+                "yearHigh": float(info["year_high"]),
+                "yearLow": float(info["year_low"]),
+                "volume": int(info["last_volume"]),
+            }
+            return [quote]
+        except Exception as e:
+            print(f"WARNING: yfinance quote fallback failed for {symbol}: {e}", file=sys.stderr)
+            return None
+
     def get_quote(self, symbols: str) -> Optional[list[dict]]:
-        """Fetch real-time quote data for one or more symbols via stable endpoint"""
+        """Fetch real-time quote data for one or more symbols via stable endpoint.
+
+        Falls back to yfinance when FMP returns no data (e.g., 402 Premium
+        errors for ETFs on Starter plans).
+        """
         cache_key = f"quote_{symbols}"
         if cache_key in self.cache:
             return self.cache[cache_key]
@@ -96,10 +182,30 @@ class FMPClient:
         data = self._rate_limited_get(url, params={"symbol": symbols})
         if data:
             self.cache[cache_key] = data
-        return data
+            return data
+
+        # FMP failed — try yfinance fallback
+        if HAS_YFINANCE:
+            print(
+                f"FMP unavailable for {symbols}, using yfinance quote fallback...",
+                file=sys.stderr,
+            )
+            yf_data = self._fetch_quote_via_yfinance(symbols)
+            if yf_data:
+                self.yf_fallback_count += 1
+                self.cache[cache_key] = yf_data
+                return yf_data
+
+        return None
 
     def get_historical_prices(self, symbol: str, days: int = 365) -> Optional[dict]:
-        """Fetch historical daily OHLCV data via stable endpoint"""
+        """Fetch historical daily OHLCV data via stable endpoint.
+
+        Falls back to yfinance when FMP returns no data (e.g., 402 Premium
+        errors for ETFs on Starter plans).
+
+        Returns data wrapped in {"symbol": ..., "historical": [...]} format.
+        """
         cache_key = f"prices_{symbol}_{days}"
         if cache_key in self.cache:
             return self.cache[cache_key]
@@ -109,10 +215,24 @@ class FMPClient:
         params = {"symbol": symbol, "from": from_date}
         data = self._rate_limited_get(url, params)
         if data and isinstance(data, list):
-            data = {"symbol": symbol, "historical": data}
-        if data:
-            self.cache[cache_key] = data
-        return data
+            wrapped = {"symbol": symbol, "historical": data}
+            self.cache[cache_key] = wrapped
+            return wrapped
+
+        # FMP failed — try yfinance fallback
+        if HAS_YFINANCE:
+            print(
+                f"FMP unavailable for {symbol}, using yfinance fallback...",
+                file=sys.stderr,
+            )
+            yf_data = self._fetch_via_yfinance(symbol, days)
+            if yf_data:
+                self.yf_fallback_count += 1
+                wrapped = {"symbol": symbol, "historical": yf_data}
+                self.cache[cache_key] = wrapped
+                return wrapped
+
+        return None
 
     def get_batch_quotes(self, symbols: list[str]) -> dict[str, dict]:
         """Fetch quotes for a list of symbols via stable endpoint (one per request)"""
@@ -161,4 +281,5 @@ class FMPClient:
             "cache_entries": len(self.cache),
             "api_calls_made": self.api_calls_made,
             "rate_limit_reached": self.rate_limit_reached,
+            "yf_fallback_count": self.yf_fallback_count,
         }
