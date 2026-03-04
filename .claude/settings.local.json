@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(python3:*)",
+      "Bash(uv run:*)",
+      "Bash(uv:*)",
+      "WebFetch(domain:site.financialmodelingprep.com)",
+      "Bash(curl:*)",
+      "Bash(echo $FMP_API_KEY:*)",
+      "Bash(FMP_API_KEY=E41O6QHnMuBjgLgncelKa2jXKTgSFhxi uv run:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:fred.stlouisfed.org)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:tradingeconomics.com)",
+      "WebFetch(domain:www.bls.gov)",
+      "WebFetch(domain:us.econoday.com)",
+      "WebFetch(domain:finance.yahoo.com)",
+      "WebFetch(domain:www.newyorkfed.org)",
+      "WebFetch(domain:www.fxstreet.com)",
+      "Bash(__NEW_LINE_747e7b81567db3a0__ echo:*)",
+      "Bash(__NEW_LINE_f3fa62952c70a681__ echo:*)",
+      "Bash(__NEW_LINE_f40b194f99c22cbe__ echo:*)",
+      "Bash(__NEW_LINE_5b279d22db34d751__ echo:*)",
+      "Bash(__NEW_LINE_fcac3160dac7e972__ echo:*)",
+      "Bash(__NEW_LINE_960fc4406ac0512c__ echo:*)",
+      "Bash(__NEW_LINE_dd04c8ac4244c4c5__ echo:*)",
+      "Bash(__NEW_LINE_e0333af7a2bec6a8__ echo:*)",
+      "Bash(bash:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(ls:*)",
+      "Bash(FMP_API_KEY=\"$FMP_API_KEY\" uv run:*)",
+      "Bash(security find-generic-password:*)",
+      "Bash(env:*)"
+    ]
+  }
+}
