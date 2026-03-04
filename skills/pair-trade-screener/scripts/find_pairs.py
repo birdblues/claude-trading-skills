@@ -81,6 +81,11 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
         response.raise_for_status()
         data = response.json()
 
+        if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
+            msg = data.get("Error Message") or data.get("Error", "")
+            print(f"ERROR: FMP API error: {msg}")
+            sys.exit(1)
+
         if not data:
             print(
                 f"ERROR: No stocks found in {sector} sector with market cap > ${min_market_cap:,}"
@@ -118,6 +123,11 @@ def fetch_historical_prices(symbol, api_key, lookback_days=730):
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
+
+        if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
+            msg = data.get("Error Message") or data.get("Error", "")
+            print(f"WARNING: FMP API error for {symbol}: {msg}", file=sys.stderr)
+            return None
 
         if not isinstance(data, list) or not data:
             return None

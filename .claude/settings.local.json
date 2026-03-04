@@ -34,7 +34,12 @@
       "Bash(ls:*)",
       "Bash(FMP_API_KEY=\"$FMP_API_KEY\" uv run:*)",
       "Bash(security find-generic-password:*)",
-      "Bash(env:*)"
+      "Bash(env:*)",
+      "WebFetch(domain:www.barchart.com)",
+      "WebFetch(domain:www.cboe.com)",
+      "WebFetch(domain:ycharts.com)",
+      "WebFetch(domain:www.advisorperspectives.com)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

@@ -133,7 +133,12 @@ class FMPClient:
 
             if response.status_code == 200:
                 self.retry_count = 0  # Reset retry count on success
-                return response.json()
+                data = response.json()
+                if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
+                    msg = data.get("Error Message") or data.get("Error", "")
+                    print(f"WARNING: FMP API error in 200 response: {msg}", file=sys.stderr)
+                    return None
+                return data
             elif response.status_code == 429:
                 self.retry_count += 1
                 if self.retry_count <= 1:  # Only retry once

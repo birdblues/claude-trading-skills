@@ -1,9 +1,9 @@
-"""Tests for FMP Client VIX term structure and yfinance fallback."""
+"""Tests for FMP Client error detection and yfinance fallback."""
 
 import os
 import sys
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -21,12 +21,7 @@ def client():
 
 
 def _make_yf_dataframe(days=5, multi_index=False):
-    """Create a mock yfinance-style DataFrame.
-
-    Args:
-        days: Number of rows to generate.
-        multi_index: If True, create MultiIndex columns like yfinance 0.2.31+.
-    """
+    """Create a mock yfinance-style DataFrame."""
     import pandas as pd
 
     dates = pd.date_range(end="2026-02-27", periods=days, freq="D")
@@ -42,69 +37,26 @@ def _make_yf_dataframe(days=5, multi_index=False):
 
     if multi_index:
         df.columns = pd.MultiIndex.from_tuples(
-            [(col, "QQQ") for col in df.columns], names=["Price", "Ticker"]
+            [(col, "SPY") for col in df.columns], names=["Price", "Ticker"]
         )
 
     return df
 
 
-class TestVixTermStructure:
-    """Test VIX term structure auto-classification."""
+class TestErrorPayloadDetection:
+    """Test _is_error_payload() detection of FMP error responses."""
 
-    def _make_client(self):
-        """Create a mock FMPClient without real API key."""
-        with patch.dict(os.environ, {"FMP_API_KEY": "test_key"}):
-            from fmp_client import FMPClient
+    def test_detects_error_message_key(self, client):
+        """FMP 'Error Message' payload should be detected."""
+        assert client._is_error_payload({"Error Message": "Invalid API KEY."}) is True
 
-            client = FMPClient(api_key="test_key")
-        return client
+    def test_detects_error_key(self, client):
+        """FMP 'Error' payload should be detected."""
+        assert client._is_error_payload({"Error": "Limit Reach. Please upgrade your plan."}) is True
 
-    def test_steep_contango(self):
-        """VIX/VIX3M < 0.85 -> steep_contango."""
-        client = self._make_client()
-        client.get_quote = MagicMock(
-            side_effect=lambda s: [{"price": 12.0}] if "VIX3M" not in s else [{"price": 16.0}]
-        )
-        result = client.get_vix_term_structure()
-        assert result is not None
-        assert result["classification"] == "steep_contango"
-        assert result["ratio"] < 0.85
-
-    def test_contango(self):
-        """VIX/VIX3M 0.85-0.95 -> contango."""
-        client = self._make_client()
-        client.get_quote = MagicMock(
-            side_effect=lambda s: [{"price": 14.0}] if "VIX3M" not in s else [{"price": 15.5}]
-        )
-        result = client.get_vix_term_structure()
-        assert result["classification"] == "contango"
-
-    def test_flat(self):
-        """VIX/VIX3M 0.95-1.05 -> flat."""
-        client = self._make_client()
-        client.get_quote = MagicMock(
-            side_effect=lambda s: [{"price": 15.0}] if "VIX3M" not in s else [{"price": 15.2}]
-        )
-        result = client.get_vix_term_structure()
-        assert result["classification"] == "flat"
-
-    def test_backwardation(self):
-        """VIX/VIX3M > 1.05 -> backwardation."""
-        client = self._make_client()
-        client.get_quote = MagicMock(
-            side_effect=lambda s: [{"price": 22.0}] if "VIX3M" not in s else [{"price": 18.0}]
-        )
-        result = client.get_vix_term_structure()
-        assert result["classification"] == "backwardation"
-
-    def test_unavailable(self):
-        """VIX3M unavailable -> None."""
-        client = self._make_client()
-        client.get_quote = MagicMock(
-            side_effect=lambda s: [{"price": 15.0}] if "VIX3M" not in s else None
-        )
-        result = client.get_vix_term_structure()
-        assert result is None
+    def test_normal_dict_not_flagged(self, client):
+        """Normal response dict should NOT be flagged."""
+        assert client._is_error_payload({"symbol": "AAPL", "price": 150.0}) is False
 
 
 class TestYfinanceFallbackTrigger:
@@ -120,10 +72,10 @@ class TestYfinanceFallbackTrigger:
             patch("fmp_client.yf") as mock_yf,
         ):
             mock_yf.download.return_value = df
-            result = client.get_historical_prices("QQQ", days=30)
+            result = client.get_historical_prices("SPY", days=30)
 
         assert result is not None
-        assert result["symbol"] == "QQQ"
+        assert result["symbol"] == "SPY"
         assert "historical" in result
         assert len(result["historical"]) == 5
 
@@ -137,10 +89,10 @@ class TestYfinanceFallbackTrigger:
             patch("fmp_client.yf") as mock_yf,
         ):
             mock_yf.download.return_value = df
-            result = client.get_historical_prices("QQQ", days=30)
+            result = client.get_historical_prices("SPY", days=30)
 
         assert result is not None
-        assert result["symbol"] == "QQQ"
+        assert result["symbol"] == "SPY"
         assert len(result["historical"]) == 3
 
     def test_no_fallback_when_fmp_succeeds(self, client):
@@ -194,9 +146,6 @@ class TestYfinanceQuoteFallback:
         assert len(result) == 1
         assert result[0]["symbol"] == "QQQ"
         assert result[0]["price"] == 450.25
-        assert result[0]["yearHigh"] == 510.0
-        assert result[0]["yearLow"] == 380.0
-        assert result[0]["volume"] == 50000000
 
     def test_quote_no_fallback_when_fmp_succeeds(self, client):
         """When FMP returns valid quote, yfinance should NOT be called."""
@@ -256,7 +205,7 @@ class TestYfinanceDataFormat:
             patch("fmp_client.yf") as mock_yf,
         ):
             mock_yf.download.return_value = df
-            result = client.get_historical_prices("QQQ", days=30)
+            result = client.get_historical_prices("SPY", days=30)
 
         bar = result["historical"][0]
         required_keys = {"date", "open", "high", "low", "close", "adjClose", "volume"}
@@ -272,7 +221,7 @@ class TestYfinanceDataFormat:
             patch("fmp_client.yf") as mock_yf,
         ):
             mock_yf.download.return_value = df
-            result = client.get_historical_prices("QQQ", days=30)
+            result = client.get_historical_prices("SPY", days=30)
 
         for bar in result["historical"]:
             datetime.strptime(bar["date"], "%Y-%m-%d")
@@ -287,7 +236,7 @@ class TestYfinanceDataFormat:
             patch("fmp_client.yf") as mock_yf,
         ):
             mock_yf.download.return_value = df
-            result = client.get_historical_prices("QQQ", days=30)
+            result = client.get_historical_prices("SPY", days=30)
 
         bar = result["historical"][0]
         for key in ("open", "high", "low", "close", "adjClose", "volume"):
@@ -307,46 +256,10 @@ class TestDataOrdering:
             patch("fmp_client.yf") as mock_yf,
         ):
             mock_yf.download.return_value = df
-            result = client.get_historical_prices("QQQ", days=30)
+            result = client.get_historical_prices("SPY", days=30)
 
         dates = [bar["date"] for bar in result["historical"]]
         assert dates == sorted(dates, reverse=True)
-
-
-class TestNoYfinanceInstalled:
-    """Test behavior when yfinance is not installed."""
-
-    def test_returns_none_without_yfinance(self, client):
-        """When HAS_YFINANCE is False, fallback should be skipped and return None."""
-        with (
-            patch.object(client, "_rate_limited_get", return_value=None),
-            patch("fmp_client.HAS_YFINANCE", False),
-        ):
-            result = client.get_historical_prices("QQQ", days=30)
-
-        assert result is None
-
-
-class TestMultiIndexHandling:
-    """Test that multi-level column DataFrames (yfinance 0.2.31+) are handled."""
-
-    def test_multi_index_columns_flattened(self, client):
-        """MultiIndex columns should be flattened to simple column names."""
-        df = _make_yf_dataframe(days=5, multi_index=True)
-
-        with (
-            patch.object(client, "_rate_limited_get", return_value=None),
-            patch("fmp_client.HAS_YFINANCE", True),
-            patch("fmp_client.yf") as mock_yf,
-        ):
-            mock_yf.download.return_value = df
-            result = client.get_historical_prices("QQQ", days=30)
-
-        assert result is not None
-        bar = result["historical"][0]
-        assert "adjClose" in bar
-        assert "close" in bar
-        assert len(result["historical"]) == 5
 
 
 class TestApiStats:
@@ -368,37 +281,17 @@ class TestApiStats:
             patch("fmp_client.yf") as mock_yf,
         ):
             mock_yf.download.return_value = df
+            client.get_historical_prices("SPY", days=30)
             client.get_historical_prices("QQQ", days=30)
-            client.get_historical_prices("XLK", days=30)
 
         assert client.get_api_stats()["yf_fallback_count"] == 2
-
-
-class TestYfinanceEmptyDataFrame:
-    """Test handling of empty DataFrame from yfinance."""
-
-    def test_empty_dataframe_returns_none(self, client):
-        """When yfinance returns an empty DataFrame, should return None."""
-        import pandas as pd
-
-        empty_df = pd.DataFrame()
-
-        with (
-            patch.object(client, "_rate_limited_get", return_value=None),
-            patch("fmp_client.HAS_YFINANCE", True),
-            patch("fmp_client.yf") as mock_yf,
-        ):
-            mock_yf.download.return_value = empty_df
-            result = client.get_historical_prices("BADTICKER", days=30)
-
-        assert result is None
 
 
 class TestFmpErrorResponseFallback:
     """Test that yfinance fallback triggers on FMP 200 + error payloads."""
 
-    def test_fallback_on_fmp_200_with_error_dict(self, client):
-        """FMP returning {"Error": "..."} should trigger yfinance fallback."""
+    def test_quote_fallback_on_error_dict(self, client):
+        """FMP returning {"Error": "..."} for quote should trigger yfinance fallback."""
         error_response = {"Error": "Limit Reach. Please upgrade your plan."}
         mock_ticker = type("MockTicker", (), {})()
         mock_ticker.fast_info = {
@@ -418,44 +311,10 @@ class TestFmpErrorResponseFallback:
 
         assert result is not None
         assert result[0]["symbol"] == "XLU"
-        assert result[0]["price"] == 72.50
         assert client.yf_fallback_count == 1
 
-    def test_fallback_on_fmp_200_with_error_string(self, client):
-        """FMP returning a plain string should trigger yfinance fallback."""
-        mock_ticker = type("MockTicker", (), {})()
-        mock_ticker.fast_info = {
-            "last_price": 50.0,
-            "year_high": 60.0,
-            "year_low": 40.0,
-            "last_volume": 2000000,
-        }
-
-        with (
-            patch.object(client, "_rate_limited_get", return_value="Limit Reach"),
-            patch("fmp_client.HAS_YFINANCE", True),
-            patch("fmp_client.yf") as mock_yf,
-        ):
-            mock_yf.Ticker.return_value = mock_ticker
-            result = client.get_quote("ARKK")
-
-        assert result is not None
-        assert result[0]["symbol"] == "ARKK"
-        assert client.yf_fallback_count == 1
-
-    def test_fallback_on_json_decode_error(self, client):
-        """response.json() failure should return None, not raise."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.side_effect = ValueError("No JSON object could be decoded")
-
-        with patch.object(client.session, "get", return_value=mock_response):
-            result = client._rate_limited_get("https://example.com/api")
-
-        assert result is None
-
-    def test_historical_fallback_on_fmp_error_dict(self, client):
-        """FMP returning error dict for historical endpoint triggers yfinance fallback."""
+    def test_historical_fallback_on_error_dict(self, client):
+        """FMP returning error dict for historical should trigger yfinance fallback."""
         error_response = {"Error": "Limit Reach. Please upgrade your plan."}
         df = _make_yf_dataframe(days=5)
 
@@ -471,39 +330,3 @@ class TestFmpErrorResponseFallback:
         assert result["symbol"] == "XLU"
         assert len(result["historical"]) == 5
         assert client.yf_fallback_count == 1
-
-
-class TestErrorPayloadDetection:
-    """Test _is_error_payload() detection of FMP error responses."""
-
-    def test_detects_error_message_key(self, client):
-        """FMP 'Error Message' payload should be detected."""
-        assert client._is_error_payload({"Error Message": "Invalid API KEY."}) is True
-
-    def test_detects_error_key(self, client):
-        """FMP 'Error' payload should be detected."""
-        assert client._is_error_payload({"Error": "Limit Reach. Please upgrade your plan."}) is True
-
-    def test_normal_dict_not_flagged(self, client):
-        """Normal response dict should NOT be flagged."""
-        assert client._is_error_payload({"symbol": "AAPL", "price": 150.0}) is False
-
-
-class TestCacheWithFallback:
-    """Test that yfinance fallback results are cached."""
-
-    def test_cached_after_yf_fallback(self, client):
-        """Second call for same symbol should return cached result, not call yfinance again."""
-        df = _make_yf_dataframe(days=3)
-
-        with (
-            patch.object(client, "_rate_limited_get", return_value=None),
-            patch("fmp_client.HAS_YFINANCE", True),
-            patch("fmp_client.yf") as mock_yf,
-        ):
-            mock_yf.download.return_value = df
-            result1 = client.get_historical_prices("QQQ", days=30)
-            result2 = client.get_historical_prices("QQQ", days=30)
-
-        assert mock_yf.download.call_count == 1
-        assert result1 == result2

@@ -56,6 +56,15 @@ class FMPClient:
         self.api_calls_made = 0
         self.yf_fallback_count = 0
 
+    def _is_error_payload(self, data) -> bool:
+        """Detect FMP API error responses returned with HTTP 200."""
+        if isinstance(data, dict):
+            if "Error Message" in data or "Error" in data:
+                msg = data.get("Error Message") or data.get("Error", "")
+                print(f"WARNING: FMP API error in 200 response: {msg}", file=sys.stderr)
+                return True
+        return False
+
     def _rate_limited_get(self, url: str, params: Optional[dict] = None) -> Optional[dict]:
         if self.rate_limit_reached:
             return None
@@ -75,7 +84,17 @@ class FMPClient:
 
             if response.status_code == 200:
                 self.retry_count = 0
-                return response.json()
+                try:
+                    data = response.json()
+                except (ValueError, Exception):
+                    print(
+                        f"WARNING: Failed to parse JSON response: {response.text[:200]}",
+                        file=sys.stderr,
+                    )
+                    return None
+                if self._is_error_payload(data):
+                    return None
+                return data
             elif response.status_code == 429:
                 self.retry_count += 1
                 if self.retry_count <= self.max_retries:
@@ -180,7 +199,7 @@ class FMPClient:
 
         url = f"{self.STABLE_URL}/quote"
         data = self._rate_limited_get(url, params={"symbol": symbols})
-        if data:
+        if data and isinstance(data, list) and data and isinstance(data[0], dict):
             self.cache[cache_key] = data
             return data
 

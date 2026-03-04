@@ -124,7 +124,12 @@ class FMPClient:
             if response.status_code == 200:
                 if self.sleep_seconds > 0:
                     time.sleep(self.sleep_seconds)
-                return response.json()
+                data = response.json()
+                if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
+                    msg = data.get("Error Message") or data.get("Error", "")
+                    print(f"WARNING: FMP API error in 200 response: {msg}", file=sys.stderr)
+                    return None
+                return data
 
             if response.status_code == 429 and attempts < 2:
                 time.sleep(2.0)

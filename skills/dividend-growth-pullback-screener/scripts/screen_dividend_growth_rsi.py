@@ -136,7 +136,12 @@ class FMPClient:
             if response.status_code == 200:
                 self.retry_count = 0
                 time.sleep(0.3)  # Rate limiting: 0.3s between requests
-                return response.json()
+                data = response.json()
+                if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
+                    msg = data.get("Error Message") or data.get("Error", "")
+                    print(f"WARNING: FMP API error in 200 response: {msg}", file=sys.stderr)
+                    return None
+                return data
             elif response.status_code == 429:
                 self.retry_count += 1
                 if self.retry_count <= 1:
@@ -1060,7 +1065,8 @@ def generate_markdown_report(results: list[dict], criteria: dict, output_path: s
 **10-Year Dividend Projection ({stock["dividend_cagr_3y"]:.0f}% CAGR):**
 - Current Yield on Cost: {stock["dividend_yield"]:.2f}%
 - Year 5 Yield on Cost: {stock["dividend_yield"] * (1 + stock["dividend_cagr_3y"] / 100) ** 5:.2f}%
-- Year 10 Yield on Cost: {stock["dividend_yield"] * (1 + stock["dividend_cagr_3y"] / 100) ** 10:.2f}%
+- Year 10 Yield on Cost: {
+                stock["dividend_yield"] * (1 + stock["dividend_cagr_3y"] / 100) ** 10:.2f}%
 
 **Entry Strategy:**
 {f"- RSI {stock['rsi']:.0f} indicates {rsi_interpretation.lower()} condition"}

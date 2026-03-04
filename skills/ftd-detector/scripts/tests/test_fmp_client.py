@@ -336,6 +336,81 @@ class TestYfinanceEmptyDataFrame:
         assert result is None
 
 
+class TestErrorPayloadDetection:
+    """Test _is_error_payload() detection of FMP error responses."""
+
+    def test_detects_error_message_key(self, client):
+        """FMP 'Error Message' payload should be detected."""
+        assert client._is_error_payload({"Error Message": "Invalid API KEY."}) is True
+
+    def test_detects_error_key(self, client):
+        """FMP 'Error' payload should be detected."""
+        assert client._is_error_payload({"Error": "Limit Reach. Please upgrade your plan."}) is True
+
+    def test_normal_dict_not_flagged(self, client):
+        """Normal response dict should NOT be flagged."""
+        assert client._is_error_payload({"symbol": "AAPL", "price": 150.0}) is False
+
+
+class TestFmpErrorResponseFallback:
+    """Test that yfinance fallback triggers on FMP 200 + error payloads."""
+
+    def test_fallback_on_fmp_200_with_error_dict(self, client):
+        """FMP returning {"Error": "..."} should trigger yfinance fallback."""
+        error_response = {"Error": "Limit Reach. Please upgrade your plan."}
+        mock_ticker = type("MockTicker", (), {})()
+        mock_ticker.fast_info = {
+            "last_price": 72.50,
+            "year_high": 85.0,
+            "year_low": 60.0,
+            "last_volume": 3000000,
+        }
+
+        with (
+            patch.object(client, "_rate_limited_get", return_value=error_response),
+            patch("fmp_client.HAS_YFINANCE", True),
+            patch("fmp_client.yf") as mock_yf,
+        ):
+            mock_yf.Ticker.return_value = mock_ticker
+            result = client.get_quote("XLU")
+
+        assert result is not None
+        assert result[0]["symbol"] == "XLU"
+        assert result[0]["price"] == 72.50
+        assert client.yf_fallback_count == 1
+
+    def test_historical_fallback_on_fmp_error_dict(self, client):
+        """FMP returning error dict for historical endpoint triggers yfinance fallback."""
+        error_response = {"Error": "Limit Reach. Please upgrade your plan."}
+        df = _make_yf_dataframe(days=5)
+
+        with (
+            patch.object(client, "_rate_limited_get", return_value=error_response),
+            patch("fmp_client.HAS_YFINANCE", True),
+            patch("fmp_client.yf") as mock_yf,
+        ):
+            mock_yf.download.return_value = df
+            result = client.get_historical_prices("XLU", days=30)
+
+        assert result is not None
+        assert result["symbol"] == "XLU"
+        assert len(result["historical"]) == 5
+        assert client.yf_fallback_count == 1
+
+    def test_fallback_on_json_decode_error(self, client):
+        """response.json() failure should return None, not raise."""
+        from unittest.mock import MagicMock
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("No JSON object could be decoded")
+
+        with patch.object(client.session, "get", return_value=mock_response):
+            result = client._rate_limited_get("https://example.com/api")
+
+        assert result is None
+
+
 class TestCacheWithFallback:
     """Test that yfinance fallback results are cached."""
 

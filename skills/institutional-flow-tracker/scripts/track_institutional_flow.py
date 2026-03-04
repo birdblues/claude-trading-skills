@@ -51,6 +51,14 @@ class InstitutionalFlowTracker:
         self.api_key = api_key
         self.base_url = "https://financialmodelingprep.com/stable"
 
+    def _is_error_payload(self, data) -> bool:
+        """Detect FMP API error responses returned with HTTP 200."""
+        if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
+            msg = data.get("Error Message") or data.get("Error", "")
+            print(f"WARNING: FMP API error in 200 response: {msg}", file=sys.stderr)
+            return True
+        return False
+
     def get_stock_screener(self, market_cap_min: int = 1000000000, limit: int = 100) -> list[dict]:
         """Get list of stocks meeting market cap criteria"""
         url = f"{self.base_url}/stock-screener"
@@ -59,7 +67,10 @@ class InstitutionalFlowTracker:
         try:
             response = requests.get(url, params=params, timeout=30)
             response.raise_for_status()
-            return response.json()
+            data = response.json()
+            if self._is_error_payload(data):
+                return []
+            return data
         except requests.exceptions.RequestException as e:
             print(f"Error fetching stock screener: {e}")
             return []
@@ -73,6 +84,8 @@ class InstitutionalFlowTracker:
             response = requests.get(url, params=params, timeout=30)
             response.raise_for_status()
             data = response.json()
+            if self._is_error_payload(data):
+                return []
             return data if isinstance(data, list) else []
         except requests.exceptions.RequestException as e:
             print(f"Error fetching institutional holders for {symbol}: {e}")
