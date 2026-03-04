@@ -90,8 +90,15 @@ class TestYfinanceFallbackTrigger:
     def test_no_fallback_when_fmp_succeeds(self, client):
         """When FMP succeeds, yfinance should NOT be called."""
         fmp_data = [
-            {"date": "2026-02-27", "open": 100, "high": 102, "low": 99,
-             "close": 101, "adjClose": 100.5, "volume": 1000000},
+            {
+                "date": "2026-02-27",
+                "open": 100,
+                "high": 102,
+                "low": 99,
+                "close": 101,
+                "adjClose": 100.5,
+                "volume": 1000000,
+            },
         ]
 
         with (
@@ -254,6 +261,66 @@ class TestYfinanceEmptyDataFrame:
         ):
             mock_yf.download.return_value = empty_df
             result = client.get_historical_prices("BADTICKER", days=30)
+
+        assert result is None
+
+
+class TestErrorPayloadDetection:
+    """Test _is_error_payload() detection of FMP error responses."""
+
+    def test_detects_error_message_key(self, client):
+        """FMP 'Error Message' payload should be detected."""
+        assert client._is_error_payload({"Error Message": "Invalid API KEY."}) is True
+
+    def test_detects_error_key(self, client):
+        """FMP 'Error' payload should be detected."""
+        assert client._is_error_payload({"Error": "Limit Reach. Please upgrade your plan."}) is True
+
+    def test_normal_dict_not_flagged(self, client):
+        """Normal response dict should NOT be flagged."""
+        assert client._is_error_payload({"symbol": "AAPL", "price": 150.0}) is False
+
+
+class TestFmpErrorResponseFallback:
+    """Test that yfinance fallback triggers on FMP 200 + error payloads."""
+
+    def test_historical_fallback_on_fmp_error_dict(self, client):
+        """FMP returning error dict for historical endpoint triggers yfinance fallback."""
+        error_response = {"Error": "Limit Reach. Please upgrade your plan."}
+        df = _make_yf_dataframe(days=5)
+
+        with (
+            patch.object(client, "_rate_limited_get", return_value=error_response),
+            patch("fmp_client.HAS_YFINANCE", True),
+            patch("fmp_client.yf") as mock_yf,
+        ):
+            mock_yf.download.return_value = df
+            result = client.get_historical_prices("RSP", days=30)
+
+        assert result is not None
+        assert result["symbol"] == "RSP"
+        assert len(result["historical"]) == 5
+        assert client.yf_fallback_count == 1
+
+    def test_treasury_returns_none_on_error_dict(self, client):
+        """FMP returning error dict for treasury endpoint returns None (no yfinance fallback)."""
+        error_response = {"Error": "Limit Reach. Please upgrade your plan."}
+
+        with patch.object(client, "_rate_limited_get", return_value=error_response):
+            result = client.get_treasury_rates(days=30)
+
+        assert result is None
+
+    def test_json_decode_error_returns_none(self, client):
+        """response.json() failure should return None, not raise."""
+        from unittest.mock import MagicMock
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.side_effect = ValueError("No JSON object could be decoded")
+
+        with patch.object(client.session, "get", return_value=mock_response):
+            result = client._rate_limited_get("https://example.com/api")
 
         assert result is None
 
