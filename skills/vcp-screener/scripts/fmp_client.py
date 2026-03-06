@@ -26,6 +26,11 @@ except ImportError:
     sys.exit(1)
 
 try:
+    import pandas as pd
+except ImportError:
+    pd = None  # type: ignore[assignment]
+
+try:
     import yfinance as yf
 
     HAS_YFINANCE = True
@@ -55,6 +60,7 @@ class FMPClient:
         self.max_retries = 1
         self.api_calls_made = 0
         self.yf_fallback_count = 0
+        self.wiki_fallback_count = 0
 
     def _is_error_payload(self, data) -> bool:
         """Detect FMP API error responses returned with HTTP 200."""
@@ -159,20 +165,60 @@ class FMPClient:
         try:
             ticker = yf.Ticker(symbol)
             info = ticker.fast_info
+            avg_vol = info.get("threeMonthAverageVolume") or info.get("tenDayAverageVolume") or info.get("lastVolume") or 0
             quote = {
                 "symbol": symbol,
                 "price": float(info["last_price"]),
                 "yearHigh": float(info["year_high"]),
                 "yearLow": float(info["year_low"]),
                 "volume": int(info["last_volume"]),
+                "avgVolume": int(avg_vol),
             }
             return [quote]
         except Exception as e:
             print(f"WARNING: yfinance quote fallback failed for {symbol}: {e}", file=sys.stderr)
             return None
 
+    def _fetch_sp500_from_wikipedia(self) -> Optional[list[dict]]:
+        """Fetch S&P 500 constituents from Wikipedia as fallback."""
+        if pd is None:
+            return None
+
+        try:
+            url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+            resp = requests.get(
+                url,
+                headers={"User-Agent": "VCPScreener/1.0 (stock screener tool)"},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            from io import StringIO
+
+            tables = pd.read_html(StringIO(resp.text))
+            if not tables:
+                return None
+
+            df = tables[0]
+            records = []
+            for _, row in df.iterrows():
+                symbol = str(row.get("Symbol", "")).strip().replace(".", "-")
+                records.append(
+                    {
+                        "symbol": symbol,
+                        "name": str(row.get("Security", "")),
+                        "sector": str(row.get("GICS Sector", "")),
+                        "subSector": str(row.get("GICS Sub-Industry", "")),
+                    }
+                )
+            return records if records else None
+        except Exception as e:
+            print(f"WARNING: Wikipedia S&P 500 fallback failed: {e}", file=sys.stderr)
+            return None
+
     def get_sp500_constituents(self) -> Optional[list[dict]]:
         """Fetch S&P 500 constituent list via stable endpoint.
+
+        Falls back to Wikipedia when FMP returns no data.
 
         Returns:
             List of dicts with keys: symbol, name, sector, subSector
@@ -186,7 +232,20 @@ class FMPClient:
         data = self._rate_limited_get(url)
         if data:
             self.cache[cache_key] = data
-        return data
+            return data
+
+        # FMP failed — try Wikipedia fallback
+        print(
+            "FMP unavailable for S&P 500 constituents, using Wikipedia fallback...",
+            file=sys.stderr,
+        )
+        wiki_data = self._fetch_sp500_from_wikipedia()
+        if wiki_data:
+            self.wiki_fallback_count += 1
+            self.cache[cache_key] = wiki_data
+            return wiki_data
+
+        return None
 
     def get_quote(self, symbols: str) -> Optional[list[dict]]:
         """Fetch real-time quote data for one or more symbols via stable endpoint.
@@ -286,4 +345,5 @@ class FMPClient:
             "api_calls_made": self.api_calls_made,
             "rate_limit_reached": self.rate_limit_reached,
             "yf_fallback_count": self.yf_fallback_count,
+            "wiki_fallback_count": self.wiki_fallback_count,
         }
