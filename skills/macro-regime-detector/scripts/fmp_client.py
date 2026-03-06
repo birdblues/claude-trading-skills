@@ -223,8 +223,9 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
+        from_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
         url = f"{self.STABLE_URL}/treasury-rates"
-        params = {"limit": days}
+        params = {"from": from_date}
         data = self._rate_limited_get(url, params)
         if data and isinstance(data, list):
             self.cache[cache_key] = data
