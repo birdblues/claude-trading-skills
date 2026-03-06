@@ -94,19 +94,23 @@ def calculate_institutional_sponsorship(
         >>> result = calculate_institutional_sponsorship(holders, profile)
         >>> print(f"I Score: {result['score']}, Holders: {result['num_holders']}, Ownership: {result['ownership_pct']:.1f}%")
     """
-    # Validate input
+    # Validate input — allow Finviz fallback even with empty holders
     if not institutional_holders:
-        return {
-            "score": 0,
-            "error": "No institutional holder data available",
-            "num_holders": 0,
-            "ownership_pct": None,
-            "superinvestor_present": False,
-            "superinvestors": [],
-            "total_shares_held": None,
-            "shares_outstanding": None,
-            "interpretation": "Data unavailable",
-        }
+        if use_finviz_fallback and FINVIZ_AVAILABLE and symbol:
+            # Skip early return; let Finviz fallback handle it below
+            institutional_holders = []
+        else:
+            return {
+                "score": 0,
+                "error": "No institutional holder data available",
+                "num_holders": 0,
+                "ownership_pct": None,
+                "superinvestor_present": False,
+                "superinvestors": [],
+                "total_shares_held": None,
+                "shares_outstanding": None,
+                "interpretation": "Data unavailable",
+            }
 
     # Count institutional holders
     num_holders = len(institutional_holders)

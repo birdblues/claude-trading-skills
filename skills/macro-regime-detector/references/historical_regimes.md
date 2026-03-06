@@ -1,124 +1,124 @@
-# Historical Regime Examples
+# 역사적 레짐 사례 (Historical Regime Examples)
 
-Reference cases for the 5 regime classifications. Use these to contextualize current readings and identify historical parallels.
+5가지 레짐 분류에 대한 참고 사례입니다. 이 사례들을 바탕으로 현재 측정치를 맥락화하고, 과거에 이와 유사했던 국면이 언제였는지 식별하십시오.
 
-## Concentration Regimes
+## 집중화 레짐 (Concentration Regimes)
 
-### 2023-2024: Magnificent Seven Dominance
+### 2023-2024년: 매그니피센트 7(M7) 주도장 (Magnificent Seven Dominance)
 
-- **RSP/SPY**: Declined from ~0.32 to ~0.29, a multi-year low
-- **IWM/SPY**: Persistent underperformance of small-caps
-- **Credit**: Stable to easing (HYG/LQD steady)
-- **Characteristics**: Top 7 stocks drove ~60% of S&P 500 returns
-- **Duration**: ~18 months
-- **Resolution**: Early signs of broadening in late 2024 (RSP/SPY bottoming)
-- **Portfolio posture**: Mega-cap growth overweight was the only winning strategy
+- **RSP/SPY**: 약 0.32에서 다년간 최저치인 0.29 부근까지 하락
+- **IWM/SPY**: 소형주의 지속적인 언더퍼폼
+- **신용 (Credit)**: 안정적 혹은 완화 기조 (HYG/LQD 안정적 유지)
+- **특징**: M7 등 7개 대형 기술주가 S&P500 등락(수익률)의 60% 이상을 견인함
+- **지속 기간**: 약 18개월
+- **종결**: 2024년 후반부터 시장 확산(broadening)의 초기 징후 시작 (RSP/SPY 바닥 다짐)
+- **포트폴리오 대응**: 초대형 기술 성장주 비중 확대(오버웨잇)가 유일하게 통했던 승리 전략
 
-### 2019-2020 (Pre-COVID): FAANG+ Concentration
+### 2019-2020년 (팬데믹 직전): FAANG+ 집중화 (Pre-COVID)
 
-- **RSP/SPY**: Gradual decline through 2019
-- **IWM/SPY**: Small-cap underperformance
-- **Ended**: Abruptly with COVID crash (exogenous shock)
+- **RSP/SPY**: 2019년 내내 점진적인 하락 (대형주 위주 상승)
+- **IWM/SPY**: 소형주 언더퍼폼
+- **종결**: 팬데믹으로 인한 주가 폭락 사태 (외부 충격)로 갑작스레 종료됨
 
-## Broadening Regimes
+## 시장 확산 레짐 (Broadening Regimes)
 
-### 2003-2004: Post-Dot-Com Recovery
+### 2003-2004년: 닷컴 버블 붕괴 이후 회복기
 
-- **RSP/SPY**: Rose significantly as value and small-caps recovered
-- **IWM/SPY**: Strong small-cap outperformance
-- **Credit**: HYG/LQD rising as credit conditions eased
-- **Yield curve**: Steep (accommodative Fed)
-- **Duration**: ~24 months
-- **Portfolio posture**: Small-cap value, equal-weight strategies outperformed
+- **RSP/SPY**: 가치주 및 소형주가 회복되며 지수 전반이 고르게 크게 상승함
+- **IWM/SPY**: 소형주의 강력한 아웃퍼폼 발생
+- **신용 (Credit)**: 신용 경색이 풀리며 HYG/LQD 비율 상승
+- **수익률 곡선**: 가파름 (연준의 완화 정책 효과)
+- **지속 기간**: 약 24개월
+- **포트폴리오 대응**: 소형 가치주, 동일 가중(Equal-weight) 전략이 시총 가중 지수를 아웃퍼폼
 
-### 2016-2017: Post-Election Broadening
+### 2016-2017년: 대선 이후의 시장 확산 랠리 (Post-Election)
 
-- **RSP/SPY**: Rose as cyclicals and financials rallied
-- **IWM/SPY**: Small-cap surge post-election
-- **Credit**: Stable to improving
-- **XLY/XLP**: Strong cyclical outperformance
-- **Duration**: ~12 months
-- **Portfolio posture**: Cyclicals, financials, small-cap growth
+- **RSP/SPY**: 경기민감주 및 금융주가 랠리를 주도하며 척도 상승
+- **IWM/SPY**: 대선 직후 소형주 급등세
+- **신용 (Credit)**: 안정 내지 개선세
+- **XLY/XLP**: 경기순환(임의소비재) 섹터의 강한 아웃퍼폼
+- **지속 기간**: 약 12개월
+- **포트폴리오 대응**: 경기순환주, 금융주, 소형 성장주
 
-## Contraction Regimes
+## 수축 레짐 (Contraction Regimes)
 
-### 2007-2009: Global Financial Crisis
+### 2007-2009년: 글로벌 금융 위기 (Global Financial Crisis)
 
-- **Credit**: HYG/LQD collapsed (credit freeze)
-- **XLY/XLP**: Extreme defensive rotation
-- **SPY/TLT**: Sharp decline as bonds rallied
-- **Yield curve**: Initially inverted, then steepened dramatically
-- **Duration**: ~18 months (bear phase)
-- **Portfolio posture**: Cash, Treasuries, defensive sectors
+- **신용 (Credit)**: HYG/LQD 붕괴 (완전한 신용 경색)
+- **XLY/XLP**: 방어주로의 극단적 자금 로테이션 현상
+- **SPY/TLT**: 채권(TLT)이 랠리하며 주식/채권 비율 급락
+- **수익률 곡선**: 초기에는 역전되었으나 곧이어 매우 가파르게 반전됨(steepened)
+- **지속 기간**: 약 18개월 (약세장 구간)
+- **포트폴리오 대응**: 현금, 미국 국채, 전통적 방어 섹터
 
-### 2020 Q1: COVID Crash
+### 2020년 1분기: 코로나19 폭락 사태 (COVID Crash)
 
-- **Credit**: HYG/LQD dropped sharply in March
-- **XLY/XLP**: Rapid defensive rotation
-- **SPY/TLT**: Crashed as equities sold off
-- **Duration**: ~6 weeks (shortest contraction on record)
-- **Resolution**: Massive fiscal/monetary response triggered V-shaped recovery
-- **Lesson**: Not all contractions are prolonged; policy response matters
+- **신용 (Credit)**: 3월 한 달 간 HYG/LQD 수직 낙하
+- **XLY/XLP**: 급격한 방어주 로테이션
+- **SPY/TLT**: 주식 대량 매도 사태로 인해 폭락
+- **지속 기간**: 약 6주 (기록상 가장 짧은 수축기)
+- **종결**: 유례없는 규모의 재정/통화 부양책이 V자 반등을 촉발함
+- **거시적 교훈**: 모든 수축기가 길어지는 것은 아님; 정책 당국의 개입 스케일이 매우 중요함
 
-## Inflationary Regimes
+## 인플레이션 중심 레짐 (Inflationary Regimes)
 
-### 2022: Inflation Shock
+### 2022년: 인플레이션 쇼크 (Inflation Shock)
 
-- **Stock-bond correlation**: Turned positive (both fell together)
-- **SPY/TLT**: Both declined simultaneously
-- **10Y-2Y**: Deep inversion (most inverted since 1980s)
-- **Yield curve**: Aggressive flattening then inversion
-- **Duration**: ~12 months
-- **Portfolio posture**: Energy, commodities, real assets, short-duration bonds
-- **Key characteristic**: Traditional 60/40 portfolio failed as bonds didn't hedge
+- **주식-채권 상관관계**: 양(+)의 관계로 전환됨 (주식과 채권이 동시에 하락)
+- **SPY/TLT**: 주식과 만기 국채 모두 동반 하락
+- **10년-2년 금리 (10Y-2Y)**: 깊은 역전장 발생 (1980년대 이후 최악의 역전폭)
+- **수익률 곡선**: 공격적인 평탄화 이후 완전한 역전
+- **지속 기간**: 약 12개월
+- **포트폴리오 대응**: 에너지, 원자재 중심, 실물 자산, 단기 듀레이션 채권
+- **핵심 특징**: 전통적인 60/40 포트폴리오(주식+채권)가 방어선(헷지) 역할을 하지 못하고 완전히 무너짐
 
-### 1970s Stagflation (Historical Reference)
+### 1970년대: 스태그플레이션 (역사적 참고용)
 
-- **Stock-bond correlation**: Persistently positive
-- **Commodities**: Outperformed financial assets
-- **Duration**: Extended (years)
-- **Modern parallel**: 2022 showed echoes but resolved faster
+- **주식-채권 상관관계**: 지속적으로 양(+)의 관계
+- **원자재**: 금융 자산을 압도적인 수익률로 아웃퍼폼 
+- **지속 기간**: 장기화 (수년간)
+- **최근 평행 이론**: 2022년이 당시와 메아리처럼 닮았었으나 비교적 단기간에 해소됨
 
-## Transitional Regimes
+## 전환/과도기 레짐 (Transitional Regimes)
 
-### 2024 Q4 - 2025 Q1: Current Example
+### 2024년 4분기 - 2025년 1분기: 최근의 사례
 
-- **RSP/SPY**: Near historical lows (~0.297) but showing early bottoming signs
-- **IWM/SPY**: Mixed signals, brief outperformance then reversal
-- **Credit**: Stable (HYG/LQD holding)
-- **Yield curve**: Normalizing from inversion
-- **XLY/XLP**: Choppy, no clear direction
-- **Interpretation**: Multiple indicators shifting but no clear new regime yet
-- **Portfolio posture**: Maintain diversification, gradual position adjustments
+- **RSP/SPY**: 역사적 저점 부근(~0.297)이나, 바닥을 다지는 초기 시그널 관찰됨
+- **IWM/SPY**: 혼조세; 짧은 아웃퍼폼을 보인 뒤 흐름이 금세 반전됨
+- **신용 (Credit)**: 안정권 (HYG/LQD 하우스 유지됨)
+- **수익률 곡선**: 역전 국면에서 제자리로 회복(정상화)되는 중
+- **XLY/XLP**: 등락이 교차하며 뚜렷한 방향성이 없음
+- **해석**: 다수의 지표들이 움직이고(shifting) 있으나, 아직 새롭게 정착된 뚜렷한 레짐은 나타나지 않음
+- **포트폴리오 대응**: 분산 투자를 유지하며, 국면 변화 조짐에 따라 포지션을 점진적으로 미세조정함
 
-### 2018: Failed Broadening
+### 2018년: 시장 확산의 실패 (Failed Broadening)
 
-- **RSP/SPY**: Brief broadening attempt in early 2018
-- **Credit**: Tightened in Q4 2018 (HYG selloff)
-- **Resolution**: Fed pivot in early 2019 prevented full contraction
-- **Lesson**: Transitional periods can resolve in any direction
+- **RSP/SPY**: 2018년 초반, 일시적인 시장 확산(broadening)의 시도가 있었음
+- **신용 (Credit)**: 2018년 4분기에 신용 환경 악화 및 긴축 (HYG 하이일드 매도세)
+- **종결**: 2019년 초 연준(Fed)의 정책 선회(Pivot)로 전면적인 수축(침체)을 간신히 면함
+- **거시적 교훈**: 전환기(과도기)에는 어떤 방향으로든 국면이 결론 날 수 있음
 
-## Regime Transition Patterns
+## 레짐 전환 패턴 (Regime Transition Patterns)
 
-### Common Sequences
+### 흔히 나타나는 흐름(시퀀스)
 
-1. **Concentration → Broadening**: Usually requires catalyst (Fed easing, fiscal stimulus, valuation compression in leaders)
+1. **집중화 → 확산 (Concentration → Broadening)**: 상승을 촉발할 뚜렷한 계기가 필요함 (연준 금리 인하, 강력한 재정 부양책, 기존 대형 주도주의 밸류에이션 붕괴 및 자금 분산 등)
 
-2. **Broadening → Contraction**: Credit tightening is the typical trigger. Watch HYG/LQD for early warning.
+2. **확산 → 수축 (Broadening → Contraction)**: 대부분 신용 경색(tightening)이 핵심 방아쇠 역할을 함. 조기 경보를 잡기 위해 HYG/LQD 지표를 면밀히 관찰해야 함.
 
-3. **Contraction → Broadening**: Policy response (rate cuts, QE) → credit easing → small-cap recovery
+3. **수축 → 확산 (Contraction → Broadening)**: 시장 폭락에 대한 정책 당국의 대응(기준금리 인하, 양적 완화) → 신용/대출시장 해빙 → 소형주 중심의 빠른 랠리(회복) 유발
 
-4. **Any → Inflationary**: Positive stock-bond correlation is the key signal. Can emerge from either broadening or contraction.
+4. **아무 레짐 → 인플레이션**: 주식과 채권 간의 커플링 양의 상관관계가 핵심 시그널임. 확산장이든 수축장이든 가리지 않고 언제든 발현될 수 있음.
 
-### Transition Timing
+### 전환 사이클 기간 특징 (Transition Timing)
 
-- Average regime duration: 12-24 months
-- Transition phase: Typically 3-6 months of ambiguous signals
-- Early signals appear 2-4 months before consensus recognition
-- MA crossovers (6M vs 12M) confirm after the fact but provide low false-positive rate
+- 평균 레짐 지속 기간: 12-24개월 내외
+- 전환기(Transition phase): 보통 3개월에서 6개월에 걸친 모호하고 혼조된 시그널 방출 기간
+- 시장의 일반적인 컨센서스가 국면 전환을 깨닫기 약 2-4개월 전부터 조기 시그널 부표들이 나타남
+- 6개월선/12개월선의 이동평균 크로스오버(MA)는 후행 확증에 가깝지만 거짓신호(가짜 시그널) 비율이 매우 낮음
 
-### False Signals
+### 거짓 신호 (False Signals / 함정)
 
-- 2018 Q1: Broadening signal reversed by Q4 (trade war + Fed tightening)
-- 2015: Multiple signals of contraction that never fully materialized
-- Lesson: Require 3+ months of sustained signals before high-conviction repositioning
+- 2018년 1분기: 확산(Broadening) 신호가 4분기 무역분쟁 및 연준의 성급한 긴축으로 무참히 뒤집힘
+- 2015년: 여러 수축 징후 시그널이 떴으나 끝내 풀 스케일의 하락장으로 실현되진 않았음
+- **결론적 교훈**: 고확신을 가지고 포트폴리오를 대거 재포지셔닝하기 위해선 핵심 시그널들이 최소 3개월 이상 꾸준하게 지속 유지되는 것을 확인해야 함

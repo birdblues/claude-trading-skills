@@ -1,188 +1,188 @@
-# Follow-Through Day (FTD) Methodology
+# 팔로스루 데이(Follow-Through Day, FTD) 방법론
 
-## Overview
+## 개요 (Overview)
 
-The Follow-Through Day (FTD) is William O'Neil's market timing signal for confirming a new uptrend after a correction. It is the **single most important signal** for re-entering the market after a decline. Without an FTD, no new bull market or sustained rally has ever begun (per IBD historical analysis).
+팔로스루 데이(FTD)는 조정을 마친 후 새로운 상승 추세를 확인하기 위한 윌리엄 오닐(William O'Neil)의 시장 타이밍 시그널입니다. 하락 이후 시장에 재진입하기 위한 **가장 중요한 단일 시그널**입니다. FTD 없이는 새로운 강세장이나 지속적인 랠리가 시작된 적이 역사적으로 없습니다 (IBD 역사적 분석 기준).
 
-**Key Insight:** FTD is a necessary but not sufficient condition. Historically, approximately 25% of FTDs lead to sustained uptrends. The remaining 75% fail, which is why quality scoring and post-FTD monitoring are critical.
-
----
-
-## Step 1: Identify the Correction
-
-### Qualifying Correction
-A correction must meet these criteria before FTD analysis begins:
-
-- **Decline magnitude:** Index closes 3% or more below its recent high
-- **Duration:** At least 3 down days during the decline
-- **Index scope:** S&P 500 and/or NASDAQ Composite (either suffices)
-
-### Swing Low Definition
-The swing low is the lowest closing price during the correction that becomes the reference point for the rally attempt:
-
-- Must be preceded by 3%+ decline from a recent high (within 40 trading days)
-- Must have at least 3 down days between the high and the low
-- Must be a local minimum (adjacent days have higher closes)
-- Multiple swing lows can occur; use the most recent qualifying one
-
-**Important:** The swing low is determined by *closing price*, not intraday low.
+**핵심 통찰:** FTD는 필요조건이지만 충분조건은 아닙니다. 역사적으로 FTD의 약 25%만이 지속적인 상승 추세로 이어졌습니다. 나머지 75%는 실패하기 때문에 품질 점수 산정과 FTD 이후 모니터링이 매우 중요합니다.
 
 ---
 
-## Step 2: Rally Attempt (Day 1-3)
+## 1단계: 조정장 확인 (Identify the Correction)
 
-### Day 1 Detection
-Day 1 marks the beginning of a rally attempt. It occurs on the **first qualifying up day** after the swing low:
+### 자격 요건을 갖춘 조정 (Qualifying Correction)
+FTD 분석을 시작하려면 조정장이 다음 기준을 충족해야 합니다:
 
-**Primary criterion:** Close > Previous day's close (up day)
+- **하락 강도:** 지수가 최근 고점 대비 3% 이상 하락 마감
+- **기간:** 하락 구간 동안 최소 3일의 하락일 발생
+- **지수 범위:** S&P 500 그리고/또는 NASDAQ 종합지수 (어느 쪽이든 가능)
 
-**Alternative criterion:** Close in the top 50% of the day's price range
-- Formula: (Close - Low) / (High - Low) >= 0.50
-- This captures days where the market recovers significantly from intraday lows even if it doesn't close above the prior day's close
+### 스윙 로우 정의 (Swing Low Definition)
+스윙 로우는 조정 기간 중 가장 낮은 종가로, 랠리 시도의 기준점이 됩니다:
 
-### Day 2-3 Integrity Check
-For the rally attempt to remain valid through Day 2-3:
+- 최근 고점(40 거래일 이내)으로부터 3%+ 하락한 직후여야 함
+- 고점과 저점 사이에 최소 3일의 하락일이 있어야 함
+- 지엽적 최저점이어야 함 (인접한 날짜의 종가가 더 높음)
+- 여러 번의 스윙 로우가 발생할 수 있으며, 자격 요건을 갖춘 가장 최근의 저점을 사용함
 
-- **Close must not breach Day 1's intraday low** (not the close, the *low*)
-- This is a strict rule; even a single day closing below Day 1's low invalidates the attempt
-- Day 2 and Day 3 do NOT need to be up days; they just cannot close below Day 1's low
-
-### Rally Invalidation (Reset)
-The rally attempt resets completely if:
-
-1. **Any day's close falls below the swing low price** → Start over from new potential swing low
-2. **Day 2 or Day 3 closes below Day 1's intraday low** → Wait for new Day 1
-
-When a rally resets, the new lower price may become the new swing low, and the cycle begins again.
+**중요:** 스윙 로우는 장중 저점이 아닌 *종가* 를 기준으로 결정됩니다.
 
 ---
 
-## Step 3: FTD Window (Day 4-10)
+## 2단계: 랠리 시도 (Rally Attempt - 1~3일차)
 
-### FTD Qualification Criteria
-A Follow-Through Day must satisfy ALL of these conditions:
+### 1일차 감지 (Day 1 Detection)
+1일차는 랠리 시도의 시작을 알립니다. 스윙 로우 이후 **첫 번째로 조건을 충족하는 상승일**에 발생합니다:
 
-1. **Day 4-10** of the rally attempt (Day 4-7 is the prime window; Day 8-10 still valid)
-2. **Price gain >= 1.25%** (minimum threshold)
-   - 1.25-1.49%: Minimum qualifying gain
-   - 1.50-1.99%: Recommended gain (higher reliability)
-   - 2.00%+: Strong signal
-3. **Volume > previous day's volume** (mandatory)
-   - This confirms institutional participation
-   - Volume does not need to exceed the 50-day average, though it's a positive if it does
+**기본 기준:** 종가 > 전일 종가 (상승일)
 
-### Day Counting Rules
-- Day 1 = first qualifying up day after swing low
-- Day 2, 3, etc. = every subsequent trading day (regardless of whether it's up or down)
-- Days count continues as long as the rally is not invalidated
-- The FTD itself must be an up day meeting the gain and volume requirements
+**대체 기준:** 종가가 당일 가격 변동폭의 상위 50% 이내에 마감
+- 공식: (종가 - 저가) / (고가 - 저가) >= 0.50
+- 당일 종가가 전일 종가를 넘지 못하더라도, 장중 저점 대비 크게 반등 마감한 날을 포착하기 위함
 
-### Prime vs Late Window
+### 2-3일차 건전성 확인 (Day 2-3 Integrity Check)
+랠리 시도가 2, 3일차까지 유효하려면:
 
-**Day 4-7 (Prime):**
-- Historically higher success rate
-- Base quality score: 60 points
-- Institutional buyers are more likely to have conviction
+- **종가가 1일차의 '장중 저점'을 하향 돌파해서는 안 됨** (종가가 아닌 *저점*)
+- 이것은 엄격한 규칙으로, 단 하루라도 1일차 저점 아래로 마감하면 랠리 시도는 무효화됨
+- 2일차와 3일차는 반드시 상승일일 필요는 없으며, 1일차 저점 밑으로 마감하지만 않으면 됨
 
-**Day 8-10 (Late):**
-- Still valid but statistically weaker
-- Base quality score: 50 points
-- May indicate hesitant institutional buying
+### 랠리 무효화 및 리셋 (Rally Invalidation)
+다음과 같은 경우 랠리 시도가 완전히 초기화됩니다:
 
-**After Day 10:**
-- No longer qualifies as a traditional FTD
-- Rally without FTD by Day 10 is a warning sign
-- May still develop into an uptrend but reliability drops significantly
+1. **임의의 날짜 종가가 스윙 로우 가격 밑으로 떨어질 때** → 새로운 스윙 로우 후보에서 다시 시작
+2. **2일차 또는 3일차 종가가 1일차 장중 저점 밑으로 마감될 때** → 새로운 1일차를 다시 기다려야 함
+
+랠리가 초기화될 경우 더 낮아진 새로운 가격이 새로운 스윙 로우가 될 수 있으며, 사이클이 다시 시작됩니다.
 
 ---
 
-## Step 4: Dual-Index Confirmation
+## 3단계: FTD 발생 구간 (FTD Window - 4~10일차)
 
-### Single-Index FTD
-An FTD on either the S&P 500 or NASDAQ is sufficient to trigger the signal. The signal is actionable on a single-index confirmation.
+### FTD 자격 요건 (FTD Qualification Criteria)
+팔로스루 데이는 다음 **모든** 조건을 충족해야 합니다:
 
-### Dual-Index FTD
-When both S&P 500 and NASDAQ produce FTDs (within a few days of each other):
-- Significantly higher reliability
-- Quality score bonus: +15 points
-- Indicates broader institutional conviction
-- Both growth and value participants are buying
+1. **랠리 시도의 4~10일차** (4~7일차가 최적기이며 8~10일차도 여전히 유효함)
+2. **가격 상승폭 >= 1.25%** (최소 임계치)
+   - 1.25~1.49%: 최소 자격 획득 수준
+   - 1.50~1.99%: 권장 상승폭 (신뢰도 높음)
+   - 2.00%+: 강력한 시그널
+3. **거래량 > 전일 거래량** (필수)
+   - 기관 참여를 확인하는 척도
+   - 50일 평균 거래량을 초과할 필요는 없지만, 초과하면 긍정적
 
-### Index Discrepancy
-When one index confirms FTD but the other is still in rally attempt or correction:
-- FTD is still valid from the confirming index
-- Monitor the lagging index for convergence or divergence
-- Divergence (one fails while other holds) is a cautionary signal
+### 날짜 계산 규칙 (Day Counting Rules)
+- 1일차 = 스윙 로우 이후 요건을 갖춘 첫 상승일
+- 2, 3, 4일차 등 = 상승/하락 여부와 상관없는 이후의 모든 거래일
+- 랠리가 무효화되지 않는 한 일수 계산은 지속됨
+- FTD 당일은 반드시 상승폭과 거래량 요건을 충족하는 날이어야 함
+
+### 최적기 vs 지연 구간 (Prime vs Late Window)
+
+**4~7일차 (Prime):**
+- 역사적으로 더 높은 성공 확률
+- 기본 품질 점수: 60점 부여
+- 기관 매수자들이 확신을 가지고 있을 가능성이 더 큼
+
+**8~10일차 (Late):**
+- 유효하지만 통계적으로 약함
+- 기본 품질 점수: 50점 부여
+- 기관의 매수세가 망설여질 수 있음을 시사함
+
+**10일차 이후 (After Day 10):**
+- 더 이상 전통적인 FTD로 간주하지 않음
+- 10일차까지 FTD가 나오지 않는 랠리는 경고 신호임
+- 여전히 상승 추세로 발전할 수는 있으나 신뢰도가 크게 떨어짐
 
 ---
 
-## Quality Score Framework
+## 4단계: 이중 지수 동시 확인 (Dual-Index Confirmation)
 
-### Score Components (0-100)
+### 단일 지수 FTD (Single-Index FTD)
+S&P 500 또는 NASDAQ 둘 중 한 곳에서만 FTD가 발생해도 시그널이 성립하며 조치(actionable)를 취할 수 있습니다.
 
-| Factor | Criteria | Points |
+### 이중 지수 FTD (Dual-Index FTD)
+S&P 500과 NASDAQ 모두 며칠 혹은 동일 날짜 이내에 함께 FTD를 발생시킬 경우:
+- 신뢰도가 현저히 높아짐
+- 품질 점수 보너스: +15점
+- 더 광범위한 기관의 확신을 나타냄
+- 가치주 참여자와 성장주 참여자가 모두 매수함
+
+### 지수 간 불일치 (Index Discrepancy)
+한 지수에서는 FTD가 확인되었으나 다른 지수는 여전히 랠리 시도 중이거나 조정 중인 경우:
+- 확인된 지수의 FTD는 유효함
+- 지연 중인 지수가 수렴하는지 아니면 괴리가 지속(divergence)되는지 관찰 필요
+- 약세 다이버전스(한 지수는 실패, 한 지수는 성공하는 등)는 주의를 요하는 시그널
+
+---
+
+## 품질 점수 프레임워크 (Quality Score Framework)
+
+### 점수 구성 요소 (Score Components) (0-100)
+
+| 요인 (Factor) | 기준 (Criteria) | 점수 (Points) |
 |--------|----------|--------|
-| **Base (FTD Day)** | Day 4-7 | 60 |
-| | Day 8-10 | 50 |
-| **Price Gain** | >= 2.0% | +15 |
+| **발생일자 (Base)** | 4~7일차 (Day 4-7) | 60 |
+| | 8~10일차 (Day 8-10) | 50 |
+| **가격 상승폭 (Gain)** | >= 2.0% | +15 |
 | | >= 1.5% | +10 |
 | | >= 1.25% | +5 |
-| **Volume vs 50-day Avg** | Above average | +10 |
-| | Below average | +0 |
-| **Dual Index Confirm** | Both S&P 500 + NASDAQ | +15 |
-| | Single index | +0 |
-| **Post-FTD Health** | No distribution (5 days) | +10 |
-| | Distribution Day 4-5 | -5 |
-| | Distribution Day 3 | -15 |
-| | Distribution Day 1-2 | -30 |
+| **거래량 (Volume vs 50d Avg)** | 50일 평균치 상회 (Above avg) | +10 |
+| | 50일 평균치 하회 (Below avg) | +0 |
+| **지수 이중 확인 (Dual Confirm)** | S&P 500 + NASDAQ 모두 발생 | +15 |
+| | 단일 지수 발생 | +0 |
+| **FTD 이후 건전성 (Post-FTD Health)**| 5일간 분산일 없음 (No dist) | +10 |
+| | 4~5일차 분산일 발생 | -5 |
+| | 3일차 분산일 발생 | -15 |
+| | 1~2일차 분산일 발생 | -30 |
 
-### Interpretation
+### 해석 (Interpretation)
 
-| Score | Signal | Recommended Exposure |
+| 점수 | 시그널 | 권장 주식 노출 비율 |
 |-------|--------|---------------------|
-| 80-100 | Strong FTD | 75-100% equity |
-| 60-79 | Moderate FTD | 50-75% equity |
-| 40-59 | Weak FTD | 25-50% equity |
-| < 40 | No FTD / Failed | 0-25% equity |
+| 80-100 | 강한 FTD (Strong) | 75~100% (주식 비중) |
+| 60-79 | 중간 FTD (Moderate) | 50~75% (주식 비중) |
+| 40-59 | 약한 FTD (Weak) | 25~50% (주식 비중) |
+| < 40 | FTD 없음/실패 (Failed) | 0~25% (주식 비중) |
 
 ---
 
-## Historical FTD Examples
+## 역사적 FTD 사례 (Historical FTD Examples)
 
-### March 2020 (COVID Crash)
-- **Swing Low:** March 23, 2020 (S&P 500: ~2,237)
-- **Day 1:** March 24, 2020 (+9.4%)
-- **FTD:** April 2, 2020 (Day 8 of rally, +2.3% on higher volume)
-- **Outcome:** Successful - began one of the strongest bull markets in history
-- **Quality:** Moderate (Day 8 = late window, but strong gain and volume)
-- **Note:** Multiple failed rally attempts preceded this successful one
+### 2020년 3월 (코로나 폭락장)
+- **스윙 로우:** 2020년 3월 23일 (S&P 500: ~2,237)
+- **1일차:** 2020년 3월 24일 (+9.4%)
+- **FTD:** 2020년 4월 2일 (랠리 8일차, 전일 대비 거래량 증가 +2.3% 상승)
+- **결과:** 성공 - 역사상 가장 강력한 강세장 중 하나가 시작됨
+- **품질:** 중간 (8일차=지연 구간이지만, 강한 폭의 상승과 거래량 수반)
+- **비고:** 성공적인 랠리 이전 여러 번의 랠리 실패 시도가 있었음
 
-### October 2022 (Bear Market Bottom)
-- **Swing Low:** October 13, 2022 (S&P 500: ~3,491)
-- **Day 1:** October 14, 2022 (+2.6%)
-- **FTD:** October 21, 2022 (Day 6, +2.4% on higher volume)
-- **Outcome:** Successful - confirmed the end of the 2022 bear market
-- **Quality:** High (Day 6 = prime window, strong gain, above-avg volume)
+### 2022년 10월 (약세장 바닥)
+- **스윙 로우:** 2022년 10월 13일 (S&P 500: ~3,491)
+- **1일차:** 2022년 10월 14일 (+2.6%)
+- **FTD:** 2022년 10월 21일 (6일차, 전일 대비 거래량 증가 +2.4% 상승)
+- **결과:** 성공 - 2022년 약세장의 종료를 확인
+- **품질:** 높음 (6일차=최적기, 높은 상승폭, 평균 이상 거래량)
 
-### June 2022 (Failed FTD)
-- **Swing Low:** June 17, 2022 (S&P 500: ~3,666)
-- **FTD:** Late June 2022
-- **Outcome:** Failed - market made new lows by September 2022
-- **Lesson:** FTD occurred but distribution days followed quickly; market environment (rising rates, inflation) was hostile
+### 2022년 6월 (실패한 FTD)
+- **스윙 로우:** 2022년 6월 17일 (S&P 500: ~3,666)
+- **FTD:** 2022년 6월 말 무렵 발생
+- **결과:** 실패 - 결국 2022년 9월까지 시장은 새로운 저점을 경신함
+- **교훈:** FTD가 발생했지만 곧바로 여러 번의 분산일이 뒤따랐음; 시장 환경(금리인상, 인플레)이 우호적이지 않았음
 
-### December 2018 (Christmas Eve Low)
-- **Swing Low:** December 24, 2018 (S&P 500: ~2,351)
-- **FTD:** January 4, 2019 (Day 6, +3.4% on higher volume)
-- **Outcome:** Successful - powerful rally through 2019
-- **Quality:** Very high (prime window, strong gain, Fed pivot as catalyst)
+### 2018년 12월 (크리스마스 이브 저점)
+- **스윙 로우:** 2018년 12월 24일 (S&P 500: ~2,351)
+- **FTD:** 2019년 1월 4일 (6일차, 전일 거래량 증가 +3.4% 상승)
+- **결과:** 성공 - 2019년 내내 이어진 강력한 랠리
+- **품질:** 매우 높음 (최적기, 매우 강한 상승폭, 연준(Fed)의 정책 전환 기대감)
 
 ---
 
-## Common Mistakes
+## 흔히 하는 실수들 (Common Mistakes)
 
-1. **Buying before FTD confirmation:** Acting on Day 1-3 before FTD is confirmed
-2. **Ignoring volume:** A large gain without volume increase is NOT an FTD
-3. **Counting wrong:** Including non-trading days or resetting day count incorrectly
-4. **Single vs. dual index:** Treating single-index FTD as equivalent to dual-index
-5. **Ignoring post-FTD distribution:** Not monitoring for early distribution days
-6. **FTD ≠ all clear:** Treating FTD as guarantee rather than probability shift
+1. **FTD 확정 전에 매수:** 시그널 확정 없이 1-3일차에 성급히 매수 행동 개시
+2. **거래량 무시:** 거래량 증가 없는 큰 폭의 상승은 FTD 요건 미충족
+3. **날짜 계산 오류:** 휴장일을 거래일에 포함하거나 리셋(초기화) 카운트를 잘못 계산
+4. **단일 지수 vs 이중 지수 혼동:** 단일 지수 상승만으로 이중 지수와 동일한 신뢰도를 부여하는 것
+5. **FTD 이후 분산일 관찰 소홀:** 랠리 직후 초반에 나타나는 출회(분산일) 시그널 체크 부재
+6. **"FTD = 100% 안전 보장"이라는 오해:** 확률적 이점일 뿐 보장된 시그널로 착각하여 리스크 관리를 소홀히 하는 것

@@ -1,185 +1,185 @@
-# Post-FTD Monitoring Guide
+# FTD 이후 모니터링 가이드 (Post-FTD Monitoring Guide)
 
-## Overview
+## 개요 (Overview)
 
-A confirmed Follow-Through Day (FTD) shifts the probability toward a new uptrend, but approximately 75% of FTDs ultimately fail. Post-FTD monitoring is essential for:
-1. Confirming the signal is working (exposure increase)
-2. Detecting early failure (exposure reduction)
-3. Identifying Power Trend confirmation (maximum conviction)
+확인된 팔로스루 데이(FTD)는 새로운 상승 추세로의 확률 변화를 나타내지만, 약 75%의 FTD는 궁극적으로 실패합니다. 따라서 FTD 이후 모니터링은 다음을 위해 필수적입니다:
+1. 시그널이 올바르게 작동하고 있는지 확인 (노출 비중 확대)
+2. 초기의 실패 조짐 감지 (노출 비중 축소)
+3. 파워 트렌드 확증 식별 (최대 확신 단계)
 
 ---
 
-## Distribution Day Monitoring After FTD
+## FTD 이후 분산일 모니터링 (Distribution Day Monitoring After FTD)
 
-### What Is a Post-FTD Distribution Day?
-A distribution day after an FTD is defined as:
-- Index declines >= 0.2% from the prior day's close
-- Volume is higher than the previous day's volume
-- Occurs within the first 5 trading days after the FTD
+### FTD 이후 분산일이란? (What Is a Post-FTD Distribution Day?)
+FTD 이후 발생하는 분산일은 다음과 같이 정의됩니다:
+- 지수가 전일 종가 대비 0.2% 이상 하락
+- 거래량이 전일 거래량보다 많음
+- FTD 발생 후 최초 5거래일 이내에 발생
 
-### Failure Rate by Distribution Timing
+### 분산일 발생 시점에 따른 실패율 (Failure Rate by Distribution Timing)
 
-| Distribution Timing | Failure Rate | Quality Score Impact | Action |
+| 분산일 발생 시점 | 실패율 | 품질 점수 영향 | 조치 사항 (Action) |
 |--------------------|-------------|---------------------|--------|
-| **Day 1 after FTD** | ~85% fail | -30 points | Immediately reduce exposure |
-| **Day 2 after FTD** | ~80% fail | -30 points | Reduce to defensive levels |
-| **Day 3 after FTD** | ~65% fail | -15 points | Tighten stops significantly |
-| **Day 4 after FTD** | ~50% fail | -5 points | Moderate caution |
-| **Day 5 after FTD** | ~45% fail | -5 points | Normal monitoring |
-| **No distribution (5 days)** | ~35% fail | +10 points | Increase conviction |
+| **FTD 직후 1일차** | ~85% 실패 | -30점 차감 | 주식 노출 비중 즉각 축소 |
+| **FTD 이후 2일차** | ~80% 실패 | -30점 차감 | 방어적인 수준으로 비중 축소 |
+| **FTD 이후 3일차** | ~65% 실패 | -15점 차감 | 손절폭을 눈에 띄게 조이기 (타이트한 관리) |
+| **FTD 이후 4일차** | ~50% 실패 | -5점 차감 | 중간 정도의 주의 필요 |
+| **FTD 이후 5일차** | ~45% 실패 | -5점 차감 | 정상적인 모니터링 진행 |
+| **분산일 없음 (초반 5일간)** | ~35% 실패 | +10점 가산 | 상승장에 대한 확신 증대 |
 
-**Key Insight:** The earlier distribution appears after an FTD, the more likely the FTD will fail. Distribution within the first 2 days is a near-certain failure signal.
+**핵심 통찰:** FTD 이후에 분산일이 일찍 나타날수록 FTD가 실패할 가능성이 높아집니다. 첫 이틀 내에 발생하는 분산일은 거의 확실한 실패 시그널입니다.
 
-### Multiple Distribution Days
-- 2+ distribution days within 5 days of FTD: ~90% failure rate
-- Even if individual days are in the "moderate" timing zone (Day 4-5), accumulation of distribution is bearish
-
----
-
-## FTD Invalidation
-
-### Invalidation Criteria
-An FTD is formally invalidated when:
-- **Index closes below the FTD day's intraday low**
-- This is a hard stop - the FTD signal is no longer valid
-
-### What to Do After Invalidation
-1. Reduce equity exposure to defensive levels (0-25%)
-2. Do NOT try to average down or hold through
-3. Wait for a new swing low and fresh rally attempt
-4. The previous FTD failure provides no information about the next attempt
-
-### Soft Warnings (Not Yet Invalidated)
-- Close approaches but doesn't breach FTD low: heightened caution
-- Intraday breach but close above: technically valid but weak
-- Slow grinding decline toward FTD low: consider preemptive reduction
+### 다수의 분산일 발생 (Multiple Distribution Days)
+- FTD 이후 5거래일 내에 분산일이 2일 이상 발생 시: 약 90%의 실패율
+- 개별 분산일이 "보통" 수준의 타이밍(4~5일차)에 나타났다 하더라도, 분산일의 누적은 약세 신호입니다.
 
 ---
 
-## Power Trend Confirmation
+## FTD 무효화 (FTD Invalidation)
 
-### Definition
-A Power Trend is the strongest bullish condition in O'Neil's framework. It occurs when three conditions are simultaneously true:
+### 무효화 기준 (Invalidation Criteria)
+FTD는 다음과 같은 경우 공식적으로 무효화됩니다:
+- **지수가 FTD 당일의 장중 저점 밑으로 마감하는 경우**
+- 이는 절대적인 조건(hard stop)으로, 이제 FTD 시그널은 더 이상 유효하지 않습니다.
 
-1. **21-day EMA > 50-day SMA** (short-term momentum above medium-term trend)
-2. **50-day SMA slope is positive** (rising over the last 5 trading days)
-3. **Price above 21-day EMA** (current price confirming the trend)
+### 무효화 이후 조치 (What to Do After Invalidation)
+1. 주식 비중을 방어적인 수준(0~25%)으로 줄일 것
+2. 물타기(평단가 낮추기)를 하거나 억지로 버티려 하지 말 것
+3. 새로운 스윙 로우(단기 저점)와 새로운 랠리 시도가 올 때까지 대기할 것
+4. 이전 FTD가 실패했다고 해서, 다음 랠리 시도가 어떻게 될지 미리 알 수는 없음
 
-### Significance
-- Power Trend + FTD = highest conviction bottom signal
-- Historically, markets in Power Trend have very low probability of immediate failure
-- Power Trend typically develops 2-4 weeks after a successful FTD
-- Not required for FTD validity, but serves as strong confirmation
+### 약한 경고 신호 (무효화되지는 않았으나 위험한 징후) (Soft Warnings)
+- 주가가 FTD 저점 근처까지 접근하지만 뚫지는 않고 마감: 높은 수준의 주의 필요
+- 장중에는 FTD 저점을 하향 이탈했으나 종가는 위에서 마감: 기술적으로는 유효하나 약한 상태
+- 천천히, 지속적으로 FTD 저점을 향해 파고드는 하락: 선제적인 비중 축소 고려
 
-### Power Trend Conditions Breakdown
+---
 
-| Conditions Met | Interpretation |
+## 파워 트렌드 확증 (Power Trend Confirmation)
+
+### 정의 (Definition)
+파워 트렌드는 윌리엄 오닐의 프레임워크에서 가장 강력한 강세 조건입니다. 다음 세 가지 조건이 동시에 참일 때 발생합니다:
+
+1. **21일 EMA > 50일 SMA** (단기 모멘텀이 중기 추세 위에 있음)
+2. **50일 SMA의 기울기가 양수** (최근 5거래일 동안 상승 중)
+3. **주가가 21일 EMA 위에 위치** (현재 가격이 추세를 뒷받침함)
+
+### 중요성 (Significance)
+- 파워 트렌드 + FTD = 바닥 시그널에 대한 가장 강력한 확신
+- 역사적으로, 파워 트렌드에 진입한 시장이 곧바로 실패할 확률은 매우 낮습니다.
+- 파워 트렌드는 성공적인 FTD 발생 후 보통 2~4주 후에 형성됩니다.
+- FTD의 유효성을 위한 필수 조건은 아니지만, 매우 강력한 확인 도구로 작용합니다.
+
+### 파워 트렌드 충족 조건 분석 (Power Trend Conditions Breakdown)
+
+| 충족된 조건 수 | 해석 (Interpretation) |
 |---------------|---------------|
-| 3/3 | Full Power Trend - maximum conviction |
-| 2/3 | Developing trend - monitor for completion |
-| 1/3 | No Power Trend - rely on other signals |
-| 0/3 | Bearish structure - be cautious despite FTD |
+| 3/3 | 완전한 파워 트렌드 - 최대의 확신 가짐 |
+| 2/3 | 형성 중인 추세 - 완성되는지 주시 |
+| 1/3 | 파워 트렌드 아님 - 다른 시그널에 의존할 것 |
+| 0/3 | 약세 구조 (Bearish) - FTD에도 불구하고 주의 요망 |
 
 ---
 
-## FTD Success vs Failure Patterns
+## FTD의 성공 및 실패 패턴 (FTD Success vs Failure Patterns)
 
-### Characteristics of Successful FTDs
+### 성공적인 FTD의 특징 (Characteristics of Successful FTDs)
 
-| Factor | Successful Pattern |
+| 팩터 (Factor) | 성공 빈도 높은 패턴 (Successful Pattern) |
 |--------|--------------------|
-| **Day Timing** | Day 4-7 (prime window) |
-| **Gain** | 2.0%+ on heavy volume |
-| **Volume** | Above 50-day average |
-| **Dual Index** | Both S&P 500 and NASDAQ confirm |
-| **Post-FTD** | Clean first 3-5 days (no distribution) |
-| **Leading Stocks** | Many breakouts from proper bases |
-| **Sector Breadth** | Multiple sectors participating |
-| **Catalyst** | Identifiable positive catalyst (Fed pivot, earnings surprise) |
-| **Power Trend** | Develops within 2-4 weeks |
+| **발생 타이밍** | 랠리 4~7일차 (최적기) |
+| **상승폭** | 강력한 거래량을 수반한 2.0% 이상 상승 |
+| **거래량** | 50일 평균치 상회 |
+| **이중 지수** | S&P 500과 NASDAQ 모두에서 동시 발생(확인) |
+| **FTD 직후 반응** | 초반 3~5일간 노이즈 없는 깨끗한 상승 (분산일 없음) |
+| **주도주 양상** | 훌륭한 베이스를 형성한 다수 종목들이 돌파 성공 |
+| **섹터 확산** | 여러 섹터에서 골고루 상승에 참여 (빵빵한 장세) |
+| **모멘텀 촉매** | 연준(Fed)의 정책 전환, 어닝 서프라이즈 같은 긍정적 기폭제 |
+| **파워 트렌드** | 2~4주 이내에 파워 트렌드로 발전 |
 
-### Characteristics of Failed FTDs
+### 실패한 FTD의 특징 (Characteristics of Failed FTDs)
 
-| Factor | Failure Pattern |
+| 팩터 (Factor) | 실패 빈도 높은 패턴 (Failure Pattern) |
 |--------|--------------------|
-| **Day Timing** | Day 8-10 (late window) |
-| **Gain** | Minimum qualifying (1.25-1.49%) |
-| **Volume** | Below 50-day average |
-| **Dual Index** | Only one index confirms |
-| **Post-FTD** | Distribution within first 2 days |
-| **Leading Stocks** | Few/no quality breakouts |
-| **Sector Breadth** | Narrow participation (1-2 sectors) |
-| **Catalyst** | No clear catalyst, or hostile macro backdrop |
-| **Power Trend** | Never develops, 50 SMA continues declining |
+| **발생 타이밍** | 랠리 8~10일차 (지연 구간) |
+| **상승폭** | 상승 기준 턱걸이 (1.25~1.49%) |
+| **거래량** | 50일 평균치 하회 |
+| **이중 지수** | 단 하나의 지수에서만 확인됨 |
+| **FTD 직후 반응** | 첫 이틀 내에 곧바로 분산일(출회일) 발생 |
+| **주도주 양상** | 돌파를 제대로 해내는 고품질 셋업 종목이 적거나 없음 |
+| **섹터 확산** | 극소수 1~2개 섹터만 참여하는 좁은 랠리 |
+| **모멘텀 촉매** | 특별한 이유가 없거나, 매크로 등 외부 환경이 비우호적 |
+| **파워 트렌드** | 형성되지 않으며, 50일 SMA는 지속적인 우하향 |
 
 ---
 
-## Exposure Management After FTD
+## FTD 이후 포지션 관리 (Exposure Management After FTD)
 
-### Graduated Exposure Model
+### 점진적 노출 모델 (Graduated Exposure Model)
 
-The O'Neil approach uses progressive exposure increase, not all-at-once buying:
+윌리엄 오닐의 접근 방식은 단번에 풀배팅하는 것이 아니라 점진적으로 비중을 높이는 것입니다:
 
-**Phase 1: Initial (FTD Day)**
-- Start at 25% of target exposure
-- Buy 1-2 leading stocks breaking out of bases
-- Use FTD day's low as initial stop reference
+**1단계: 초기 진입 (FTD 발생 당일)**
+- 목표 주식 비중의 25% 수준에서 시작
+- 베이스를 돌파하는 1~2개의 주도주 위주로 매수
+- FTD 당일의 저점을 1차 손절 기준선으로 설정
 
-**Phase 2: Confirmation (Days 1-5 post-FTD)**
-- If no distribution: increase to 50% exposure
-- Add positions in additional leaders
-- Tighten stops on initial positions to breakeven
+**2단계: 확인 단계 (FTD 이후 1~5일차)**
+- 분산일이 없다면: 주식 비중을 50%까지 증대
+- 다른 주도주들에 대해서도 포지션 추가
+- 초기 진입 포지션의 손절 기준을 본전 부근으로 타이트하게 끌어올림
 
-**Phase 3: Acceleration (Days 5-15 post-FTD)**
-- If trend confirms (clean action, breakouts working): increase to 75%
-- Pyramid into winning positions
-- Look for Power Trend development
+**3단계: 가속 단계 (FTD 이후 5~15일차)**
+- 상승 추세임이 확인되면(움직임이 깨끗하고 돌파가 먹히는 장세): 75%까지 비중 확대
+- 수익이 나는 포지션에 피라미딩(불타기) 진행
+- 파워 트렌드로의 발전 여부 관찰
 
-**Phase 4: Full Exposure (2-4 weeks post-FTD)**
-- If Power Trend develops: full 100% exposure
-- Focus on strongest leaders
-- Normal stop-loss management
+**4단계: 전체 노출 (FTD 이후 2~4주 후)**
+- 파워 트렌드가 확인되면: 100% (풀 베팅) 비중 유지
+- 가장 강한 주도주들에 집중
+- 트레일링 스탑 추세 관리를 통해 정상적인 손절 관리 적용
 
-### Exposure Reduction Triggers
+### 노출 축소 트리거 (Exposure Reduction Triggers)
 
-| Trigger | Action |
+| 트리거 발생 | 액션 플랜 (Action) |
 |---------|--------|
-| Distribution Day 1-2 post-FTD | Cut to 0-25% |
-| Distribution Day 3 post-FTD | Cut to 25-50% |
-| FTD invalidated | Cut to 0-25% |
-| Breakouts failing (stocks reversing after breakout) | Reduce by 25% |
-| No quality setups forming | Don't force increase |
+| FTD 직후 1~2일차 내에 분산일 발생 | 0~25%로 비중 폭락 |
+| FTD 직후 3일차에 분산일 발생 | 25~50%로 비중 삭감 |
+| FTD 무효화 발생 | 0~25%로 비중 원상 복구 |
+| 돌파의 실패 (돌파 직후 주가가 바로 고꾸라짐) | 평가손익 대비 비중 25% 감축 |
+| 변변찮은 돌파 셋업이나 качественный 종목 부재 | 억지로 포지션을 확대하지 말 것 |
 
 ---
 
-## Interaction with Market Top Detector
+## 시장 고점 탐지기와의 상호작용 (Interaction with Market Top Detector)
 
-The FTD Detector and Market Top Detector are complementary:
+FTD 탐지기(FTD Detector)와 시장 고점 탐지기(Market Top Detector)는 상호 보완적인 관계입니다:
 
-### During Correction (Top Detector score 60+):
-1. Top Detector signals defensive posture
-2. FTD Detector watches for bottom signals
-3. When FTD confirms, begin transitioning from defensive to offensive
+### 조정장 발생 시점 (Top Detector score 60점 이상):
+1. 고점 탐지기가 방어적 대응을 시사함
+2. FTD 탐지기가 시장의 바닥 신호를 관찰하기 시작함
+3. FTD가 컨펌되면, 방어적 태세에서 공격적 태세로의 전환을 서서히 시작함
 
-### During FTD Confirmed:
-1. FTD Detector guides exposure increase
-2. Top Detector should show declining score (improving conditions)
-3. If Top Detector score remains high despite FTD, exercise extra caution
+### FTD 확정(Confirmed) 시점:
+1. FTD 탐지기의 가이드라인에 따라 주식 비중 확대
+2. 고점 탐지기 점수는 하락 추세여야 함 (시장 상황의 개선을 반영)
+3. FTD가 떴음에도 불구하고 고점 탐지기 점수가 높게 연지된다면 특별히 주의를 기울여야 함
 
-### Signal Conflict Resolution:
-- FTD confirmed but Top Detector still 60+: proceed with caution, use smaller position sizes
-- FTD confirmed and Top Detector below 40: higher conviction signal
-- FTD invalidated: defer to Top Detector for defensive guidance
+### 신호 충돌 시 해결법 (Signal Conflict Resolution):
+- FTD는 확정되었으나 고점 탐지기가 여전히 60점 이상: 적은 포지션 사이즈만 가져가며 조심스럽게 진행
+- FTD는 확정되었고 고점 탐지기는 40점 미만: 훨씬 높은 수준의 확신을 주는 신호
+- FTD 무효화: 방어적 가이던스를 받기 위해 고점 탐지기에 다시 크게 의존할 것
 
 ---
 
-## Historical Success Rate Context
+## 역사적 성공 확률에 대한 이해 (Historical Success Rate Context)
 
-Based on IBD historical analysis of FTDs since 1900:
+1900년 이후의 FTD를 대상으로 한 IBD 역사적 분석을 토대로 한 컨텍스트:
 
-- **Overall FTD success rate:** ~25% (1 in 4 leads to sustained uptrend)
-- **FTDs with quality score 80+:** ~45-50% success rate
-- **FTDs with quality score 60-79:** ~30-35% success rate
-- **FTDs with quality score below 60:** ~10-15% success rate
+- **전체 평균 성공률:** ~25% (4번 중 1번만 지속적인 상승 추세로 안착)
+- **품질 점수 80점 이상의 FTD:** ~45~50% 성공률
+- **품질 점수 60~79점의 FTD:** ~30~35% 성공률
+- **품질 점수 60점 미만의 FTD:** ~10~15% 성공률
 
-The quality scoring system effectively filters the ~75% failure rate down to a more manageable ~50-55% for high-quality signals. Combined with proper stop-loss management, this creates a positive expected value system despite the sub-50% win rate, because winners significantly outperform losers when properly managed.
+이 품질 점수 측정(scoring) 시스템은 약 75%의 무작위 실패율을 고품질 신호에 국한하여 관리 가능한 수준인 50~55%까지 끌어내립니다. 적절한 손절 관리와 함께 결합될 때 승률이 50% 미만임에도 불구하고 양의 기댓값(+) 시스템을 만들어낼 수 있습니다. 이는, 제대로 된 관리가 이뤄질 시 이기는 포지션의 수익이 지는 포지션의 손실을 현저히 상회하기 때문입니다.

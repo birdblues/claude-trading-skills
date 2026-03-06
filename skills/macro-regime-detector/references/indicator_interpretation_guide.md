@@ -1,144 +1,144 @@
-# Indicator Interpretation Guide
+# 매크로 지표 해석 가이드 (Indicator Interpretation Guide)
 
-Quick reference for interpreting each component's output values and signals.
+각 구성 지표의 산출값과 그것이 암시하는 시그널을 신속하게 해석하기 위한 레퍼런스 문서입니다.
 
-## Component 1: Market Concentration (RSP/SPY)
+## 구성요소 1: 시장 집중도 (Market Concentration (RSP/SPY))
 
-**What it measures**: Relative performance of equal-weight S&P 500 vs cap-weight S&P 500.
+**측정 대상**: 동일가중치 S&P 500(RSP)과 시가총액 가중 S&P 500(SPY) 간의 상대적 퍼포먼스 비교.
 
-| RSP/SPY Trend | Interpretation | Regime Signal |
+| RSP/SPY 추세 | 해석 요법 | 레짐 시그널 |
 |---------------|---------------|---------------|
-| Declining | Mega-caps outperforming, market narrowing | Concentration |
-| Rising | Broader participation, equal-weight catching up | Broadening |
-| Bottoming + turning | Potential regime shift from concentration to broadening | Transition |
+| 하락중 | 극소수 초대형주만 독주함, 시장의 상승폭(breadth)이 극도로 좁아짐 | 집중화 (Concentration) |
+| 상승중 | 시장 전반 다수 종목들이 상승 참여, 동일가중 지수가 시총지수를 따라잡음 | 확산 (Broadening) |
+| 바닥 턴어라운드 | 집중화 장세가 끝나고 저변이 넓어지는 새로운 국면으로의 진입을 암시함 | 전환기 (Transition) |
 
-**Key levels** (approximate, varies over time):
-- 0.28-0.29: Extreme concentration (2024 lows)
-- 0.30-0.32: Moderate concentration
-- 0.33+: Broadening phase
+**핵심 레벨 (Reference levels)** (대략적이며, 시기에 따라 변동 가능):
+- 0.28-0.29 구간: 극단적 편중/집중화 (2024년 기록적 최저점)
+- 0.30-0.32 구간: 중간~다소 높은 수준의 집중화
+- 0.33+ 초과: 시장 확산(Broadening) 진행 구간
 
-**Crossover interpretation**:
-- Golden cross (6M > 12M): Broadening gaining momentum
-- Death cross (6M < 12M): Concentration deepening
+**크로스오버 해석 (Crossover interpretation)**:
+- 골든 크로스 (6M > 12M): 확산 장세가 모멘텀을 얻어 탄력받기 시작함
+- 데드 크로스 (6M < 12M): 특정 대형주로의 집중화 현상이 한층 더 심각해짐
 
-## Component 2: Yield Curve (10Y-2Y Spread)
+## 구성요소 2: 수익률 곡선 (Yield Curve (10Y-2Y Spread))
 
-**What it measures**: Shape of the Treasury yield curve, reflecting rate cycle position.
+**측정 대상**: 장단기 미 국채 수익률 곡선 스프레드 폭, 매크로 금리 사이클 상의 현 위치.
 
-| Spread Level | Curve State | Typical Environment |
+| 스프레드 수치 | 곡선 상태 | 전형적인 거시 환경 |
 |-------------|-------------|-------------------|
-| < -0.5% | Deeply inverted | Pre-recession, aggressive tightening |
-| -0.5% to 0% | Inverted | Late-cycle, recession risk elevated |
-| 0% to 0.5% | Flat/Normalizing | Transition period |
-| 0.5% to 1.5% | Normal | Mid-cycle expansion |
-| > 1.5% | Steep | Early recovery, accommodative policy |
+| < -0.5% 이하 | 깊은 피크 역전 | 침체 진입 직전, 숨 막힐 정도의 공격적 금리 긴축 환경 |
+| -0.5% ~ 0% 구간 | 역전 (Inverted) | 사이클 극후반기, 리세션(경기침체) 돌발 위험이 대폭 상향된 상태 |
+| 0% ~ 0.5% | 평탄화 / 정상화 진입과정 | 사이클 전환기 (Transition) |
+| 0.5% ~ 1.5% | 정상 범주 (Normal) | 경기 확장기 중반의 순조로운 국면 |
+| > 1.5% 초과 | 가파름 (Steep) | 경제 위기 직후의 회복기 초입, 시장 부양을 위한 대규모 비둘기적 초완화 상태 |
 
-**Direction signals**:
-- Steepening: Either rates normalizing (bull steepener) or long end rising (bear steepener)
-- Flattening: Late-cycle tightening or flight to long bonds
+**방향성 시그널 (Direction signals)**:
+- **가파름 (Steepening)**: 금리가 정상화되는 과정(불 스티프닝)이거나, 초장기물 채권 투매로 끝이 솟구치는 현상(베어 스티프닝) 중 하나를 의미.
+- **평탄화 (Flattening)**: 경기 사이클 후반에 나타나는 연준의 고금리 동결 여파거나 장기 안전 채권으로의 도피처 수요 쏠림 현상.
 
-**Fallback (SHY/TLT proxy)**: When Treasury API is unavailable, SHY/TLT ratio provides a rough proxy. Rising SHY/TLT ≈ flattening curve. Less precise than actual spread data.
+**대체 지표 (SHY/TLT proxy fallback)**: 재무부(Treasury) 금리 API 연동이 실패할 경우 편의상 단기채 ETF(SHY)와 장기채 ETF(TLT)의 가격 비율로 대체됩니다. SHY/TLT가 상승한다는 것은 수익률 곡선의 평탄화를 유사하게 뜻하지만 이 대리 데이터는 진짜 금리 데이터에 비해 정밀도가 떨어집니다.
 
-## Component 3: Credit Conditions (HYG/LQD)
+## 구성요소 3: 신용 여건 및 조건 (Credit Conditions (HYG/LQD))
 
-**What it measures**: Risk appetite in credit markets — willingness to hold junk bonds vs investment grade.
+**측정 대상**: 프라임 대비 정크 본드의 투자 수요 우위 비교 - 회사채 및 신용시장의 자금 대출 리스크 선호도를 의미.
 
-| HYG/LQD Trend | Interpretation | Regime Signal |
+| HYG/LQD 추세 | 해석 요법 | 레짐 시그널 |
 |---------------|---------------|---------------|
-| Rising | Credit risk appetite expanding | Risk-on, easing |
-| Falling | Flight to quality | Risk-off, tightening |
-| Stable | Established credit regime | No transition |
+| 상승 | 파산위험 하이일드 채권까지 수용함 - 시장 신용 여건 풀림, 호황 | 리스크 선호(Risk-on), 환경 완화 |
+| 하락 | 하이일드는 피하고 A급 우량채만 찾음 - 안전 자산으로의 대규모 엑소더스 도피 | 위험 회피(Risk-off), 금융 긴축 |
+| 보합 안정 | 현 신용 레짐이 그냥 그대로 견고하게 유지됨 | 국면 전환 없음 |
 
-**Why it matters**: Credit markets often lead equity markets. HYG/LQD deterioration preceded the 2020 crash by ~2 weeks and the 2008 crisis by ~3 months.
+**이것이 왜 중요한가**: 채권 신용 시장은 늘 주식시장보다 먼저 발동합니다. HYG/LQD 비율의 급격한 악화 및 붕괴는 2020년 코로나 주가 폭락 사태를 약 2주일 전 예고했으며, 2008년 리먼 사태를 주식보다 무려 3개월 먼저 선행하여 알렸습니다.
 
-**Warning levels**:
-- Sharp drop (ROC < -3% over 3 months): Potential credit event
-- Persistent decline with negative ROC: Late-cycle deterioration
-- Stable with positive ROC: Supportive environment for risk assets
+**경고 플래그 레벨**:
+- 급격한 폭락 (3개월 비율 변화 단기 ROC가 -3% 밑으로 깨짐): 중대한 기업 디폴트나 신용 이벤트 임박 가능성
+- 단기 ROC 음수 상태의 지속적인 기조적 하락 흐름: 경기 사이클 마지막 후반기(late-cycle)의 체력 저하
+- 견고하게 유지되며 단기 ROC 양수 기록: 위험 자산(성장주, 밈주식 등) 투자에 매우 든든한 바람막이 환경임
 
-## Component 4: Size Factor (IWM/SPY)
+## 구성요소 4: 규모 팩터 (Size Factor (IWM/SPY))
 
-**What it measures**: Relative performance of small-caps (Russell 2000) vs large-caps (S&P 500).
+**측정 대상**: 미국 시총 1000위권 밖 러셀 소형주(IWM) 코어티켓 vs S&P 500 대형주(SPY) 진영 간의 상대 성과.
 
-| IWM/SPY Trend | Interpretation | Regime Signal |
+| IWM/SPY 추세 | 해석 요법 | 레짐 시그널 |
 |---------------|---------------|---------------|
-| Rising | Small-caps outperforming — economic optimism | Broadening |
-| Falling | Large-cap preference — defensive/quality bias | Concentration |
-| Diverging from RSP/SPY | Inconsistent signal — check credit conditions | Uncertain |
+| 상승 | 소형주가 압도하는 강세장 — 실물 경제 호조 및 빚 수급 낙관론 | 확산 (Broadening) |
+| 하락 | 대형 기업만을 선호함 — 경제 방어력과 현금창출 퀄리티를 우대하는 보수적 방어 성향 | 편식 및 집중화 (Concentration) |
+| RSP/SPY 방향 불일치 | 시그널 모순 발생 — 신용 조건 지표를 크로스체킹해 숨겨진 이유 파악 필수 | 불확실 (Uncertain) |
 
-**Cycle position**:
-- Small-cap outperformance often starts 3-6 months before economic recovery becomes consensus
-- Small-cap underperformance accelerates in late-cycle as credit conditions tighten
-- IWM/SPY and RSP/SPY usually move together; divergence warrants investigation
+**사이클 현위치 (Cycle position)**:
+- 역사적으로 소형주의 폭발적 아웃퍼폼 랠리는, 대중의 경제 여론 컨센서스가 '침체 종료, 회복 확신'으로 모이기 무려 3-6개월도 전부터 기습적으로 출발해 시세를 크게 뿜는 경향이 짙음.
+- 경기 사이클의 완전한 후반기 파티 끝물 무렵 신용 조달 환경이 타이트해지며 이자 비용이 오르면 소형주의 언더퍼폼이 체감상 급속히 가속화됨.
+- IWM/SPY 와 상술된 RSP/SPY 팩터는 거의 짝꿍처럼 같이 맞물려 움직임; 두 지표가 서로 반대 길을 간다면 무언가 심각한 수급 노이즈가 발생했다는 증거이므로 정밀 추적이 요구됨.
 
-## Component 5: Equity-Bond Relationship (SPY/TLT + Correlation)
+## 구성요소 5: 주식-채권 커플링 관계성 (Equity-Bond Relationship (SPY/TLT + Correlation))
 
-**What it measures**: Two aspects of the stock-bond relationship.
+**측정 대상**: 주식 대 장기국채로 양분되는 안전/위험 자산 간의 비율 쏠림과 이 두 관계의 공생 상관계수.
 
-### SPY/TLT Ratio
+### 위험 자산 선호 비중 (SPY/TLT Ratio)
 
-| SPY/TLT Trend | Interpretation |
+| SPY/TLT 추세 | 해석 요법 |
 |---------------|---------------|
-| Rising | Equities outperforming bonds (risk-on) |
-| Falling | Bonds outperforming equities (risk-off) |
+| 상승 | 주식시장이 채권시장의 모든 퍼포먼스를 씹어먹는 중 (극단적 리스크 온) |
+| 하락 | 모든 자본이 주식시장을 버리고 국채 피난처로 쏠림 (리스크 오프, 패닉 증세) |
 
-### Stock-Bond Correlation (6-month rolling)
+### 최근 6개월 롤링 상관관계 (Stock-Bond Correlation)
 
-| Correlation | Regime | Implication |
+| 계수 (Correlation) | 레짐 분류 | 상황 암시 |
 |-------------|--------|-------------|
-| < -0.3 | Negative (normal) | Bonds effectively hedge equity risk |
-| -0.3 to 0 | Mildly negative | Hedging works but weakened |
-| 0 to 0.3 | Near zero | Transitional — hedging unreliable |
-| > 0.3 | Positive (inflationary) | Both move together — diversification fails |
+| < -0.3 이하 | 음의 상관관계 (정상, Normal) | 국채가 주식 하락 포트폴리오의 완충(헷지) 쿠션 역할을 온전하게 수행해줌 |
+| -0.3 ~ 0 구간 | 약한 음의 관계 | 헷지는 여전히 동작하나 방어 신뢰도가 조금씩 깨짐 |
+| 0 ~ 0.3 구간 | 0 부근 (제로) | 과도기/전환기 — 국채의 헷지방어력을 맹신할 수 없음 |
+| > 0.3 초과 | 강한 양(+)의 관계 (인플레이션 경계) | 주식과 채권이 동시에 한 방향으로 폭락/폭등함 — 전통적 자산 분산 투자의 완벽한 실패 |
 
-**Critical signal**: Correlation sign change (negative → positive or vice versa) is one of the most important regime signals. Positive correlation typically occurs during:
-- Inflation shocks (2022)
-- Stagflation concerns
-- Central bank credibility crises
+**가장 치명적인 척도 (Critical signal)**: 상관관계의 부호가 변하는 것(음수 → 양수 또는 반대)은 매크로-레짐 시그널 체계에서 가장 무겁고 거대한 신호입니다. 두 덩치가 연동되는 양의 상관관계가 나타나는 환경은 주로 다음입니다:
+- 대규모 인플레이션 쇼크 타격 구간 (예: 2022년)
+- 스태그플레이션이 현실로 닥칠 때
+- 중앙은행의 통화 정책에 대한 심각한 글로벌 신뢰 상실/패닉
 
-**Correlation bonus scoring**: When 6M and 12M correlation have opposite signs, an additional 20 points are added to the component score, reflecting the significance of this regime shift.
+**상관계수 보너스 스코어**: 본 시스템에서는 최근 6개월 상관계수와 12개월 상관계수의 부호 방향이 반대로 충돌할 경우(역전), 이 치명타 국면 전환의 강력함을 포트폴리오에 강제 반영하기 위해 구성요소 산출 점수에 페널티성 환산치 20점을 추가로 가산합니다.
 
-## Component 6: Sector Rotation (XLY/XLP)
+## 구성요소 6: 섹터 선호도 로테이션 (Sector Rotation (XLY/XLP))
 
-**What it measures**: Consumer sentiment through discretionary vs staples spending preference.
+**측정 대상**: 시장 투자자들이 경기순환형 임의소비재(사치성)와 불황 방어형 필수소비재 중 어느 쪽 소비 센티먼트에 돈을 베팅하고 있는지 진단.
 
-| XLY/XLP Trend | Interpretation | Regime Signal |
+| XLY/XLP 추세 | 해석 요법 | 레짐 시그널 |
 |---------------|---------------|---------------|
-| Rising | Consumer confidence, risk appetite | Risk-on, broadening |
-| Falling | Defensive positioning, consumer caution | Risk-off, contraction |
-| Stable | Established consumer sentiment | No transition |
+| 상승 | 강한 소비자 신뢰 지수, 대중 심리 호황 | 리스크 선호, 확산 (Broadening) |
+| 하락 | 방패 구비, 대중 소비 위축과 보복심리 둔화 | 리스크 회피, 수축 (Contraction) |
+| 보합 안정 | 소비자 심리 기조가 그냥 일치하며 이어짐 | 국면 전환 없음 |
 
-**Why Consumer Discretionary vs Staples**:
-- Most direct consumer-facing comparison
-- Staples demand is relatively inelastic; discretionary is highly cyclical
-- XLY includes Amazon, Tesla — captures both consumer and growth sentiment
-- XLP is pure defensive (Procter & Gamble, Coca-Cola, Costco)
+**왜 하필 임의소비 vs 필수소비 인가**:
+- 가장 직관적이고 소비자 대중 심리의 피부에 와닿는 다이렉트 팩터입니다.
+- 필수소비재 카테고리(XLP)의 수요는 비탄력적이어서 어지간한 공포도 비껴갑니다; 반면 임의소비재 섹터(XLY)는 경기 순환의 최전면에 섭니다.
+- XLY ETF에는 시총 괴물인 아마존(Amazon)과 테슬라(Tesla)가 모두 포함되어 있어, 대중의 소비 여물 뿐 아니라 '미래 성장 테마 기술'에 대한 탐욕 수준까지 모니터링 가능토록 오버랩 되어 있습니다.
+- 반면 XLP는 프록터&갬블, 코카콜라, 코스트코 등 포트폴리오의 최후 방어선을 사수하는 순수 방어 전담반입니다.
 
-## Cross-Component Analysis
+## 요소 간 차원 크로스-분석 (Cross-Component Analysis)
 
-### Confirmation Patterns
+### 완전 확정 패턴 동기화 현상 (Confirmation Patterns)
 
-**Strong Broadening Confirmation** (4+ components aligned):
-- RSP/SPY ↑ + IWM/SPY ↑ + HYG/LQD stable/↑ + XLY/XLP ↑
+**강력한 시장 확산 확정 시그널** (아래 4개 이상 지표가 모두 동일 동기화 될 때):
+- RSP/SPY 우상향 + IWM/SPY 우상향 + HYG/LQD 단단한 유지 혹은 상승 + XLY/XLP 상승
 
-**Strong Contraction Confirmation**:
-- HYG/LQD ↓ + XLY/XLP ↓ + SPY/TLT ↓ + Yield curve steepening
+**강력한 경기 수축(침체) 붕괴 시그널**:
+- HYG/LQD 우하향(붕괴) + XLY/XLP 투매 + SPY/TLT 하방 압력 + 수익률 곡선 가파름 전개 우려
 
-**Inflationary Confirmation**:
-- Stock-bond correlation positive + SPY/TLT ↓ + Yield curve behavior unusual
+**전형적 인플레이션 붕괴 시그널**:
+- 채권 주식 상관계수의 양(+)수 전환 + SPY/TLT 붕괴 우려 + 수익률 곡선에서 비정상적 요동 관찰
 
-### Divergence Signals
+### 다이버전스 함정/노이즈 시그널 판독법
 
-- **RSP/SPY ↑ but HYG/LQD ↓**: Broadening without credit support — fragile
-- **IWM/SPY ↑ but XLY/XLP ↓**: Small-cap rally without consumer backing — suspicious
-- **Yield curve steepening but HYG/LQD ↓**: Rate cuts due to crisis, not growth
+- **RSP/SPY 는 오르는데 HYG/LQD 는 붕괴될 때**: 신용시장의 튼튼한 후원(빚 대출 조달)이 결여된 속이 텅 빈 불안정한 상승 확산장 — 살얼음판 버블 주의.
+- **IWM/SPY 는 크게 뛰는데 XLY/XLP 는 주저앉을 때**: 대중의 진정한 소비 파워가 전혀 받쳐주지 못하는 작전세력 위주의 비정상적 스몰캡 투기성 테마 랠리 — 극히 의심스러움.
+- **수익률 곡선은 가파르게 서는데 HYG/LQD 는 투매 타격**: 성장에 의한 정상적인 금리 스팁이 아니고, 위기에 멱살 잡혀 급히 단행하는 연준의 패닉형 금리 인하 전조증.
 
-## Score Interpretation Quick Reference
+## 종합 합산 점수 해석표 한눈에 보기 (Score Quick Reference)
 
-| Composite Score | Zone | Action |
+| 종합 산출 점수 (Composite) | 현재 레짐의 상황 (Zone) | 해야 할 포스처 대응 액션 (Action) |
 |----------------|------|--------|
-| 0-20 | Stable | Maintain current positioning |
-| 21-40 | Early Signal | Increase monitoring frequency |
-| 41-60 | Transition Zone | Begin planning adjustments |
-| 61-80 | Active Transition | Execute repositioning |
-| 81-100 | Confirmed | Complete repositioning |
+| 0점-20점 | 매우 확고한 안정, 변화의 여지 없음 | 현재의 메인 투자전략과 포지션을 흔들림 없이 고수할 것 |
+| 21점-40점 | 초기 균열 시그널 감지됨 | 대시보드 및 지표 검토 주기를 짧게 다이얼업하여 상황을 주시할 것 |
+| 41점-60점 | 국면 전환의 소용돌이 구역 진입 | 다음 판도에 맞춘 비중 조절 계획의 밑바탕 및 시뮬레이션을 착수할 것 |
+| 61점-80점 | 활발한 국면 변화 소용돌이 가속 | 사전에 설정해둔 시나리오대로 실제 매매 비중과 포지션 타겟 리모델링 집행 |
+| 81점-100점 | 전환 마침표 및 확정 도장 쾅 | 과거의 환상을 버려라, 뉴노멀 체제에 맞춘 새로운 전략 맵핑 리빌딩 마감 필수 |

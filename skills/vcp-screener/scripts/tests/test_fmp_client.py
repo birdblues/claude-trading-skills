@@ -20,6 +20,47 @@ def client():
         return c
 
 
+def _make_wiki_sp500_dataframe(n=5):
+    """Create a mock Wikipedia S&P 500 table DataFrame."""
+    import pandas as pd
+
+    symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "BRK.B"][:n]
+    names = [
+        "Apple Inc.",
+        "Microsoft Corp",
+        "Alphabet Inc.",
+        "Amazon.com Inc.",
+        "Berkshire Hathaway",
+    ][:n]
+    sectors = [
+        "Information Technology",
+        "Information Technology",
+        "Communication Services",
+        "Consumer Discretionary",
+        "Financials",
+    ][:n]
+    sub_industries = [
+        "Technology Hardware",
+        "Systems Software",
+        "Interactive Media",
+        "Internet Retail",
+        "Multi-Sector Holdings",
+    ][:n]
+
+    return pd.DataFrame(
+        {
+            "Symbol": symbols,
+            "Security": names,
+            "GICS Sector": sectors,
+            "GICS Sub-Industry": sub_industries,
+            "Headquarters Location": ["Cupertino, CA"] * n,
+            "Date added": ["1982-11-30"] * n,
+            "CIK": [320193] * n,
+            "Founded": ["1976"] * n,
+        }
+    )
+
+
 def _make_yf_dataframe(days=5, multi_index=False):
     """Create a mock yfinance-style DataFrame."""
     import pandas as pd
@@ -330,3 +371,120 @@ class TestFmpErrorResponseFallback:
         assert result["symbol"] == "XLU"
         assert len(result["historical"]) == 5
         assert client.yf_fallback_count == 1
+
+
+def _mock_wiki_response(wiki_df):
+    """Create a mock requests.Response that returns HTML parseable by pd.read_html."""
+    mock_resp = type("MockResponse", (), {})()
+    mock_resp.status_code = 200
+    mock_resp.text = wiki_df.to_html()
+    mock_resp.raise_for_status = lambda: None
+    return mock_resp
+
+
+class TestSp500WikipediaFallbackTrigger:
+    """Test that Wikipedia fallback triggers when FMP returns None for S&P 500."""
+
+    def test_fallback_triggers_on_fmp_none(self, client):
+        """When FMP returns None for sp500, Wikipedia should be tried."""
+        wiki_df = _make_wiki_sp500_dataframe(n=5)
+
+        with (
+            patch.object(client, "_rate_limited_get", return_value=None),
+            patch("fmp_client.requests.get", return_value=_mock_wiki_response(wiki_df)),
+            patch("fmp_client.pd.read_html", return_value=[wiki_df]),
+        ):
+            result = client.get_sp500_constituents()
+
+        assert result is not None
+        assert len(result) == 5
+        assert result[0]["symbol"] == "AAPL"
+
+    def test_no_fallback_when_fmp_succeeds(self, client):
+        """When FMP succeeds, Wikipedia should NOT be called."""
+        fmp_data = [
+            {
+                "symbol": "AAPL",
+                "name": "Apple Inc.",
+                "sector": "Technology",
+                "subSector": "Hardware",
+            },
+        ]
+
+        with (
+            patch.object(client, "_rate_limited_get", return_value=fmp_data),
+            patch("fmp_client.requests.get") as mock_requests_get,
+        ):
+            result = client.get_sp500_constituents()
+
+        mock_requests_get.assert_not_called()
+        assert result == fmp_data
+
+    def test_both_fail_returns_none(self, client):
+        """When both FMP and Wikipedia fail, should return None."""
+        with (
+            patch.object(client, "_rate_limited_get", return_value=None),
+            patch(
+                "fmp_client.requests.get", side_effect=Exception("Network error")
+            ),
+        ):
+            result = client.get_sp500_constituents()
+
+        assert result is None
+
+
+class TestSp500WikipediaDataFormat:
+    """Test that Wikipedia data is converted to FMP-compatible format."""
+
+    def test_correct_keys_present(self, client):
+        """Output dicts must have symbol, name, sector, subSector keys."""
+        wiki_df = _make_wiki_sp500_dataframe(n=3)
+
+        with (
+            patch.object(client, "_rate_limited_get", return_value=None),
+            patch("fmp_client.requests.get", return_value=_mock_wiki_response(wiki_df)),
+            patch("fmp_client.pd.read_html", return_value=[wiki_df]),
+        ):
+            result = client.get_sp500_constituents()
+
+        required_keys = {"symbol", "name", "sector", "subSector"}
+        for item in result:
+            assert required_keys.issubset(item.keys())
+
+    def test_ticker_normalization_dot_to_dash(self, client):
+        """BRK.B should be normalized to BRK-B."""
+        wiki_df = _make_wiki_sp500_dataframe(n=5)
+
+        with (
+            patch.object(client, "_rate_limited_get", return_value=None),
+            patch("fmp_client.requests.get", return_value=_mock_wiki_response(wiki_df)),
+            patch("fmp_client.pd.read_html", return_value=[wiki_df]),
+        ):
+            result = client.get_sp500_constituents()
+
+        symbols = [item["symbol"] for item in result]
+        assert "BRK-B" in symbols
+        assert "BRK.B" not in symbols
+
+
+class TestSp500WikipediaStats:
+    """Test that API stats include Wikipedia fallback count."""
+
+    def test_wiki_fallback_count_in_stats(self, client):
+        """get_api_stats should include wiki_fallback_count."""
+        stats = client.get_api_stats()
+        assert "wiki_fallback_count" in stats
+        assert stats["wiki_fallback_count"] == 0
+
+    def test_wiki_fallback_count_increments(self, client):
+        """wiki_fallback_count should increment on Wikipedia fallback use."""
+        wiki_df = _make_wiki_sp500_dataframe(n=3)
+
+        with (
+            patch.object(client, "_rate_limited_get", return_value=None),
+            patch("fmp_client.requests.get", return_value=_mock_wiki_response(wiki_df)),
+            patch("fmp_client.pd.read_html", return_value=[wiki_df]),
+        ):
+            client.get_sp500_constituents()
+
+        assert client.get_api_stats()["wiki_fallback_count"] == 1
