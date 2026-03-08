@@ -86,6 +86,105 @@ class FMPClient:
             print(f"ERROR: Request exception: {e}", file=sys.stderr)
             return None
 
+    def _fetch_via_yfinance(self, symbol: str, days: int) -> Optional[list[dict]]:
+        """Fetch historical data via yfinance as fallback."""
+        if not HAS_YFINANCE or yf is None:
+            return None
+
+        try:
+            import pandas as pd
+
+            df = yf.download(symbol, period=f"{days}d", auto_adjust=False, progress=False)
+
+            if df is None or df.empty:
+                return None
+
+            if isinstance(df.columns, pd.MultiIndex):
+                df = df.droplevel(level=1, axis=1)
+
+            records = []
+            for idx, row in df.iterrows():
+                records.append(
+                    {
+                        "date": idx.strftime("%Y-%m-%d"),
+                        "open": float(row["Open"]),
+                        "high": float(row["High"]),
+                        "low": float(row["Low"]),
+                        "close": float(row["Close"]),
+                        "adjClose": float(row["Adj Close"]),
+                        "volume": int(row["Volume"]),
+                    }
+                )
+
+            records.sort(key=lambda x: x["date"], reverse=True)
+            return records
+        except Exception as e:
+            print(f"WARNING: yfinance fallback failed for {symbol}: {e}", file=sys.stderr)
+            return None
+
+    def _fetch_quote_via_yfinance(self, symbol: str) -> Optional[list[dict]]:
+        """Fetch quote data via yfinance as fallback."""
+        if not HAS_YFINANCE or yf is None:
+            return None
+
+        try:
+            ticker = yf.Ticker(symbol)
+            info = ticker.fast_info
+            avg_vol = (
+                info.get("threeMonthAverageVolume")
+                or info.get("tenDayAverageVolume")
+                or info.get("lastVolume")
+                or 0
+            )
+            quote = {
+                "symbol": symbol,
+                "price": float(info["last_price"]),
+                "yearHigh": float(info["year_high"]),
+                "yearLow": float(info["year_low"]),
+                "volume": int(info["last_volume"]),
+                "avgVolume": int(avg_vol),
+            }
+            return [quote]
+        except Exception as e:
+            print(f"WARNING: yfinance quote fallback failed for {symbol}: {e}", file=sys.stderr)
+            return None
+
+    def _fetch_sp500_from_wikipedia(self) -> Optional[list[dict]]:
+        """Fetch S&P 500 constituents from Wikipedia as fallback."""
+        if pd is None:
+            return None
+
+        try:
+            url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+            resp = requests.get(
+                url,
+                headers={"User-Agent": "VCPScreener/1.0 (stock screener tool)"},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            from io import StringIO
+
+            tables = pd.read_html(StringIO(resp.text))
+            if not tables:
+                return None
+
+            df = tables[0]
+            records = []
+            for _, row in df.iterrows():
+                symbol = str(row.get("Symbol", "")).strip().replace(".", "-")
+                records.append(
+                    {
+                        "symbol": symbol,
+                        "name": str(row.get("Security", "")),
+                        "sector": str(row.get("GICS Sector", "")),
+                        "subSector": str(row.get("GICS Sub-Industry", "")),
+                    }
+                )
+            return records if records else None
+        except Exception as e:
+            print(f"WARNING: Wikipedia S&P 500 fallback failed: {e}", file=sys.stderr)
+            return None
+
     def get_sp500_constituents(self) -> Optional[list[dict]]:
         """Fetch S&P 500 constituent list.
 
