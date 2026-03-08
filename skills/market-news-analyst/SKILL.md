@@ -1,6 +1,6 @@
 ---
 name: market-news-analyst
-description: This skill should be used when analyzing recent market-moving news events and their impact on equity markets and commodities. Use this skill when the user requests analysis of major financial news from the past 10 days, wants to understand market reactions to monetary policy decisions (FOMC, ECB, BOJ), needs assessment of geopolitical events' impact on commodities, or requires comprehensive review of earnings announcements from mega-cap stocks. The skill automatically collects news using WebSearch/WebFetch tools and produces impact-ranked analysis reports. All analysis thinking and output are conducted in English.
+description: This skill should be used when analyzing recent market-moving news events and their impact on equity markets and commodities. Use this skill when the user requests analysis of major financial news from the past 10 days, wants to understand market reactions to monetary policy decisions (FOMC, ECB, BOJ), needs assessment of geopolitical events' impact on commodities, or requires comprehensive review of earnings announcements from mega-cap stocks. The skill automatically collects news using WebSearch/WebFetch tools and produces impact-ranked analysis reports.
 ---
 
 # Market News Analyst
@@ -700,8 +700,7 @@ When conducting market news analysis:
 
 ## Important Notes
 
-- All analysis thinking must be conducted in English
-- All output Markdown files must be in English
+- 리포트를 한국어로 작성한다. 종목 티커, 기술 지표명, 숫자 데이터는 영어/원본 유지.
 - Use WebSearch and WebFetch tools to collect news automatically
 - Focus on trusted news sources as defined in references
 - Rank events by impact score (price impact × breadth × forward significance)

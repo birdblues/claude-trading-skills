@@ -85,12 +85,6 @@ Options:
   --days N            Days of history to fetch (default: 600)
 ```
 
-## Resources
-
-- `references/regime_detection_methodology.md` — Detection methodology and signal interpretation
-- `references/indicator_interpretation_guide.md` — Guide for interpreting cross-asset ratios
-- `references/historical_regimes.md` — Historical regime examples for context
-
 ## 한글 리포트 생성
 
 생성된 영어 리포트를 한국어로 번역한다.

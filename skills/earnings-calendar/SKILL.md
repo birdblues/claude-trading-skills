@@ -716,6 +716,25 @@ For Claude Web, understand that:
 
 This skill provides a reliable, API-driven approach to generating weekly earnings calendars for US stocks. By using FMP API, it ensures structured, accurate data with additional insights like EPS/revenue estimates. The multi-environment support makes it flexible for CLI, Desktop, and Web usage, while the fallback mode ensures functionality even without API access.
 
-**Key Workflow**: Date Calculation → API Key Setup → API Data Retrieval → Processing → Report Generation → QA → Delivery
+### Step 9: 한글 리포트 생성
 
-**Output**: Clean, organized markdown report with earnings grouped by date/timing/market cap, including summary statistics and trading considerations.
+생성된 영어 리포트를 한국어로 번역한다.
+
+1. `skills/report-translator/references/translation_guidelines.md`를 읽어 번역 가이드라인 확인
+2. 생성된 마크다운 리포트를 한국어로 번역
+   - 종목 티커, 숫자, 기술 지표명은 원본 유지
+   - 섹션 헤더, 설명, 가이던스를 한국어로 변환
+   - Markdown 구조(테이블, 볼드 등) 보존
+3. 번역본을 `*_ko.md`로 저장
+4. data-quality-checker로 번역본 검증:
+   ```bash
+   python3 skills/data-quality-checker/scripts/check_data_quality.py \
+     --file reports/<translated_file>_ko.md --output-dir reports/
+   ```
+5. 검증 결과에 ERROR가 있으면 해당 부분 수정 후 재저장
+
+---
+
+**Key Workflow**: Date Calculation → API Key Setup → API Data Retrieval → Processing → Report Generation → QA → Delivery → Korean Translation
+
+**Output**: Clean, organized markdown report with earnings grouped by date/timing/market cap, including summary statistics and trading considerations. Korean translation (`*_ko.md`) generated via report-translator.

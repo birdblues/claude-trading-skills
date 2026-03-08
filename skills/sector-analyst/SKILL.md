@@ -1,6 +1,6 @@
 ---
 name: sector-analyst
-description: This skill should be used when analyzing sector rotation patterns and market cycle positioning. It fetches sector uptrend data from CSV (no API key required) and optionally accepts chart images for supplementary analysis. Use this skill when the user requests sector rotation analysis, cyclical vs defensive assessment, overbought/oversold identification, or market cycle phase estimation. All analysis and output are conducted in English.
+description: This skill should be used when analyzing sector rotation patterns and market cycle positioning. It fetches sector uptrend data from CSV (no API key required) and optionally accepts chart images for supplementary analysis. Use this skill when the user requests sector rotation analysis, cyclical vs defensive assessment, overbought/oversold identification, or market cycle phase estimation.
 ---
 
 # Sector Analyst
@@ -219,8 +219,7 @@ Sample charts demonstrating the expected input format for optional image-based a
 
 ## Important Notes
 
-- All analysis thinking should be conducted in English
-- Output Markdown files must be in English
+- 리포트를 한국어로 작성한다. 종목 티커, 기술 지표명, 숫자 데이터는 영어/원본 유지.
 - Reference the sector rotation knowledge base for each analysis
 - Maintain objectivity and avoid confirmation bias
 - Update probability assessments if new data becomes available

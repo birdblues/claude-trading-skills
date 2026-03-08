@@ -236,3 +236,14 @@ Comprehensive methodology for technical analysis including:
 Structured template for technical analysis reports with all required sections.
 
 **Usage**: Use this template structure for every analysis report. Copy the format and populate with specific findings for each chart.
+
+### assets/analysis_template.ko.md
+
+Korean translation template for analysis reports.
+
+**Usage**: Use this template when generating Korean-language reports.
+
+## Language
+
+리포트를 한국어로 작성한다. `assets/analysis_template.ko.md` 템플릿을 사용한다.
+종목 티커, 기술 지표명(RSI, MACD, EMA, SMA 등), 숫자 데이터, 가격은 영어/원본을 유지한다.

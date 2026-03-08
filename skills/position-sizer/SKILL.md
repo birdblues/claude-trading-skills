@@ -170,6 +170,10 @@ Reports are saved to `reports/` with filenames `position_sizer_YYYY-MM-DD_HHMMSS
 - `references/sizing_methodologies.md`: Comprehensive guide to Fixed Fractional, ATR-based, and Kelly Criterion methods with examples, comparison table, and risk management principles
 - `scripts/position_sizer.py`: Main calculation script (CLI interface)
 
+## Language
+
+리포트를 한국어로 작성한다. 종목 티커, 숫자 데이터, 기술 용어(ATR, Kelly criterion, stop-loss 등)는 영어/원본 유지.
+
 ## Key Principles
 
 1. **Survival first**: Position sizing is about surviving losing streaks, not maximizing winners

@@ -137,3 +137,7 @@ Adjust based on user's investment style:
 - **Long-term Investors**: Fundamentals, macro economics focus
 - **Forex Traders**: Currency correlations, interest rate differentials
 - **Options Traders**: Volatility analysis, Greeks monitoring
+
+## Language
+
+리포트를 한국어로 작성한다. 지수명(S&P 500, NASDAQ 등), 통화 쌍(USD/JPY 등), 원자재명, 숫자 데이터는 영어/원본 유지.

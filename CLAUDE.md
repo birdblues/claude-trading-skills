@@ -140,6 +140,7 @@ If no test exists for the changed behavior, add one whenever practical.
 | **Theme Detector** | 🟡 Optional | 🟡 Optional (Recommended) | ❌ Not used | FINVIZ for dynamic stocks; FMP for ETF holdings fallback |
 | **FinViz Screener** | ❌ Not required | 🟡 Optional | ❌ Not used | Public screener free; Elite auto-detected from env var |
 | **Position Sizer** | ❌ Not required | ❌ Not used | ❌ Not used | Pure calculation; works offline |
+| **Report Translator** | ❌ Not required | ❌ Not used | ❌ Not used | Claude-based translation; works offline |
 | **Data Quality Checker** | ❌ Not required | ❌ Not used | ❌ Not used | Local markdown validation; works offline |
 | **Edge Strategy Reviewer** | ❌ Not required | ❌ Not used | ❌ Not used | Deterministic scoring on local YAML drafts |
 | **Edge Pipeline Orchestrator** | ❌ Not required | ❌ Not used | ❌ Not used | Orchestrates local edge skills via subprocess |
@@ -594,6 +595,7 @@ Skills are designed to be combined for comprehensive analysis:
 2. Earnings Calendar → Identify reporting companies
 3. Market News Analyst → Review overnight developments
 4. Breadth Chart Analyst → Assess market health
+5. report-translator → 영어 리포트를 한글로 번역 + data-quality-checker 검증
 
 **Weekly Strategy Review:**
 1. Sector Analyst → Identify rotation patterns
@@ -624,6 +626,7 @@ Skills are designed to be combined for comprehensive analysis:
 2. PEAD Screener (Mode B) → Feed analyzer output, screen for red candle pullback → breakout patterns
 3. Technical Analyst → Confirm weekly chart setups on SIGNAL_READY/BREAKOUT candidates
 4. Monitor BREAKOUT entries with stop-loss (red candle low) and 2R profit targets
+5. report-translator → 영어 리포트를 한글로 번역 + data-quality-checker 검증
 
 **Statistical Arbitrage:**
 1. Pair Trade Screener → Identify cointegrated pairs
@@ -642,6 +645,7 @@ Skills are designed to be combined for comprehensive analysis:
 2. Position Sizer → Calculate risk-based share count with portfolio constraints
 3. Data Quality Checker → Validate analysis document before publishing
 4. Portfolio Manager → Execute and monitor positions
+5. report-translator → 영어 리포트를 한글로 번역 + data-quality-checker 검증
 
 **Kanchi Dividend Workflow (US stocks):**
 1. kanchi-dividend-sop → Run Kanchi 5-step screening and pullback entry planning
@@ -680,7 +684,7 @@ Skills are designed to be combined for comprehensive analysis:
 All analysis outputs must:
 - Be saved to the `reports/` directory (create if it does not exist)
 - Include date/time stamps
-- Use English language
+- Script outputs in English; final reports in Korean via report-translator or direct Korean output for knowledge-only skills
 - Provide probability assessments where applicable
 - Include specific trigger levels for actionable scenarios
 - Cite references to knowledge base sources
@@ -706,10 +710,12 @@ Files that contain secrets (`.mcp.json`, `.envrc`) must be listed in `.gitignore
 ## Language Considerations
 
 - All SKILL.md files are in English
-- Analysis outputs are in English
+- Script-generated reports default to English; Korean versions (`*_ko.md`) are generated via report-translator skill
+- Knowledge-only skills output directly in Korean
+- JSON output keys remain in English regardless of report language
+- Stock tickers, technical indicator names, and numeric data are not translated
 - Some reference materials (Stanley Druckenmiller Investment) include Japanese content
-- README files available in both English (README.md) and Japanese (README.ja.md)
-- User interactions may be in Japanese; analysis outputs remain in English
+- README files available in English (README.md), Japanese (README.ja.md), and Korean (README.ko.md)
 
 ## Distribution Workflow
 

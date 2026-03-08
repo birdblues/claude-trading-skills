@@ -389,6 +389,11 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
 
 ### Skill Quality & Automation
 
+- **Report Translator** (`report-translator`)
+  - Translates English analysis reports into Korean while preserving data integrity (tickers, numbers, technical indicators).
+  - Runs data-quality-checker on translated output to verify no data corruption.
+  - No API key required — Claude performs translation using financial term guidelines.
+
 - **Data Quality Checker** (`data-quality-checker`)
   - Validates data quality in market analysis documents and blog articles before publication.
   - 5 check categories: price scale inconsistencies (ETF vs futures digit hints), instrument notation consistency, date/weekday mismatches (English + Japanese), allocation total errors (section-limited), and unit mismatches.

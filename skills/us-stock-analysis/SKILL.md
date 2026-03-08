@@ -244,6 +244,9 @@ This skill supports four types of analysis. Determine which type(s) the user nee
 - Avoid hyperbole
 - Present risks clearly
 
+**Language:**
+- 리포트를 한국어로 작성한다. 종목 티커, 기술 지표명, 숫자 데이터, 재무 지표명(P/E, EPS, ROE 등)은 영어/원본 유지.
+
 ## Reference Files
 
 Load these references as needed during analysis:

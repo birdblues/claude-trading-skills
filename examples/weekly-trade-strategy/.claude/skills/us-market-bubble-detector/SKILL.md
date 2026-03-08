@@ -543,3 +543,7 @@ Independent observers must be able to verify each adjustment.
 **Reason for v2.1 Revision:**
 Prevent over-scoring through unmeasured "narrative" assessments and double-counting.
 Ensure all bubble risk evaluations are independently verifiable and free from confirmation bias.
+
+## Language
+
+리포트를 한국어로 작성한다. 기술 용어(Put/Call ratio, VIX, margin debt 등), 숫자 데이터, 점수, 버블 단계 분류명은 영어/원본 유지.
