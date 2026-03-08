@@ -36,8 +36,11 @@ def generate_markdown_report(analysis: dict, output_file: str):
     lines.append("# Uptrend Analyzer Report")
     lines.append("")
     lines.append(f"**Generated:** {metadata.get('generated_at', 'N/A')}")
-    lines.append("**Data Source:** Monty's Uptrend Ratio Dashboard (GitHub CSV)")
-    lines.append("**API Key Required:** No")
+    default_source = "Monty's Uptrend Ratio Dashboard (GitHub CSV)"
+    lines.append(f"**Data Source:** {metadata.get('data_source', default_source)}")
+    lines.append(
+        f"**API Key Required:** {'Yes (FMP)' if metadata.get('api_key_required') else 'No'}"
+    )
     lines.append("")
 
     # Overall Assessment
@@ -410,12 +413,22 @@ def generate_markdown_report(analysis: dict, output_file: str):
     lines.append("")
     lines.append("## Methodology")
     lines.append("")
-    lines.append(
-        "This analysis uses Monty's Uptrend Ratio Dashboard data to assess market breadth health."
-    )
-    lines.append(
-        "The dashboard tracks ~2,800 US stocks across 11 sectors, measuring the percentage in uptrends."
-    )
+    if metadata.get("api_key_required"):
+        lines.append(
+            "This analysis uses FMP API data to self-calculate uptrend ratios for S&P 500 stocks (~503)."
+        )
+        lines.append(
+            "It replicates Monty's 8-condition uptrend definition across 11 GICS sectors. "
+            "Note: Monty's dashboard tracks ~2,800 stocks; this FMP mode covers S&P 500 only. "
+            "Directional signals are similar but absolute values may differ."
+        )
+    else:
+        lines.append(
+            "This analysis uses Monty's Uptrend Ratio Dashboard data to assess market breadth health."
+        )
+        lines.append(
+            "The dashboard tracks ~2,800 US stocks across 11 sectors, measuring the percentage in uptrends."
+        )
     lines.append("")
     lines.append("**5-Component Scoring System (0-100, higher = healthier):**")
     lines.append("")

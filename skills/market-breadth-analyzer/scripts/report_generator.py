@@ -31,7 +31,8 @@ def generate_markdown_report(analysis: dict, output_file: str):
     lines.append("# Market Breadth Analyzer Report")
     lines.append("")
     lines.append(f"**Generated:** {metadata.get('generated_at', 'N/A')}")
-    lines.append("**Data Source:** TraderMonty Market Breadth CSV (no API key required)")
+    data_source = metadata.get("data_source", "TraderMonty Market Breadth CSV")
+    lines.append(f"**Data Source:** {data_source}")
     latest = freshness.get("latest_date", "N/A")
     days_old = freshness.get("days_old", "?")
     last_modified = freshness.get("last_modified")
@@ -330,10 +331,16 @@ def generate_markdown_report(analysis: dict, output_file: str):
     lines.append("5. **Historical Percentile (10%):** Current level vs full history distribution")
     lines.append("6. **Divergence (10%):** S&P 500 price vs breadth directional agreement")
     lines.append("")
-    lines.append(
-        "Composite score: 0-100 (100 = maximum health). "
-        "No API key required - uses freely available CSV data."
-    )
+    if "FMP" in data_source:
+        lines.append(
+            "Composite score: 0-100 (100 = maximum health). "
+            "FMP mode computes breadth from S&P 500 constituent prices."
+        )
+    else:
+        lines.append(
+            "Composite score: 0-100 (100 = maximum health). "
+            "No API key required - uses freely available CSV data."
+        )
     lines.append("")
     lines.append("For detailed methodology, see `references/breadth_analysis_methodology.md`.")
     lines.append("")

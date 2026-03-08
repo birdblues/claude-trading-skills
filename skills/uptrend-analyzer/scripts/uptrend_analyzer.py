@@ -10,11 +10,14 @@ Generates a 0-100 composite score from 5 components:
 4. Momentum - 20%
 5. Historical Context - 10%
 
-No API key required - uses free GitHub CSV data.
+Data sources:
+- CSV mode (default): Free GitHub CSV data, no API key required
+- FMP mode (--source fmp): Self-calculated from FMP API, S&P 500 ~503 stocks
 
 Usage:
     python3 uptrend_analyzer.py
-    python3 uptrend_analyzer.py --output-dir /path/to/output
+    python3 uptrend_analyzer.py --source fmp --output-dir reports/
+    python3 uptrend_analyzer.py --source fmp --api-key YOUR_KEY
 
 Output:
     - JSON: uptrend_analysis_YYYY-MM-DD_HHMMSS.json
@@ -46,57 +49,119 @@ def parse_arguments():
     parser.add_argument(
         "--output-dir", default="reports/", help="Output directory for reports (default: reports/)"
     )
+    parser.add_argument(
+        "--source",
+        choices=["csv", "fmp"],
+        default="csv",
+        help="Data source: csv (free GitHub CSV) or fmp (FMP API self-calculated)",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="FMP API key (fallback: $FMP_API_KEY env var). Only used with --source fmp",
+    )
+    parser.add_argument(
+        "--max-api-calls",
+        type=int,
+        default=245,
+        help="Max FMP API calls per run (default: 245). Only used with --source fmp",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        default=None,
+        help="Cache directory for FMP data (default: scripts/.uptrend_cache/)",
+    )
+    parser.add_argument(
+        "--min-coverage",
+        type=float,
+        default=0.8,
+        help="Minimum symbol coverage fraction (default: 0.8). Only used with --source fmp",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
 
+    if args.source == "fmp":
+        source_label = "FMP Self-Calculated (S&P 500 ~503 stocks)"
+    else:
+        source_label = "Monty's Uptrend Ratio Dashboard (GitHub CSV)"
+
     print("=" * 70)
     print("Uptrend Analyzer")
-    print("Market Breadth Health Diagnosis via Monty's Uptrend Ratio Dashboard")
+    print(f"Market Breadth Health Diagnosis via {source_label}")
     print("=" * 70)
     print()
 
     # ========================================================================
-    # Step 1: Fetch CSV Data
+    # Step 1: Fetch Data
     # ========================================================================
-    print("Step 1: Fetching CSV Data")
-    print("-" * 70)
 
-    fetcher = UptrendDataFetcher()
+    if args.source == "fmp":
+        print("Step 1: Fetching FMP Data (Self-Calculated)")
+        print("-" * 70)
 
-    print("  Fetching timeseries data...", end=" ", flush=True)
-    timeseries = fetcher.fetch_timeseries()
-    if timeseries:
-        print(f"OK ({len(timeseries)} rows)")
+        from fmp_uptrend_client import FMPUptrendClient
+
+        cache_dir = args.cache_dir or os.path.join(os.path.dirname(__file__), ".uptrend_cache")
+        client = FMPUptrendClient(
+            api_key=args.api_key,
+            cache_dir=cache_dir,
+            max_api_calls=args.max_api_calls,
+            min_coverage=args.min_coverage,
+        )
+
+        all_timeseries, sector_summary, sector_latest = client.calculate_uptrend_data()
+        if not all_timeseries:
+            print("ERROR: Cannot proceed without timeseries data", file=sys.stderr)
+            sys.exit(1)
+
+        latest_all = all_timeseries[-1] if all_timeseries else None
+        data_source = source_label
+        api_key_required = True
+        timeseries_rows = len(all_timeseries)
     else:
-        print("FAILED")
-        print("ERROR: Cannot proceed without timeseries data", file=sys.stderr)
-        sys.exit(1)
+        print("Step 1: Fetching CSV Data")
+        print("-" * 70)
 
-    print("  Fetching sector summary...", end=" ", flush=True)
-    sector_summary = fetcher.fetch_sector_summary()
-    if sector_summary:
-        print(f"OK ({len(sector_summary)} sectors)")
-    else:
-        print("WARN - Sector summary unavailable, some components will use defaults")
+        fetcher = UptrendDataFetcher()
 
-    # Extract key data subsets
-    all_timeseries = fetcher.get_all_timeseries()
-    latest_all = fetcher.get_latest_all()
-    sector_latest = fetcher.get_all_sector_latest()
+        print("  Fetching timeseries data...", end=" ", flush=True)
+        timeseries = fetcher.fetch_timeseries()
+        if timeseries:
+            print(f"OK ({len(timeseries)} rows)")
+        else:
+            print("FAILED")
+            print("ERROR: Cannot proceed without timeseries data", file=sys.stderr)
+            sys.exit(1)
 
-    # Build sector -> (count, total) mapping from timeseries latest rows
-    count_total_map = {}
-    for ws_name, row in sector_latest.items():
-        display_name = WORKSHEET_TO_DISPLAY.get(ws_name, ws_name)
-        count_total_map[display_name] = (row.get("count"), row.get("total"))
-    # Add count/total to each sector summary row
-    for s in sector_summary:
-        ct = count_total_map.get(s["Sector"], (None, None))
-        s["Count"] = ct[0]
-        s["Total"] = ct[1]
+        print("  Fetching sector summary...", end=" ", flush=True)
+        sector_summary = fetcher.fetch_sector_summary()
+        if sector_summary:
+            print(f"OK ({len(sector_summary)} sectors)")
+        else:
+            print("WARN - Sector summary unavailable, some components will use defaults")
+
+        # Extract key data subsets
+        all_timeseries = fetcher.get_all_timeseries()
+        latest_all = fetcher.get_latest_all()
+        sector_latest = fetcher.get_all_sector_latest()
+
+        # Build sector -> (count, total) mapping from timeseries latest rows
+        count_total_map = {}
+        for ws_name, row in sector_latest.items():
+            display_name = WORKSHEET_TO_DISPLAY.get(ws_name, ws_name)
+            count_total_map[display_name] = (row.get("count"), row.get("total"))
+        # Add count/total to each sector summary row
+        for s in sector_summary:
+            ct = count_total_map.get(s["Sector"], (None, None))
+            s["Count"] = ct[0]
+            s["Total"] = ct[1]
+
+        data_source = source_label
+        api_key_required = False
+        timeseries_rows = len(timeseries)
 
     if latest_all:
         ratio_pct = (
@@ -207,10 +272,10 @@ def main():
     analysis = {
         "metadata": {
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "data_source": "Monty's Uptrend Ratio Dashboard (GitHub CSV)",
-            "api_key_required": False,
+            "data_source": data_source,
+            "api_key_required": api_key_required,
             "latest_data_date": latest_all.get("date", "N/A") if latest_all else "N/A",
-            "timeseries_rows": len(timeseries),
+            "timeseries_rows": timeseries_rows,
             "sectors_available": len(sector_summary),
         },
         "composite": composite,

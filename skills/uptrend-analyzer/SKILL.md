@@ -43,16 +43,35 @@ Unlike the Market Top Detector (API-based risk scorer), this skill uses free CSV
 
 ### Phase 1: Execute Python Script
 
-Run the analysis script (no API key needed):
+Run the analysis script using one of two data sources:
 
+**CSV mode (default, no API key):**
 ```bash
-python3 skills/uptrend-analyzer/scripts/uptrend_analyzer.py
+python3 skills/uptrend-analyzer/scripts/uptrend_analyzer.py --output-dir reports/
+```
+
+**FMP mode (self-calculated, requires FMP API key):**
+```bash
+python3 skills/uptrend-analyzer/scripts/uptrend_analyzer.py --source fmp --output-dir reports/
 ```
 
 The script will:
-1. Download CSV data from Monty's GitHub repository
-2. Calculate 5 component scores
-3. Generate composite score and reports
+1. **CSV mode:** Download CSV data from Monty's GitHub repository (~2,800 stocks)
+2. **FMP mode:** Fetch S&P 500 prices via FMP API and self-calculate uptrend ratios (~503 stocks)
+3. Calculate 5 component scores
+4. Generate composite score and reports
+
+**FMP mode options:**
+- `--api-key KEY` — FMP API key (fallback: `$FMP_API_KEY`)
+- `--max-api-calls N` — API call budget per run (default: 245)
+- `--cache-dir PATH` — Disk cache directory (default: `scripts/.uptrend_cache/`)
+- `--min-coverage 0.8` — Minimum symbol coverage fraction
+
+**FMP mode limitations:**
+- Covers S&P 500 (~503 stocks) vs Monty's ~2,800 stock universe
+- Directional signals are similar but absolute ratio values may differ
+- First run requires ~503 API calls (2-3 runs with free tier budget of 245/day)
+- Subsequent runs use disk cache (0-5 API calls for stale refresh)
 
 ### Phase 2: Present Results
 
@@ -127,7 +146,8 @@ Confidence levels: High, Medium, Low.
 
 ## API Requirements
 
-**Required:** None (uses free GitHub CSV data)
+- **CSV mode (default):** None (uses free GitHub CSV data)
+- **FMP mode (`--source fmp`):** FMP API key required (free tier sufficient, 250 calls/day)
 
 ## Output Files
 

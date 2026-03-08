@@ -66,10 +66,10 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - Helper script `scripts/market_utils.py` assists with report formatting and data visualization.
 
 - **Market Breadth Analyzer** (`market-breadth-analyzer`)
-  - Quantifies market breadth health using TraderMonty's public CSV data with a data-driven 6-component scoring system (0-100).
-  - Components: Overall Breadth, Sector Participation, Sector Rotation, Momentum, Mean Reversion Risk, and Historical Context.
-  - Measures how broadly the market is participating in a rally or decline (100 = maximum health, 0 = critical weakness).
-  - No API key required - uses freely available CSV data from GitHub.
+  - Quantifies market breadth health using a 6-component scoring system (0-100, 100 = maximum health).
+  - Two data sources: CSV mode (default, TraderMonty data, no API key) and FMP mode (`--source fmp`, self-calculated from S&P 500 prices).
+  - Measures how broadly the market is participating in a rally or decline.
+  - FMP mode includes disk caching for budget-aware multi-run builds (free tier compatible).
 
 - **Uptrend Analyzer** (`uptrend-analyzer`)
   - Diagnoses market breadth health using Monty's Uptrend Ratio Dashboard, tracking ~2,800 US stocks across 11 sectors.
@@ -559,8 +559,8 @@ Several skills require API keys for data access:
 | **VCP Screener** | ✅ Required | ❌ Not used | ❌ Not used | Stage 2 + VCP pattern screening; free tier sufficient |
 | **FTD Detector** | ✅ Required | ❌ Not used | ❌ Not used | Index price data for rally/FTD detection |
 | **Macro Regime Detector** | ✅ Required | ❌ Not used | ❌ Not used | Cross-asset ETF ratio analysis |
-| **Market Breadth Analyzer** | ❌ Not used | ❌ Not used | ❌ Not used | Uses free GitHub CSV data |
-| **Uptrend Analyzer** | ❌ Not used | ❌ Not used | ❌ Not used | Uses free GitHub CSV data |
+| **Market Breadth Analyzer** | 🟡 Optional | ❌ Not used | ❌ Not used | CSV mode (default): free; FMP mode (`--source fmp`): requires FMP key |
+| **Uptrend Analyzer** | 🟡 Optional | ❌ Not used | ❌ Not used | CSV mode (default): free; FMP mode (`--source fmp`): requires FMP key |
 | **Sector Analyst** | ❌ Not used | ❌ Not used | ❌ Not used | Uses free GitHub CSV data; optional chart images |
 | **Theme Detector** | 🟡 Optional | 🟡 Optional | ❌ Not used | Core: FINVIZ public + yfinance (free). FMP for ETF holdings, FINVIZ Elite for stock lists |
 | **FinViz Screener** | ❌ Not used | 🟡 Optional | ❌ Not used | Public screener free; FINVIZ Elite auto-detected from `$FINVIZ_API_KEY` |

@@ -32,6 +32,12 @@ logs/
 # Generated reports
 reports/
 
+# Market breadth FMP cache
+.breadth_cache/
+
+# Uptrend analyzer FMP cache
+.uptrend_cache/
+
 # CI artifacts
 htmlcov/
 .coverage

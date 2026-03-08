@@ -133,6 +133,7 @@ If no test exists for the changed behavior, add one whenever practical.
 | Sector Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
 | Technical Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
 | Breadth Chart Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
+| **Market Breadth Analyzer** | 🟡 Optional | ❌ Not used | ❌ Not used | CSV mode (default) needs no API; FMP mode (`--source fmp`) requires FMP key |
 | Market News Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Uses WebSearch/WebFetch |
 | US Stock Analysis | ❌ Not required | ❌ Not used | ❌ Not used | User provides data |
 | Backtest Expert | ❌ Not required | ❌ Not used | ❌ Not used | User provides strategy parameters |
