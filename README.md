@@ -6,6 +6,8 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
 
 日本語版READMEは[`README.ja.md`](README.ja.md)をご覧ください。
 
+한국어 README는 [`README.ko.md`](README.ko.md)에서 확인할 수 있습니다.
+
 ## Repository Layout
 - `<skill-name>/` – Source folder for each trading skill. Contains `SKILL.md`, reference material, and any helper scripts.
 - `skill-packages/` – Pre-built `.skill` archives ready to upload to Claude's web app **Skills** tab.
@@ -310,7 +312,7 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - FMP API integration with JSON output for structured results and further analysis.
 
 - **FinViz Screener** (`finviz-screener`)
-  - Translates natural-language stock screening requests (Japanese/English) into FinViz screener filter codes and opens the results in Chrome.
+  - Translates natural-language stock screening requests (Korean/English) into FinViz screener filter codes and opens the results in Chrome.
   - Supports 500+ filter codes across fundamentals (P/E, dividend, growth, margins), technicals (RSI, SMA, patterns), and descriptives (sector, market cap, country).
   - **Theme & Sub-theme cross-screening:** Combine FinViz's 30+ investment themes and 268 sub-themes with any filter. Screen for cross-sector narratives like "AI × Logistics", "Data Centers × Power Infrastructure", or "Cybersecurity × Cloud" — something traditional sector/industry filters cannot do. Use `--themes` and `--subthemes` to mix multiple themes in a single query (e.g., `--themes "artificialintelligence,cybersecurity" --filters "cap_midover"`).
   - Auto-detects FINVIZ Elite from `$FINVIZ_API_KEY` environment variable; falls back to public screener when not set.
