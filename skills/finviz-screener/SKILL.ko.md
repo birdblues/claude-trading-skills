@@ -1,6 +1,6 @@
 ---
 name: finviz-screener
-description: 자연어 요청으로 FinViz screener URL을 만들고 열어줍니다. 사용자가 종목 스크리닝, 조건 기반 종목 탐색, 재무/기술적 필터 적용, 특정 조건의 FinViz 열기를 요청할 때 사용하세요. 한국어/영어 입력을 모두 지원합니다(예: "고배당에 성장하는 소형주를 찾고 싶다", "Find oversold large caps with high ROE").
+description: "자연어 요청으로 FinViz screener URL을 만들고 열어줍니다. 사용자가 종목 스크리닝, 조건 기반 종목 탐색, 재무/기술적 필터 적용, 특정 조건의 FinViz 열기를 요청할 때 사용하세요. 한국어/영어 입력을 모두 지원합니다(예: \"고배당에 성장하는 소형주를 찾고 싶다\", \"Find oversold large caps with high ROE\")."
 ---
 
 # FinViz Screener
