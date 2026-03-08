@@ -4,11 +4,14 @@
 
 The Financial Modeling Prep (FMP) Economic Calendar API provides access to upcoming and historical economic data releases, central bank decisions, and other market-moving events. This API enables traders and investors to stay informed about scheduled economic events that may impact financial markets.
 
-## API Endpoint
+## API Endpoint (Stable)
 
 ```
-https://financialmodelingprep.com/api/v3/economic_calendar
+https://financialmodelingprep.com/stable/economic-calendar
 ```
+
+> **Note:** The legacy endpoint (`/api/v3/economic_calendar`) was retired for
+> non-legacy subscriptions after August 31, 2025. Use the stable endpoint above.
 
 ## Authentication
 
@@ -160,7 +163,7 @@ The API returns a JSON array of economic event objects.
 ### Fetch Events for Next 7 Days
 
 ```bash
-curl "https://financialmodelingprep.com/api/v3/economic_calendar?from=2025-01-01&to=2025-01-07&apikey=YOUR_API_KEY"
+curl "https://financialmodelingprep.com/stable/economic-calendar?from=2025-01-01&to=2025-01-07&apikey=YOUR_API_KEY"
 ```
 
 ### Fetch High-Impact Events Only (Post-Processing)
@@ -171,7 +174,7 @@ Note: API does not have an `impact` filter parameter, so filtering must be done 
 import requests
 
 response = requests.get(
-    "https://financialmodelingprep.com/api/v3/economic_calendar",
+    "https://financialmodelingprep.com/stable/economic-calendar",
     params={
         "from": "2025-01-01",
         "to": "2025-01-31",

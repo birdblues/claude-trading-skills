@@ -14,7 +14,7 @@
 ### United States
 - **S&P 500**: 500 large-cap US stocks
   - Most representative US stock index
-  - Key levels: 4,000, 4,500, 5,000 points
+  - Key levels: 6,000, 6,500, 7,000 points
 
 - **NASDAQ**: Tech-focused
   - Reflects mega-cap tech stock trends like GAFAM
@@ -27,7 +27,7 @@
 
 ### USD/JPY (Dollar-Yen)
 - Greatest impact on Japanese economy
-- Key levels: 140, 145, 150, 155 yen
+- Key levels: 145, 150, 155, 160 yen
 - BOJ intervention alert line: Reference past intervention records
 
 ### EUR/JPY (Euro-Yen)
@@ -58,12 +58,12 @@
 ### Crude Oil (WTI/Brent)
 - Important as inflation indicator
 - Reflects geopolitical risks
-- Key levels: 70, 80, 90, 100 dollars/barrel
+- Key levels: 60, 65, 70, 80 dollars/barrel
 
 ### Gold
 - Representative safe asset
 - Tends to rise during dollar weakness/inflation
-- Key levels: 1,900, 2,000, 2,100 dollars/ounce
+- Key levels: 4,500, 5,000, 5,500 dollars/ounce
 
 ## Interest Rates & Bonds
 
