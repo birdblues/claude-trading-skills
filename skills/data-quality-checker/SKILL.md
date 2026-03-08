@@ -1,6 +1,6 @@
 ---
 name: data-quality-checker
-description: Validate data quality in market analysis documents and blog articles before publication. Use when checking for price scale inconsistencies (ETF vs futures), instrument notation errors, date/day-of-week mismatches, allocation total errors, and unit mismatches. Supports English and Japanese content. Advisory mode -- flags issues as warnings for human review, not as blockers.
+description: Validate data quality in market analysis documents and blog articles before publication. Use when checking for price scale inconsistencies (ETF vs futures), instrument notation errors, date/day-of-week mismatches, allocation total errors, and unit mismatches. Supports English and Korean content. Advisory mode -- flags issues as warnings for human review, not as blockers.
 ---
 
 ## Overview
@@ -15,7 +15,7 @@ than blocking publication.
 
 - Before publishing a weekly strategy blog or market analysis report
 - After generating automated market summaries
-- When reviewing translated documents (English/Japanese) for data accuracy
+- When reviewing translated documents (English/Korean) for data accuracy
 - When combining data from multiple sources (FRED, FMP, FINVIZ) into one report
 - As a pre-flight check for any document containing financial data
 
@@ -142,11 +142,11 @@ base. Suggest specific corrections for each issue.
    errors).
 
 2. **Section-aware allocation checking**: Only percentages within allocation
-   sections (identified by headings like "配分", "Allocation", or table columns
-   like "ウェイト", "目安比率") are checked. Random percentages in body text
+   sections (identified by headings like "배분", "Allocation", or table columns
+   like "비중", "목표비율") are checked. Random percentages in body text
    (probability, RSI, YoY growth) are ignored.
 
-3. **Bilingual support**: Handles both English and Japanese date formats,
+3. **Bilingual support**: Handles both English and Korean date formats,
    weekday names, and section headings. Full-width characters (％, 〜, en-dash)
    are normalized before processing.
 

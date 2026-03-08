@@ -4,15 +4,15 @@
 
 ## 표준 표기 표
 
-| Asset | Ticker (ETF) | Ticker (Futures) | Full Name (EN) | Japanese | Notes |
-|-------|-------------|-------------------|----------------|----------|-------|
-| Gold | GLD | GC | Gold | 金 / ゴールド / 金先物 | GLD = SPDR Gold Shares ETF; GC = COMEX Gold Futures |
-| Silver | SLV | SI | Silver | 銀 | SLV = iShares Silver Trust; SI = COMEX Silver Futures |
+| Asset | Ticker (ETF) | Ticker (Futures) | Full Name (EN) | 한국어 | Notes |
+|-------|-------------|-------------------|----------------|--------|-------|
+| Gold | GLD | GC | Gold | 금 / 골드 / 금선물 | GLD = SPDR Gold Shares ETF; GC = COMEX Gold Futures |
+| Silver | SLV | SI | Silver | 은 | SLV = iShares Silver Trust; SI = COMEX Silver Futures |
 | S&P 500 | SPY | ES | S&P 500 | S&P500 | SPY = SPDR S&P 500 ETF; SPX = index; ES = E-mini Futures |
-| S&P 500 Index | -- | SPX | S&P 500 Index | S&P500指数 | Cash index, not tradable directly |
-| Volatility | -- | VIX | CBOE VIX | 恐怖指数 / VIX | VIX = index; VXX/UVXY = ETPs |
-| US Treasuries | TLT | ZB | 20+ Year Treasury | 米国債 / 10年債 | TLT = iShares 20+ Year; ZB = 30Y futures |
-| Crude Oil | USO | CL | WTI Crude Oil | 原油 / WTI | USO = United States Oil Fund; CL = NYMEX WTI Futures |
+| S&P 500 Index | -- | SPX | S&P 500 Index | S&P500지수 | Cash index, not tradable directly |
+| Volatility | -- | VIX | CBOE VIX | 공포지수 / VIX | VIX = index; VXX/UVXY = ETPs |
+| US Treasuries | TLT | ZB | 20+ Year Treasury | 미국채 / 10년채 | TLT = iShares 20+ Year; ZB = 30Y futures |
+| Crude Oil | USO | CL | WTI Crude Oil | 원유 / WTI | USO = United States Oil Fund; CL = NYMEX WTI Futures |
 
 ## 자릿수 힌트 (가격 스케일 검증)
 
@@ -46,9 +46,10 @@ order of magnitude에 있는지 검증합니다.
 
 | Standard | Alternatives | Avoid |
 |----------|-------------|-------|
-| USD/JPY | USDJPY, ドル円 | JPY/USD (reversed) |
-| EUR/USD | EURUSD, ユーロドル | USD/EUR (reversed) |
-| GBP/USD | GBPUSD, ポンドドル | USD/GBP (reversed) |
+| USD/JPY | USDJPY, 달러엔 | JPY/USD (reversed) |
+| EUR/USD | EURUSD, 유로달러 | USD/EUR (reversed) |
+| GBP/USD | GBPUSD, 파운드달러 | USD/GBP (reversed) |
+| USD/KRW | USDKRW, 달러원 | KRW/USD (reversed) |
 
 **관례**: Base currency / Quote currency.
 가격은 base currency 1단위를 사기 위해 필요한 quote currency 수량을 의미합니다.
@@ -63,16 +64,18 @@ order of magnitude에 있는지 검증합니다.
 | Dow | DJIA, Dow Jones, DJI | Dow Jones Industrial Average |
 | Nasdaq | COMP, QQQ, NDX | Nasdaq Composite (COMP) vs Nasdaq-100 (NDX/QQQ) |
 | Russell 2000 | RUT, IWM | RUT = index, IWM = ETF |
+| KOSPI | 코스피, KOSPI 200 | Korean Composite Stock Price Index |
+| KOSDAQ | 코스닥 | Korean Securities Dealers Automated Quotations |
 
 ## Commodity 표기
 
-| Commodity | Futures Ticker | ETF Ticker | Japanese |
-|-----------|---------------|------------|----------|
-| Gold | GC | GLD, IAU | 金, ゴールド |
-| Silver | SI | SLV | 銀 |
-| Crude Oil (WTI) | CL | USO | 原油, WTI |
-| Natural Gas | NG | UNG | 天然ガス |
-| Copper | HG | COPX | 銅 |
+| Commodity | Futures Ticker | ETF Ticker | 한국어 |
+|-----------|---------------|------------|--------|
+| Gold | GC | GLD, IAU | 금, 골드 |
+| Silver | SI | SLV | 은 |
+| Crude Oil (WTI) | CL | USO | 원유, WTI |
+| Natural Gas | NG | UNG | 천연가스 |
+| Copper | HG | COPX | 구리 |
 
 ## Best Practices
 
@@ -81,6 +84,6 @@ order of magnitude에 있는지 검증합니다.
    "SPDR Gold Shares (GLD) traded at $268."
 3. **같은 자산에서 ETF와 futures 티커를 혼용하지 마세요**.
    필요 시 명시적으로 라벨링하세요(예: "GLD (ETF) vs GC (futures)").
-4. **일본어 문서**는 일본어 자산명을 써도 되지만,
+4. **한국어 문서**는 한국어 자산명을 써도 되지만,
    첫 언급에는 티커를 포함하세요:
-   "金（GLD）は$268で取引。"
+   "금(GLD)은 $268에 거래."

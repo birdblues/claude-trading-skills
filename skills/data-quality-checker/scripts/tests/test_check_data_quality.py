@@ -120,8 +120,8 @@ class TestNotation:
     """Instrument notation consistency checks."""
 
     def test_notation_inconsistency_gold(self):
-        """Mixed Gold, GLD, and 金 -> WARNING about mixed notation."""
-        content = "Gold is trading higher. GLD reached $268. 金は上昇中。"
+        """Mixed Gold, GLD, and 금 -> WARNING about mixed notation."""
+        content = "Gold is trading higher. GLD reached $268. 금은 상승 중."
         findings = check_notation(content)
         gold_findings = [f for f in findings if "gold" in f.message.lower()]
         assert len(gold_findings) >= 1
@@ -135,6 +135,22 @@ class TestNotation:
         gold_findings = [f for f in findings if "gold" in f.message.lower()]
         assert len(gold_findings) == 0
 
+    def test_notation_kospi_mixed(self):
+        """Mixed KOSPI and 코스피 in same document -> WARNING."""
+        content = "KOSPI는 2,800선을 돌파했다. 코스피 상승세 지속."
+        findings = check_notation(content)
+        kospi_findings = [f for f in findings if "kospi" in f.message.lower()]
+        assert len(kospi_findings) >= 1
+        assert kospi_findings[0].severity == "WARNING"
+        assert kospi_findings[0].category == "notation"
+
+    def test_notation_kospi_consistent(self):
+        """Consistent KOSPI usage -> no warnings."""
+        content = "KOSPI는 2,800선을 돌파했다. KOSPI 상승세 지속."
+        findings = check_notation(content)
+        kospi_findings = [f for f in findings if "kospi" in f.message.lower()]
+        assert len(kospi_findings) == 0
+
 
 # ──────────────────────────────────────────────
 # Date/Weekday Tests
@@ -142,7 +158,7 @@ class TestNotation:
 
 
 class TestDates:
-    """Date-weekday validation for English and Japanese content."""
+    """Date-weekday validation for English and Korean content."""
 
     def test_date_weekday_mismatch_english_with_year(self):
         """January 1, 2026 is Thursday, not Monday -> ERROR."""
@@ -182,34 +198,34 @@ class TestDates:
         date_findings = [f for f in findings if "Jan 1" in f.message]
         assert len(date_findings) == 0
 
-    def test_date_weekday_mismatch_japanese(self):
-        """1月1日（月）with as_of=2026-01-15 -> Jan 1, 2026 is Thursday (木), not Monday (月)."""
+    def test_date_weekday_mismatch_korean(self):
+        """1월 1일(월) with as_of=2026-01-15 -> Jan 1, 2026 is Thursday (목), not Monday (월)."""
         assert calendar.weekday(2026, 1, 1) == 3  # Thursday = 3
-        content = "1月1日（月）"
+        content = "1월 1일(월)"
         findings = check_dates(content, as_of=date(2026, 1, 15))
         assert len(findings) >= 1
         f = findings[0]
         assert f.severity == "WARNING"
         assert f.category == "dates"
-        assert "木" in f.message  # actual weekday is Thursday = 木
+        assert "목" in f.message  # actual weekday is Thursday = 목
 
-    def test_date_weekday_correct_japanese(self):
-        """1月1日（木）with as_of=2026-01-15 -> Jan 1, 2026 is Thursday (木) -> OK."""
+    def test_date_weekday_correct_korean(self):
+        """1월 1일(목) with as_of=2026-01-15 -> Jan 1, 2026 is Thursday (목) -> OK."""
         assert calendar.weekday(2026, 1, 1) == 3  # Thursday
-        content = "1月1日（木）"
+        content = "1월 1일(목)"
         findings = check_dates(content, as_of=date(2026, 1, 15))
         assert len(findings) == 0
 
-    def test_date_slash_format_japanese(self):
-        """1/1(木) with as_of=2026-01-15 -> Jan 1, 2026 is Thursday -> OK."""
+    def test_date_slash_format_korean(self):
+        """1/1(목) with as_of=2026-01-15 -> Jan 1, 2026 is Thursday -> OK."""
         assert calendar.weekday(2026, 1, 1) == 3  # Thursday
-        content = "1/1(木)"
+        content = "1/1(목)"
         findings = check_dates(content, as_of=date(2026, 1, 15))
         assert len(findings) == 0
 
     def test_date_week_notation(self):
-        """11/03週 -> week notation, no weekday to check, no error."""
-        content = "11/03週"
+        """11/03주 -> week notation, no weekday to check, no error."""
+        content = "11/03주"
         findings = check_dates(content, as_of=date(2026, 11, 10))
         assert len(findings) == 0
 
@@ -256,9 +272,9 @@ class TestAllocations:
     """Allocation total validation (section-limited)."""
 
     def test_allocation_table_sum_over_100(self):
-        """Table with 配分 header summing to 110% -> WARNING."""
+        """Table with 배분 header summing to 110% -> WARNING."""
         content = (
-            "| Asset | 配分 |\n"
+            "| Asset | 배분 |\n"
             "|-------|------|\n"
             "| Stocks | 60% |\n"
             "| Bonds | 30% |\n"
@@ -284,8 +300,8 @@ class TestAllocations:
         assert len(findings) == 0
 
     def test_allocation_list_format(self):
-        """Bullet list under セクター配分 heading summing to 95% -> WARNING."""
-        content = "## セクター配分\n- Tech: 40%\n- Healthcare: 30%\n- Energy: 25%\n"
+        """Bullet list under 섹터배분 heading summing to 95% -> WARNING."""
+        content = "## 섹터배분\n- Tech: 40%\n- Healthcare: 30%\n- Energy: 25%\n"
         findings = check_allocations(content)
         assert len(findings) >= 1
         assert findings[0].severity == "WARNING"
@@ -310,14 +326,14 @@ class TestAllocations:
         assert len(findings) == 0
 
     def test_allocation_ignores_position_heading(self):
-        """ポジション戦略 heading (without 配分) should NOT be treated as allocation."""
-        content = "## ポジション戦略\n- Stocks: 60%\n- Cash: 30%\n"
+        """포지션전략 heading (without 배분) should NOT be treated as allocation."""
+        content = "## 포지션전략\n- Stocks: 60%\n- Cash: 30%\n"
         findings = check_allocations(content)
         assert len(findings) == 0
 
     def test_allocation_range_notation_valid(self):
         """Range notation where 100% is contained in [sum_mins, sum_maxs] -> OK."""
-        content = "## 配分\n- Stocks: 50-55%\n- Bonds: 20-25%\n- Gold: 15-20%\n- Cash: 5-10%\n"
+        content = "## 배분\n- Stocks: 50-55%\n- Bonds: 20-25%\n- Gold: 15-20%\n- Cash: 5-10%\n"
         # sum_mins = 50+20+15+5 = 90, sum_maxs = 55+25+20+10 = 110
         # 100 is in [90, 110] -> OK
         findings = check_allocations(content)
@@ -343,7 +359,7 @@ class TestAllocations:
 
     def test_allocation_range_notation_invalid_v2(self):
         """Range notation where sum_mins > 100.5 -> WARNING."""
-        content = "## 配分\n- A: 60-65%\n- B: 30-35%\n- C: 15-20%\n"
+        content = "## 배분\n- A: 60-65%\n- B: 30-35%\n- C: 15-20%\n"
         # sum_mins = 60+30+15 = 105, sum_maxs = 65+35+20 = 120
         # 105 > 100.5 -> WARNING
         findings = check_allocations(content)
@@ -351,19 +367,49 @@ class TestAllocations:
         assert findings[0].severity == "WARNING"
 
     def test_allocation_detects_sector_allocation_heading(self):
-        """セクター配分 heading should trigger allocation detection."""
-        content = "## セクター配分\n- Tech: 50%\n- Finance: 50%\n"
+        """섹터배분 heading should trigger allocation detection."""
+        content = "## 섹터배분\n- Tech: 50%\n- Finance: 50%\n"
         findings = check_allocations(content)
         # 50 + 50 = 100 -> no warning
         assert len(findings) == 0
 
     def test_allocation_detects_ratio_column(self):
-        """Table with 目安比率 column header triggers allocation detection."""
+        """Table with 목표비율 column header triggers allocation detection."""
         content = (
-            "| Sector | 目安比率 |\n|--------|----------|\n| Tech | 50% |\n| Finance | 50% |\n"
+            "| Sector | 목표비율 |\n|--------|----------|\n| Tech | 50% |\n| Finance | 50% |\n"
         )
         findings = check_allocations(content)
         # 50 + 50 = 100 -> no warning, but proves the section was detected
+        assert len(findings) == 0
+
+    def test_allocation_heading_asset_allocation_ko(self):
+        """자산배분 heading triggers allocation detection."""
+        content = "## 자산배분\n- 주식: 60%\n- 채권: 30%\n- 현금: 20%\n"
+        findings = check_allocations(content)
+        assert len(findings) >= 1
+        assert findings[0].severity == "WARNING"
+        assert "110" in findings[0].message
+
+    def test_allocation_heading_portfolio_ko(self):
+        """포트폴리오 heading triggers allocation detection."""
+        content = "## 포트폴리오\n- 주식: 50%\n- 채권: 30%\n- 현금: 20%\n"
+        findings = check_allocations(content)
+        # 50 + 30 + 20 = 100 -> no warning, but proves the section was detected
+        assert len(findings) == 0
+
+    def test_allocation_table_weight_ko(self):
+        """Table with 가중치 column triggers allocation detection."""
+        content = "| 자산 | 가중치 |\n|------|--------|\n| 주식 | 60% |\n| 채권 | 50% |\n"
+        findings = check_allocations(content)
+        assert len(findings) >= 1
+        assert findings[0].severity == "WARNING"
+        assert "110" in findings[0].message
+
+    def test_allocation_table_investment_weight_ko(self):
+        """Table with 투자비중 column triggers allocation detection."""
+        content = "| 자산 | 투자비중 |\n|------|----------|\n| 주식 | 50% |\n| 채권 | 50% |\n"
+        findings = check_allocations(content)
+        # 50 + 50 = 100 -> no warning, proves the section was detected
         assert len(findings) == 0
 
 
@@ -402,14 +448,14 @@ class TestFullWidth:
 
     def test_fullwidth_percent_sign(self):
         """Full-width ％ should be parsed as %."""
-        content = "## 配分\n- Stocks: 50％\n- Bonds: 30％\n- Cash: 20％\n"
+        content = "## 배분\n- Stocks: 50％\n- Bonds: 30％\n- Cash: 20％\n"
         findings = check_allocations(content)
         # 50 + 30 + 20 = 100 -> no warning, proves ％ was parsed
         assert len(findings) == 0
 
     def test_fullwidth_tilde_range(self):
         """Full-width tilde 〜 should be parsed as range separator."""
-        content = "## 配分\n- Stocks: 50〜55%\n- Bonds: 20〜25%\n- Gold: 15〜20%\n- Cash: 5〜10%\n"
+        content = "## 배분\n- Stocks: 50〜55%\n- Bonds: 20〜25%\n- Gold: 15〜20%\n- Cash: 5〜10%\n"
         # sum_mins = 90, sum_maxs = 110, 100 in range -> OK
         findings = check_allocations(content)
         assert len(findings) == 0
@@ -417,7 +463,7 @@ class TestFullWidth:
     def test_fullwidth_dash(self):
         """En-dash should be parsed as range separator."""
         content = (
-            "## 配分\n"
+            "## 배분\n"
             "- Stocks: 50\u201355%\n"
             "- Bonds: 20\u201325%\n"
             "- Gold: 15\u201320%\n"
