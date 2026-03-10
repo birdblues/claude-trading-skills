@@ -1,6 +1,6 @@
 ---
 name: market-breadth-analyzer
-description: Quantifies market breadth health using TraderMonty's public CSV data. Generates a 0-100 composite score across 6 components (100 = healthy). No API key required. Use when user asks about market breadth, participation rate, advance-decline health, whether the rally is broad-based, or general market health assessment.
+description: Quantifies market breadth health using a 6-component scoring system (0-100, 100 = healthy). Supports two data sources - csv (TraderMonty, no API key) and fmp (FMP API self-calculated, --source fmp). Use when user asks about market breadth, participation rate, advance-decline health, whether the rally is broad-based, or general market health assessment.
 ---
 
 # Market Breadth Analyzer Skill
@@ -22,11 +22,17 @@ Quantify market breadth health using a data-driven 6-component scoring system (0
 - User wants to know if the market is narrowing (fewer stocks participating)
 - User asks about equity exposure levels based on breadth conditions
 
-**Korean:**
-- "마켓 브레드스는 어떤가요?" "시장 참가율은?"
-- "상승이 확산되고 있나?" "일부 종목만의 상승인가?"
-- 브레드스 지표에 기반한 익스포저 판단
-- 시장의 건강도를 데이터로 확인하고 싶다
+**Japanese:**
+- 「マーケットブレッドスはどうですか？」「市場の参加率は？」
+- 「上昇は広がっている？」「一部の銘柄だけの上昇？」
+- ブレッドス指標に基づくエクスポージャー判断
+- 市場の健康度をデータで確認したい
+
+## Prerequisites
+
+- **Python 3.8+** with `requests` library (for fetching CSV data)
+- **Internet access** to reach GitHub Pages URLs
+- **No API keys required** - uses freely available public CSV data
 
 ## Difference from Breadth Chart Analyst
 
@@ -108,6 +114,35 @@ Present the generated Markdown report to the user, highlighting:
 - 8 aggregate metrics (average peaks, average troughs, counts, analysis period)
 
 Both are publicly hosted on GitHub Pages - no authentication required.
+
+### FMP Self-Calculated Mode (Alternative)
+
+When TraderMonty CSV updates are delayed (1 \~ 2 business days), use FMP API to compute breadth data directly from S&P 500 constituent prices:
+
+```bash
+python3 skills/market-breadth-analyzer/scripts/market_breadth_analyzer.py \
+  --source fmp --output-dir reports/
+```
+
+**How it works:**
+1. Fetches ~503 S&P 500 constituent prices from FMP API
+2. Computes 200-day SMA for each stock
+3. Calculates daily breadth ratio (% above 200DMA)
+4. Derives EMA(8), EMA(200), trend, peak/trough markers
+5. Outputs data in the same format as CSV mode
+
+**Options:**
+- `--api-key KEY` — FMP API key (fallback: `$FMP_API_KEY`)
+- `--max-api-calls N` — Budget per run (default: 245)
+- `--cache-dir PATH` — Disk cache location (default: `scripts/.breadth_cache/`)
+- `--min-coverage 0.8` — Minimum symbol coverage (default: 80%)
+
+**Disk cache:** Constituent prices are cached per-symbol (1-day TTL). First run requires ~505 API calls across 2 \~ 3 runs (FMP free tier: 250/day). After cache is built, daily updates need only ~5 calls.
+
+**Limitations:**
+- `Bearish_Signal` is always False (TraderMonty signal logic is proprietary); C4 weight is redistributed automatically
+- EMA(200) converges slowly with limited history (~150 trading days); values may differ from CSV's 10-year series
+- Peak/trough detection is computed locally and may differ from TraderMonty's methodology
 
 ## Output Files
 

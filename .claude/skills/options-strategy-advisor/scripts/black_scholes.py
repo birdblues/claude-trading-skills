@@ -336,22 +336,22 @@ def fetch_historical_prices_for_hv(symbol, api_key, days=90):
     list
         List of adjusted close prices
     """
-    url = "https://financialmodelingprep.com/stable/historical-price-eod/full"
-    params = {"apikey": api_key, "symbol": symbol}
+    url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}"
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
 
-        if not isinstance(data, list) or not data:
+        if "historical" not in data:
             return None
 
-        # Get most recent 'days' of data (stable API returns flat list)
-        historical = data[:days]
+        # Get most recent 'days' of data
+        historical = data["historical"][:days]
         historical = historical[::-1]  # Reverse to chronological order
 
-        prices = [item.get("adjClose", item.get("close")) for item in historical]
+        prices = [item["adjClose"] for item in historical]
         return prices
 
     except Exception as e:
@@ -366,8 +366,8 @@ def fetch_historical_prices_for_hv(symbol, api_key, days=90):
 
 def get_current_stock_price(symbol, api_key):
     """Fetch current stock price from FMP API"""
-    url = "https://financialmodelingprep.com/stable/quote"
-    params = {"apikey": api_key, "symbol": symbol}
+    url = f"https://financialmodelingprep.com/api/v3/quote/{symbol}"
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)
@@ -385,8 +385,8 @@ def get_current_stock_price(symbol, api_key):
 
 def get_dividend_yield(symbol, api_key):
     """Fetch dividend yield from FMP API"""
-    url = "https://financialmodelingprep.com/stable/profile"
-    params = {"apikey": api_key, "symbol": symbol}
+    url = f"https://financialmodelingprep.com/api/v3/profile/{symbol}"
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)

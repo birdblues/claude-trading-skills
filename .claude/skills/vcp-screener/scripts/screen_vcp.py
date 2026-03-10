@@ -198,7 +198,7 @@ def pre_filter_stock(quote: dict) -> tuple:
     price = quote.get("price", 0)
     year_high = quote.get("yearHigh", 0)
     year_low = quote.get("yearLow", 0)
-    avg_volume = quote.get("avgVolume") or quote.get("volume", 0)
+    avg_volume = quote.get("avgVolume", 0)
 
     if price <= 10:
         return False, 0
@@ -475,8 +475,8 @@ def main():
     print("-" * 70)
 
     # Fetch SPY historical for RS calculation
-    print("  Fetching SPY history...", end=" ", flush=True)
-    spy_data = client.get_historical_prices("SPY", days=400)
+    print("  Fetching SPY 260-day history...", end=" ", flush=True)
+    spy_data = client.get_historical_prices("SPY", days=260)
     sp500_history = spy_data.get("historical", []) if spy_data else []
     if sp500_history:
         print(f"OK ({len(sp500_history)} days)")
@@ -485,13 +485,13 @@ def main():
 
     # Fetch historical data for candidates
     candidate_symbols = [c[0] for c in candidates]
-    print(f"  Fetching histories for {len(candidate_symbols)} candidates...")
+    print(f"  Fetching 260-day histories for {len(candidate_symbols)} candidates...")
 
     candidate_histories = {}
     for i, sym in enumerate(candidate_symbols):
         if (i + 1) % 20 == 0 or i == len(candidate_symbols) - 1:
             print(f"    Progress: {i + 1}/{len(candidate_symbols)}", flush=True)
-        data = client.get_historical_prices(sym, days=400)
+        data = client.get_historical_prices(sym, days=260)
         if data and "historical" in data:
             candidate_histories[sym] = data["historical"]
 

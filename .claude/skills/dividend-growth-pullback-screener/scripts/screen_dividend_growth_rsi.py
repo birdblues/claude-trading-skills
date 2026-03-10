@@ -28,7 +28,7 @@ import json
 import os
 import sys
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Optional
 
 import requests
@@ -111,7 +111,7 @@ class FINVIZClient:
 class FMPClient:
     """Financial Modeling Prep API client with rate limiting."""
 
-    STABLE_URL = "https://financialmodelingprep.com/stable"
+    BASE_URL = "https://financialmodelingprep.com/api/v3"
 
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -128,7 +128,7 @@ class FMPClient:
             params = {}
         params["apikey"] = self.api_key
 
-        url = f"{self.STABLE_URL}/{endpoint}"
+        url = f"{self.BASE_URL}/{endpoint}"
 
         try:
             response = self.session.get(url, params=params, timeout=30)
@@ -136,12 +136,7 @@ class FMPClient:
             if response.status_code == 200:
                 self.retry_count = 0
                 time.sleep(0.3)  # Rate limiting: 0.3s between requests
-                data = response.json()
-                if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
-                    msg = data.get("Error Message") or data.get("Error", "")
-                    print(f"WARNING: FMP API error in 200 response: {msg}", file=sys.stderr)
-                    return None
-                return data
+                return response.json()
             elif response.status_code == 429:
                 self.retry_count += 1
                 if self.retry_count <= 1:
@@ -174,44 +169,39 @@ class FMPClient:
 
     def get_historical_prices(self, symbol: str, days: int = 30) -> Optional[list[dict]]:
         """Get historical daily prices."""
-        from_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-        result = self._get("historical-price-eod/full", {"symbol": symbol, "from": from_date})
-        if isinstance(result, list):
-            return result
-        if isinstance(result, dict):
-            return result.get("historical", [])
+        result = self._get(f"historical-price-full/{symbol}", {"timeseries": days})
+        if result and "historical" in result:
+            return result["historical"]
         return None
 
     def get_dividend_history(self, symbol: str) -> Optional[dict]:
         """Get historical dividend payments."""
-        result = self._get("dividends-company", {"symbol": symbol})
-        if isinstance(result, list):
-            return result if result else {}
-        return result or {}
+        result = self._get(f"historical-price-full/stock_dividend/{symbol}")
+        return result
 
     def get_income_statement(self, symbol: str, limit: int = 5) -> Optional[list[dict]]:
         """Get income statement data."""
-        result = self._get("income-statement", {"symbol": symbol, "limit": limit})
+        result = self._get(f"income-statement/{symbol}", {"limit": limit})
         return result if result else []
 
     def get_balance_sheet(self, symbol: str, limit: int = 5) -> Optional[list[dict]]:
         """Get balance sheet data."""
-        result = self._get("balance-sheet-statement", {"symbol": symbol, "limit": limit})
+        result = self._get(f"balance-sheet-statement/{symbol}", {"limit": limit})
         return result if result else []
 
     def get_cash_flow(self, symbol: str, limit: int = 5) -> Optional[list[dict]]:
         """Get cash flow statement data."""
-        result = self._get("cash-flow-statement", {"symbol": symbol, "limit": limit})
+        result = self._get(f"cash-flow-statement/{symbol}", {"limit": limit})
         return result if result else []
 
     def get_key_metrics(self, symbol: str, limit: int = 5) -> Optional[list[dict]]:
         """Get key financial metrics."""
-        result = self._get("key-metrics", {"symbol": symbol, "limit": limit})
+        result = self._get(f"key-metrics/{symbol}", {"limit": limit})
         return result if result else []
 
     def get_company_profile(self, symbol: str) -> Optional[dict]:
         """Get company profile including sector information."""
-        result = self._get("profile", {"symbol": symbol})
+        result = self._get(f"profile/{symbol}")
         if result and isinstance(result, list) and len(result) > 0:
             return result[0]
         return None
@@ -224,7 +214,7 @@ class FMPClient:
             Dict with quote data + sector/companyName from profile, or None on error
         """
         # First get quote data
-        quote = self._get("quote", {"symbol": symbol})
+        quote = self._get(f"quote/{symbol}")
         if not quote or not isinstance(quote, list) or len(quote) == 0:
             return None
 

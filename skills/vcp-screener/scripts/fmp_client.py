@@ -24,6 +24,19 @@ except ImportError:
     print("ERROR: requests library not found. Install with: pip install requests", file=sys.stderr)
     sys.exit(1)
 
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
+try:
+    import yfinance as yf
+
+    HAS_YFINANCE = True
+except ImportError:
+    yf = None
+    HAS_YFINANCE = False
+
 
 class FMPClient:
     """Client for Financial Modeling Prep API with rate limiting and caching"""
@@ -45,6 +58,15 @@ class FMPClient:
         self.retry_count = 0
         self.max_retries = 1
         self.api_calls_made = 0
+        self.yf_fallback_count = 0
+        self.wiki_fallback_count = 0
+
+    def _is_error_payload(self, data) -> bool:
+        """Detect FMP error responses returned with HTTP 200."""
+        if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
+            print(f"WARNING: FMP error payload detected: {data}", file=sys.stderr)
+            return True
+        return False
 
     def _rate_limited_get(self, url: str, params: Optional[dict] = None) -> Optional[dict]:
         if self.rate_limit_reached:
@@ -65,7 +87,11 @@ class FMPClient:
 
             if response.status_code == 200:
                 self.retry_count = 0
-                return response.json()
+                try:
+                    return response.json()
+                except ValueError:
+                    print("WARNING: Failed to decode JSON response", file=sys.stderr)
+                    return None
             elif response.status_code == 429:
                 self.retry_count += 1
                 if self.retry_count <= self.max_retries:
@@ -198,9 +224,16 @@ class FMPClient:
 
         url = f"{self.BASE_URL}/sp500_constituent"
         data = self._rate_limited_get(url)
-        if data:
+        if data and not self._is_error_payload(data):
             self.cache[cache_key] = data
-        return data
+            return data
+
+        # Fallback to Wikipedia
+        wiki_data = self._fetch_sp500_from_wikipedia()
+        if wiki_data:
+            self.wiki_fallback_count += 1
+            self.cache[cache_key] = wiki_data
+        return wiki_data
 
     def get_quote(self, symbols: str) -> Optional[list[dict]]:
         """Fetch real-time quote data for one or more symbols (comma-separated)"""
@@ -210,9 +243,16 @@ class FMPClient:
 
         url = f"{self.BASE_URL}/quote/{symbols}"
         data = self._rate_limited_get(url)
-        if data:
+        if data and not self._is_error_payload(data) and isinstance(data, list) and len(data) > 0:
             self.cache[cache_key] = data
-        return data
+            return data
+
+        # Fallback to yfinance for single symbol
+        yf_data = self._fetch_quote_via_yfinance(symbols)
+        if yf_data:
+            self.yf_fallback_count += 1
+            self.cache[cache_key] = yf_data
+        return yf_data
 
     def get_historical_prices(self, symbol: str, days: int = 365) -> Optional[dict]:
         """Fetch historical daily OHLCV data"""
@@ -223,9 +263,25 @@ class FMPClient:
         url = f"{self.BASE_URL}/historical-price-full/{symbol}"
         params = {"timeseries": days}
         data = self._rate_limited_get(url, params)
-        if data:
-            self.cache[cache_key] = data
-        return data
+
+        need_fallback = data is None or data == [] or self._is_error_payload(data)
+
+        if not need_fallback:
+            if isinstance(data, list):
+                result = {"symbol": symbol, "historical": data}
+            else:
+                result = data
+            self.cache[cache_key] = result
+            return result
+
+        # Fallback to yfinance
+        yf_data = self._fetch_via_yfinance(symbol, days)
+        if yf_data:
+            self.yf_fallback_count += 1
+            result = {"symbol": symbol, "historical": yf_data}
+            self.cache[cache_key] = result
+            return result
+        return None
 
     def get_batch_quotes(self, symbols: list[str]) -> dict[str, dict]:
         """Fetch quotes for a list of symbols, batching up to 5 per request"""
@@ -260,4 +316,6 @@ class FMPClient:
             "cache_entries": len(self.cache),
             "api_calls_made": self.api_calls_made,
             "rate_limit_reached": self.rate_limit_reached,
+            "yf_fallback_count": self.yf_fallback_count,
+            "wiki_fallback_count": self.wiki_fallback_count,
         }

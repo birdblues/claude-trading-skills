@@ -16,7 +16,7 @@ from typing import Any
 
 import requests
 
-FMP_BASE_URL = "https://financialmodelingprep.com/stable"
+FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
 
 
 def parse_ticker_csv(raw: str) -> list[str]:
@@ -124,12 +124,7 @@ class FMPClient:
             if response.status_code == 200:
                 if self.sleep_seconds > 0:
                     time.sleep(self.sleep_seconds)
-                data = response.json()
-                if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
-                    msg = data.get("Error Message") or data.get("Error", "")
-                    print(f"WARNING: FMP API error in 200 response: {msg}", file=sys.stderr)
-                    return None
-                return data
+                return response.json()
 
             if response.status_code == 429 and attempts < 2:
                 time.sleep(2.0)
@@ -146,7 +141,7 @@ class FMPClient:
     def get_batch_quotes(self, tickers: list[str]) -> dict[str, dict[str, Any]]:
         result: dict[str, dict[str, Any]] = {}
         for group in chunked(tickers, 50):
-            data = self._get("quote", {"symbol": ",".join(group)})
+            data = self._get(f"quote/{','.join(group)}")
             if not isinstance(data, list):
                 continue
             for row in data:
@@ -160,7 +155,7 @@ class FMPClient:
     def get_batch_profiles(self, tickers: list[str]) -> dict[str, dict[str, Any]]:
         result: dict[str, dict[str, Any]] = {}
         for group in chunked(tickers, 25):
-            data = self._get("profile", {"symbol": ",".join(group)})
+            data = self._get(f"profile/{','.join(group)}")
             if isinstance(data, list):
                 for row in data:
                     if not isinstance(row, dict):
@@ -172,7 +167,7 @@ class FMPClient:
 
             # Batch profile may fail for mixed symbols; fallback to per-symbol.
             for ticker in group:
-                single = self._get("profile", {"symbol": ticker})
+                single = self._get(f"profile/{ticker}")
                 if not isinstance(single, list) or not single:
                     continue
                 row = single[0]
@@ -184,7 +179,7 @@ class FMPClient:
         return result
 
     def get_key_metrics(self, ticker: str, limit: int = 10) -> list[dict[str, Any]]:
-        data = self._get("key-metrics", {"symbol": ticker, "limit": limit})
+        data = self._get(f"key-metrics/{ticker}", {"limit": limit})
         if isinstance(data, list):
             return [row for row in data if isinstance(row, dict)]
         return []

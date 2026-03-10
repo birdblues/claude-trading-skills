@@ -19,8 +19,10 @@ logger = logging.getLogger("skill_idea_miner")
 
 PROJECT_ALLOWLIST = [
     "claude-trading-skills",
+    "claude-market-agents",
     "trade-edge-finder",
     "trade-strategy-pipeline",
+    "weekly-trade-strategy",
 ]
 
 CLAUDE_TIMEOUT = 600
@@ -28,6 +30,44 @@ CLAUDE_BUDGET_MINE = 1.00
 LOOKBACK_DAYS = 7
 MAX_USER_MESSAGES_PER_SESSION = 5
 MAX_ERROR_OUTPUT_LEN = 500
+
+# Categories rejected by the deterministic post-LLM filter.
+# Broad denylist covering non-trading domains.
+REJECTED_CATEGORIES = {
+    "developer-tooling",
+    "developer-productivity",
+    "code-navigation",
+    "documentation-generation",
+    "skill-development",
+    "devops",
+    "ci-cd",
+    "testing",
+    "communication",
+    "project-management",
+    "customer-support",
+    "hr",
+    "meeting",
+    "email",
+    "calendar",
+    "general-productivity",
+}
+
+# Keywords in title/description that indicate a non-trading skill.
+# Use specific phrases to avoid false positives on trading-adjacent tools
+# (e.g. "slack-alert" for trade notifications is legitimate).
+REJECTED_KEYWORDS = [
+    "codebase-navigator",
+    "code-navigation",
+    "doc-generator",
+    "doc-site-generator",
+    "git-bulk",
+    "skill-score-optimizer",
+    "batch-patcher",
+    "meeting-scheduler",
+    "meeting-minutes",
+    "jira-integration",
+    "confluence-page",
+]
 
 AUTOMATED_PROMPT_PREFIXES = [
     "# LLM Skill Review Request",
@@ -422,6 +462,7 @@ def abstract_with_llm(
     user_samples: list[str],
     project_name: str,
     dry_run: bool = False,
+    trading_focus: bool = True,
 ) -> list[dict] | None:
     """Use claude CLI to abstract skill idea candidates from signals.
 
@@ -435,7 +476,7 @@ def abstract_with_llm(
         return None
 
     # Build prompt
-    prompt = _build_llm_prompt(signals, user_samples, project_name)
+    prompt = _build_llm_prompt(signals, user_samples, project_name, trading_focus)
 
     # Remove CLAUDECODE env var to allow claude -p from within Claude Code terminals
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
@@ -484,14 +525,43 @@ def abstract_with_llm(
         return None
 
 
-def _build_llm_prompt(signals: dict, user_samples: list[str], project_name: str) -> str:
-    """Build the LLM prompt for skill idea abstraction."""
-    parts = [
-        f"Project: {project_name}\n",
-        "Analyze the following session signals and user message samples to suggest",
-        "new Claude skill ideas that would automate or improve the user's workflow.\n",
-        "\n## Signals\n",
-    ]
+def _build_llm_prompt(
+    signals: dict,
+    user_samples: list[str],
+    project_name: str,
+    trading_focus: bool = True,
+) -> str:
+    """Build the LLM prompt for skill idea abstraction.
+
+    Args:
+        trading_focus: When True (default, used with PROJECT_ALLOWLIST), constrain
+            candidates to trading/investing domain. When False (used with --project
+            override), use a generic prompt.
+    """
+    parts = [f"Project: {project_name}\n"]
+
+    if trading_focus:
+        parts.extend(
+            [
+                "This project is a trading and investing skill library. "
+                "Analyze the following session signals and user message samples to suggest "
+                "new Claude skill ideas focused on TRADING, INVESTING, and MARKET ANALYSIS.\n",
+                "\n## IMPORTANT CONSTRAINTS\n",
+                "- ONLY propose skills directly related to: stock/options trading, market analysis, "
+                "portfolio management, risk management, economic/earnings data, technical/fundamental "
+                "analysis, or trade execution workflows.",
+                "- DO NOT propose developer-tooling, code-navigation, documentation-generation, "
+                "or general-purpose software engineering skills. Those belong to a separate project.",
+                "- Each skill idea must clearly describe how it helps a trader or investor.\n",
+            ]
+        )
+    else:
+        parts.append(
+            "Analyze the following session signals and user message samples to suggest "
+            "new Claude skill ideas that would automate or improve the user's workflow.\n",
+        )
+
+    parts.append("\n## Signals\n")
 
     for signal_name, signal_data in signals.items():
         count = signal_data.get("count", 0)
@@ -565,6 +635,27 @@ def _extract_json_from_claude(output: str, required_keys: list[str]) -> dict | N
         except json.JSONDecodeError:
             idx = pos + 1
     return None
+
+
+def filter_non_trading_candidates(candidates: list[dict]) -> list[dict]:
+    """Deterministic post-LLM filter: reject candidates outside trading domain."""
+    accepted = []
+    for c in candidates:
+        category = str(c.get("category") or "").lower()
+        title = str(c.get("title") or "").lower()
+        desc = str(c.get("description") or "").lower()
+
+        if category in REJECTED_CATEGORIES:
+            logger.info("Filtered out '%s' (rejected category: %s)", c.get("title"), category)
+            continue
+
+        text = f"{title} {desc}"
+        if any(kw in text for kw in REJECTED_KEYWORDS):
+            logger.info("Filtered out '%s' (rejected keyword match)", c.get("title"))
+            continue
+
+        accepted.append(c)
+    return accepted
 
 
 # ── Output helpers ──
@@ -649,12 +740,29 @@ def run(args: argparse.Namespace) -> int:
     # LLM abstraction (optional)
     # Aggregate signals across sessions
     aggregated = _aggregate_signals(all_signals)
+    # --project overrides the default trading-focused allowlist
+    trading_focus = args.project is None
     candidates = abstract_with_llm(
         aggregated,
         all_user_samples[:MAX_USER_MESSAGES_PER_SESSION],
         project_name=", ".join(set(p for p, _ in project_dirs)),
         dry_run=args.dry_run,
+        trading_focus=trading_focus,
     )
+
+    # Normalize candidates before filtering: name -> title, assign ids
+    if candidates:
+        date_str = datetime.now(tz=timezone.utc).strftime("%Y%m%d")
+        for i, c in enumerate(candidates):
+            c["id"] = f"raw_{date_str}_{i + 1:03d}"
+            # Handle backward compatibility: LLM might output 'name' instead of 'title',
+            # or return title as null alongside a valid 'name'.
+            if (not c.get("title")) and c.get("name"):
+                c["title"] = c.pop("name")
+
+    # Deterministic domain filter (only when using default allowlist)
+    if candidates and trading_focus:
+        candidates = filter_non_trading_candidates(candidates)
 
     # Write output
     output = {
@@ -664,14 +772,6 @@ def run(args: argparse.Namespace) -> int:
         "aggregated_signals": aggregated,
         "session_details": all_signals,
     }
-    # Enrich candidates with id and ensure title key exists
-    if candidates:
-        date_str = datetime.now(tz=timezone.utc).strftime("%Y%m%d")
-        for i, c in enumerate(candidates):
-            c["id"] = f"raw_{date_str}_{i + 1:03d}"
-            # Handle backward compatibility: LLM might output 'name' instead of 'title'
-            if "title" not in c and "name" in c:
-                c["title"] = c.pop("name")
     output["candidates"] = candidates if candidates else []
 
     output_path = output_dir / "raw_candidates.yaml"

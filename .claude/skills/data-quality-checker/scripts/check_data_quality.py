@@ -146,12 +146,13 @@ def check_price_scale(content: str) -> list[Finding]:
 # ---------------------------------------------------------------------------
 
 NOTATION_GROUPS: dict[str, list[str]] = {
-    "gold": ["Gold", "GLD", "GC", "金", "金先物", "ゴールド"],
+    "gold": ["Gold", "GLD", "GC", "금", "금선물", "골드"],
     "sp500": ["S&P 500", "S&P500", "SPX", "SPY", "SP500"],
-    "oil": ["WTI", "Crude", "CL", "USO", "原油"],
-    "silver": ["Silver", "SLV", "SI", "銀"],
-    "bonds": ["TLT", "10Y", "10年債", "米国債"],
-    "vix": ["VIX", "恐怖指数"],
+    "oil": ["WTI", "Crude", "CL", "USO", "원유"],
+    "silver": ["Silver", "SLV", "SI", "은"],
+    "bonds": ["TLT", "10Y", "10년채", "미국채"],
+    "vix": ["VIX", "공포지수"],
+    "kospi": ["KOSPI", "코스피", "KOSPI 200", "KOSPI200"],
 }
 
 
@@ -164,7 +165,8 @@ def check_notation(content: str) -> list[Finding]:
         for v in variants:
             # Use case-insensitive only for longer terms to avoid false positives
             flags = re.IGNORECASE if len(v) > 3 else 0
-            pattern = re.compile(r"(?<!\w)" + re.escape(v) + r"(?!\w)", flags)
+            # Use ASCII word boundaries so Korean particles (는/가/의) don't block matching
+            pattern = re.compile(r"(?<![a-zA-Z0-9_])" + re.escape(v) + r"(?![a-zA-Z0-9_])", flags)
             if pattern.search(content):
                 found.append(v)
         if len(found) > 1:
@@ -203,14 +205,14 @@ WEEKDAY_MAP_EN: dict[str, int] = {
     "sun": 6,
 }
 
-WEEKDAY_MAP_JA: dict[str, int] = {
-    "月": 0,
-    "火": 1,
-    "水": 2,
-    "木": 3,
-    "金": 4,
-    "土": 5,
-    "日": 6,
+WEEKDAY_MAP_KO: dict[str, int] = {
+    "월": 0,
+    "화": 1,
+    "수": 2,
+    "목": 3,
+    "금": 4,
+    "토": 5,
+    "일": 6,
 }
 
 MONTH_MAP: dict[str, int] = {
@@ -297,7 +299,7 @@ def infer_year(
 def check_dates(
     content: str, as_of: date | None = None, filepath: str | None = None
 ) -> list[Finding]:
-    """Check date-weekday mismatches in English and Japanese content."""
+    """Check date-weekday mismatches in English and Korean content."""
     findings: list[Finding] = []
 
     # ---- English with year: "February 28, 2026 (Friday)" ----
@@ -390,9 +392,9 @@ def check_dates(
                 )
             )
 
-    # ---- Japanese: "1月1日（木）" or "1月1日（木曜日）" ----
-    ja_pat = re.compile(r"(\d{1,2})月(\d{1,2})日[（(]([月火水木金土日])(?:曜日)?[）)]")
-    for m in ja_pat.finditer(content):
+    # ---- Korean: "1월 1일(목)" or "1월 1일(목요일)" ----
+    ko_pat = re.compile(r"(\d{1,2})월\s*(\d{1,2})일[（(]([월화수목금토일])(?:요일)?[）)]")
+    for m in ko_pat.finditer(content):
         month_val = int(m.group(1))
         day_val = int(m.group(2))
         weekday_char = m.group(3)
@@ -404,10 +406,10 @@ def check_dates(
             continue
 
         actual_weekday = d.weekday()
-        stated_weekday = WEEKDAY_MAP_JA.get(weekday_char)
+        stated_weekday = WEEKDAY_MAP_KO.get(weekday_char)
 
         if stated_weekday is not None and stated_weekday != actual_weekday:
-            ja_names = {0: "月", 1: "火", 2: "水", 3: "木", 4: "金", 5: "土", 6: "日"}
+            ko_names = {0: "월", 1: "화", 2: "수", 3: "목", 4: "금", 5: "토", 6: "일"}
             line_num = content[: m.start()].count("\n") + 1
             findings.append(
                 Finding(
@@ -415,16 +417,16 @@ def check_dates(
                     category="dates",
                     message=(
                         f"Date-weekday mismatch: {m.group(0)} "
-                        f"-- actual weekday is {ja_names[actual_weekday]} "
+                        f"-- actual weekday is {ko_names[actual_weekday]} "
                         f"(inferred year: {year})"
                     ),
                     line_number=line_num,
                 )
             )
 
-    # ---- Japanese slash format: "1/1(木)" ----
-    ja_slash_pat = re.compile(r"(\d{1,2})/(\d{1,2})[（(]([月火水木金土日])[）)]")
-    for m in ja_slash_pat.finditer(content):
+    # ---- Korean slash format: "1/1(목)" ----
+    ko_slash_pat = re.compile(r"(\d{1,2})/(\d{1,2})[（(]([월화수목금토일])[）)]")
+    for m in ko_slash_pat.finditer(content):
         month_val = int(m.group(1))
         day_val = int(m.group(2))
         weekday_char = m.group(3)
@@ -436,10 +438,10 @@ def check_dates(
             continue
 
         actual_weekday = d.weekday()
-        stated_weekday = WEEKDAY_MAP_JA.get(weekday_char)
+        stated_weekday = WEEKDAY_MAP_KO.get(weekday_char)
 
         if stated_weekday is not None and stated_weekday != actual_weekday:
-            ja_names = {0: "月", 1: "火", 2: "水", 3: "木", 4: "金", 5: "土", 6: "日"}
+            ko_names = {0: "월", 1: "화", 2: "수", 3: "목", 4: "금", 5: "토", 6: "일"}
             line_num = content[: m.start()].count("\n") + 1
             findings.append(
                 Finding(
@@ -447,7 +449,7 @@ def check_dates(
                     category="dates",
                     message=(
                         f"Date-weekday mismatch: {m.group(0)} "
-                        f"-- actual weekday is {ja_names[actual_weekday]} "
+                        f"-- actual weekday is {ko_names[actual_weekday]} "
                         f"(inferred year: {year})"
                     ),
                     line_number=line_num,
@@ -462,21 +464,25 @@ def check_dates(
 # ---------------------------------------------------------------------------
 
 ALLOCATION_HEADING_KEYWORDS: list[str] = [
-    "配分",
-    "アロケーション",
+    "배분",
+    "얼로케이션",
     "allocation",
-    "セクター配分",
+    "섹터배분",
     "asset allocation",
+    "자산배분",
+    "포트폴리오",
 ]
 
 ALLOCATION_TABLE_KEYWORDS: list[str] = [
-    "配分",
+    "배분",
     "allocation",
-    "ウェイト",
+    "비중",
     "weight",
-    "比率",
+    "비율",
     "ratio",
-    "目安比率",
+    "목표비율",
+    "가중치",
+    "투자비중",
 ]
 
 
@@ -490,8 +496,8 @@ def find_allocation_sections(content: str) -> list[str]:
         if not re.match(r"^#{1,6}\s", line):
             continue
         heading_text = re.sub(r"^#{1,6}\s+", "", line).strip().lower()
-        # Skip ポジション alone (without 配分)
-        if "ポジション" in heading_text and "配分" not in heading_text:
+        # Skip 포지션 alone (without 배분)
+        if "포지션" in heading_text and "배분" not in heading_text:
             continue
         if any(kw.lower() in heading_text for kw in ALLOCATION_HEADING_KEYWORDS):
             section_lines: list[str] = []
@@ -639,7 +645,7 @@ def check_units(content: str) -> list[Finding]:
     has_bp = bool(re.search(r"\d+\s*bp", content, re.IGNORECASE))
     has_pct_rate = bool(
         re.search(
-            r"(?:yield|rate|利回り|金利).*?\d+(?:\.\d+)?%",
+            r"(?:yield|rate|수익률|금리).*?\d+(?:\.\d+)?%",
             content,
             re.IGNORECASE,
         )

@@ -62,11 +62,7 @@ def find_latest_report(
         return None
 
     # Most recent = last in sorted list (filenames contain timestamps)
-    # Skip auxiliary files (e.g. *_history.json) that don't contain report dicts
     for path in reversed(matches):
-        basename = os.path.basename(path)
-        if "history" in basename:
-            continue
         if max_age_hours > 0:
             mtime = os.path.getmtime(path)
             file_age_hours = (datetime.now().timestamp() - mtime) / 3600
@@ -75,8 +71,6 @@ def find_latest_report(
         try:
             with open(path) as f:
                 data = json.load(f)
-            if not isinstance(data, dict):
-                continue
             return (path, data)
         except (json.JSONDecodeError, OSError):
             continue

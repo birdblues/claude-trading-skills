@@ -465,8 +465,8 @@ class RepresentativeStockSelector:
         self._source_states["fmp"].total_queries += 1
 
         url = (
-            f"https://financialmodelingprep.com/stable/etf-holder"
-            f"?symbol={etf_symbol}&apikey={self._fmp_api_key}"
+            f"https://financialmodelingprep.com/api/v3/etf-holder/{etf_symbol}"
+            f"?apikey={self._fmp_api_key}"
         )
 
         try:

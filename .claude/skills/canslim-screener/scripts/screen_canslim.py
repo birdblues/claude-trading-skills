@@ -201,8 +201,12 @@ def analyze_stock(
 
         # I Component: Institutional Sponsorship (with Finviz fallback)
         institutional_holders = client.get_institutional_holders(symbol)
-        i_result = calculate_institutional_sponsorship(
-            institutional_holders or [], profile[0], symbol=symbol, use_finviz_fallback=True
+        i_result = (
+            calculate_institutional_sponsorship(
+                institutional_holders, profile[0], symbol=symbol, use_finviz_fallback=True
+            )
+            if institutional_holders
+            else {"score": 0, "error": "No institutional holder data"}
         )
 
         # M Component: Market Direction (use pre-calculated)

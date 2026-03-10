@@ -46,12 +46,12 @@ class SingleStockAnalyzer:
 
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = "https://financialmodelingprep.com/stable"
+        self.base_url = "https://financialmodelingprep.com/api/v3"
 
     def get_institutional_holders(self, symbol: str) -> list[dict]:
         """Get all institutional holders data for a stock"""
-        url = f"{self.base_url}/institutional-holder"
-        params = {"apikey": self.api_key, "symbol": symbol}
+        url = f"{self.base_url}/institutional-holder/{symbol}"
+        params = {"apikey": self.api_key}
 
         try:
             response = requests.get(url, params=params, timeout=30)
@@ -64,8 +64,8 @@ class SingleStockAnalyzer:
 
     def get_company_profile(self, symbol: str) -> dict:
         """Get company profile information"""
-        url = f"{self.base_url}/profile"
-        params = {"apikey": self.api_key, "symbol": symbol}
+        url = f"{self.base_url}/profile/{symbol}"
+        params = {"apikey": self.api_key}
 
         try:
             response = requests.get(url, params=params, timeout=30)

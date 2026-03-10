@@ -68,7 +68,7 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
     print(f"\n[1/5] Fetching {sector} sector stocks from FMP API...")
 
     # Use stock screener to get sector stocks
-    url = "https://financialmodelingprep.com/stable/stock-screener"
+    url = "https://financialmodelingprep.com/api/v3/stock-screener"
     params = {
         "sector": sector,
         "marketCapMoreThan": min_market_cap,
@@ -80,11 +80,6 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
-
-        if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
-            msg = data.get("Error Message") or data.get("Error", "")
-            print(f"ERROR: FMP API error: {msg}")
-            sys.exit(1)
 
         if not data:
             print(
@@ -116,29 +111,24 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
 
 def fetch_historical_prices(symbol, api_key, lookback_days=730):
     """Fetch historical adjusted close prices for a symbol"""
-    url = "https://financialmodelingprep.com/stable/historical-price-eod/full"
-    params = {"apikey": api_key, "symbol": symbol}
+    url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}"
+    params = {"apikey": api_key}
 
     try:
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
 
-        if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
-            msg = data.get("Error Message") or data.get("Error", "")
-            print(f"WARNING: FMP API error for {symbol}: {msg}", file=sys.stderr)
+        if "historical" not in data:
             return None
 
-        if not isinstance(data, list) or not data:
-            return None
-
-        # Extract historical prices (stable API returns flat list)
-        historical = data[:lookback_days]
+        # Extract historical prices
+        historical = data["historical"][:lookback_days]
         historical = historical[::-1]  # Reverse to chronological order
 
         # Convert to pandas Series
         prices = pd.Series(
-            [item.get("adjClose", item.get("close")) for item in historical],
+            [item["adjClose"] for item in historical],
             index=[pd.to_datetime(item["date"]) for item in historical],
             name=symbol,
         )

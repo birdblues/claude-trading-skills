@@ -108,7 +108,7 @@ class FINVIZClient:
 class FMPClient:
     """Client for Financial Modeling Prep API"""
 
-    STABLE_URL = "https://financialmodelingprep.com/stable"
+    BASE_URL = "https://financialmodelingprep.com/api/v3"
 
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -125,7 +125,7 @@ class FMPClient:
             params = {}
         params["apikey"] = self.api_key
 
-        url = f"{self.STABLE_URL}/{endpoint}"
+        url = f"{self.BASE_URL}/{endpoint}"
 
         try:
             response = self.session.get(url, params=params, timeout=30)
@@ -133,12 +133,7 @@ class FMPClient:
 
             if response.status_code == 200:
                 self.retry_count = 0  # Reset retry count on success
-                data = response.json()
-                if isinstance(data, dict) and ("Error Message" in data or "Error" in data):
-                    msg = data.get("Error Message") or data.get("Error", "")
-                    print(f"WARNING: FMP API error in 200 response: {msg}", file=sys.stderr)
-                    return None
-                return data
+                return response.json()
             elif response.status_code == 429:
                 self.retry_count += 1
                 if self.retry_count <= 1:  # Only retry once
@@ -183,41 +178,37 @@ class FMPClient:
 
     def get_income_statement(self, symbol: str, limit: int = 5) -> list[dict]:
         """Get income statement"""
-        return self._get("income-statement", {"symbol": symbol, "limit": limit}) or []
+        return self._get(f"income-statement/{symbol}", {"limit": limit}) or []
 
     def get_balance_sheet(self, symbol: str, limit: int = 5) -> list[dict]:
         """Get balance sheet"""
-        return self._get("balance-sheet-statement", {"symbol": symbol, "limit": limit}) or []
+        return self._get(f"balance-sheet-statement/{symbol}", {"limit": limit}) or []
 
     def get_cash_flow(self, symbol: str, limit: int = 5) -> list[dict]:
         """Get cash flow statement"""
-        return self._get("cash-flow-statement", {"symbol": symbol, "limit": limit}) or []
+        return self._get(f"cash-flow-statement/{symbol}", {"limit": limit}) or []
 
     def get_key_metrics(self, symbol: str, limit: int = 5) -> list[dict]:
         """Get key metrics"""
-        return self._get("key-metrics", {"symbol": symbol, "limit": limit}) or []
+        return self._get(f"key-metrics/{symbol}", {"limit": limit}) or []
 
     def get_dividend_history(self, symbol: str) -> list[dict]:
         """Get dividend history"""
-        result = self._get("dividends-company", {"symbol": symbol})
-        if isinstance(result, list):
-            return result if result else {}
-        return result or {}
+        return self._get(f"historical-price-full/stock_dividend/{symbol}") or {}
 
     def get_company_profile(self, symbol: str) -> Optional[dict]:
         """Get company profile including sector information."""
-        result = self._get("profile", {"symbol": symbol})
+        result = self._get(f"profile/{symbol}")
         if result and isinstance(result, list) and len(result) > 0:
             return result[0]
         return None
 
     def get_historical_prices(self, symbol: str, days: int = 30) -> list[dict]:
         """Get historical daily prices for RSI calculation."""
-        result = self._get("historical-price-eod/full", {"symbol": symbol, "serietype": "line"})
-        if isinstance(result, list):
-            return result[:days]
-        if isinstance(result, dict):
-            return result.get("historical", [])[:days]
+        result = self._get(f"historical-price-full/{symbol}", {"serietype": "line"})
+        if result and "historical" in result:
+            # Return most recent 'days' entries
+            return result["historical"][:days]
         return []
 
 

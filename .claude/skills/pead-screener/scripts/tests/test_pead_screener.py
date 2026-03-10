@@ -998,10 +998,9 @@ class TestFMPClient:
         assert result is None
         assert client.rate_limit_reached is True
 
-    @patch("fmp_client.HAS_YFINANCE", False)
     @patch("fmp_client.requests.Session")
     def test_api_timeout(self, mock_session_class):
-        """Mock Timeout -> returns None (with yfinance disabled)."""
+        """Mock Timeout -> returns None."""
         import requests as req
 
         mock_session = MagicMock()

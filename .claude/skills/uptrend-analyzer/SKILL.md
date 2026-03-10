@@ -20,12 +20,12 @@ Unlike the Market Top Detector (API-based risk scorer), this skill uses free CSV
 - User needs exposure guidance based on breadth analysis
 - User references Monty's Uptrend Dashboard or uptrend ratios
 
-**Korean:**
-- "시장 브레드스는 건전한가?" "상승의 저변은 넓은가?"
-- 섹터별 업트렌드 비율을 확인하고 싶다
-- 시장 참가율·브레드스 상황을 진단하고 싶다
-- 브레드스 분석에 기반한 익스포저 가이던스가 필요하다
-- Monty의 업트렌드 대시보드에 대한 질문
+**Japanese:**
+- 「市場のブレドスは健全？」「上昇の裾野は広い？」
+- セクター別のアップトレンド比率を確認したい
+- 相場参加率・ブレドス状況を診断したい
+- ブレドス分析に基づくエクスポージャーガイダンスが欲しい
+- Montyのアップトレンドダッシュボードについて質問
 
 ## Difference from Market Top Detector
 
@@ -43,16 +43,35 @@ Unlike the Market Top Detector (API-based risk scorer), this skill uses free CSV
 
 ### Phase 1: Execute Python Script
 
-Run the analysis script (no API key needed):
+Run the analysis script using one of two data sources:
 
+**CSV mode (default, no API key):**
 ```bash
-python3 skills/uptrend-analyzer/scripts/uptrend_analyzer.py
+python3 skills/uptrend-analyzer/scripts/uptrend_analyzer.py --output-dir reports/
+```
+
+**FMP mode (self-calculated, requires FMP API key):**
+```bash
+python3 skills/uptrend-analyzer/scripts/uptrend_analyzer.py --source fmp --output-dir reports/
 ```
 
 The script will:
-1. Download CSV data from Monty's GitHub repository
-2. Calculate 5 component scores
-3. Generate composite score and reports
+1. **CSV mode:** Download CSV data from Monty's GitHub repository (~2,800 stocks)
+2. **FMP mode:** Fetch S&P 500 prices via FMP API and self-calculate uptrend ratios (~503 stocks)
+3. Calculate 5 component scores
+4. Generate composite score and reports
+
+**FMP mode options:**
+- `--api-key KEY` — FMP API key (fallback: `$FMP_API_KEY`)
+- `--max-api-calls N` — API call budget per run (default: 245)
+- `--cache-dir PATH` — Disk cache directory (default: `scripts/.uptrend_cache/`)
+- `--min-coverage 0.8` — Minimum symbol coverage fraction
+
+**FMP mode limitations:**
+- Covers S&P 500 (~503 stocks) vs Monty's ~2,800 stock universe
+- Directional signals are similar but absolute ratio values may differ
+- First run requires ~503 API calls (2-3 runs with free tier budget of 245/day)
+- Subsequent runs use disk cache (0-5 API calls for stale refresh)
 
 ### Phase 2: Present Results
 
@@ -127,7 +146,8 @@ Confidence levels: High, Medium, Low.
 
 ## API Requirements
 
-**Required:** None (uses free GitHub CSV data)
+- **CSV mode (default):** None (uses free GitHub CSV data)
+- **FMP mode (`--source fmp`):** FMP API key required (free tier sufficient, 250 calls/day)
 
 ## Output Files
 

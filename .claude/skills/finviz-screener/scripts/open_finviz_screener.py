@@ -3,6 +3,8 @@
 
 Usage:
     python3 open_finviz_screener.py --filters "cap_small,fa_div_o3,fa_pe_u20" --url-only
+    python3 open_finviz_screener.py --themes "artificialintelligence,cybersecurity" --url-only
+    python3 open_finviz_screener.py --themes "artificialintelligence" --subthemes "aicloud" --filters "cap_midover" --url-only
     python3 open_finviz_screener.py --filters "cap_small,fa_div_o3" --view valuation
     python3 open_finviz_screener.py --filters "cap_small,fa_div_o3" --elite
 """
@@ -16,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import webbrowser
+from urllib.parse import quote
 
 # View type name -> code mapping
 VIEW_CODES: dict[str, str] = {
@@ -52,8 +55,68 @@ KNOWN_PREFIXES: set[str] = {
 # Strict token pattern: lowercase letters, digits, underscore, dot, hyphen only
 _TOKEN_RE = re.compile(r"^[a-z0-9_.\-]+$")
 
+# Slug pattern for theme/sub-theme values: lowercase letters and digits only
+_SLUG_RE = re.compile(r"^[a-z0-9]+$")
+
 # Order parameter pattern: optional leading dash, then lowercase letters/digits/underscore
 _ORDER_RE = re.compile(r"^-?[a-z0-9_]+$")
+
+
+def normalize_grouped_slug(value: str, prefix: str) -> str:
+    """Strip optional prefix and whitespace from a theme/sub-theme slug."""
+    value = value.strip()
+    full_prefix = f"{prefix}_"
+    if value.startswith(full_prefix):
+        value = value[len(full_prefix) :]
+    return value
+
+
+def validate_grouped_slugs(raw: str, prefix: str) -> list[str]:
+    """Validate comma-separated theme or sub-theme slugs.
+
+    Args:
+        raw: Comma-separated slug values (with or without prefix).
+        prefix: ``"theme"`` or ``"subtheme"``.
+
+    Returns:
+        Deduplicated list of bare slugs in input order.
+
+    Raises:
+        SystemExit: If any slug is empty or contains invalid characters.
+    """
+    parts = [normalize_grouped_slug(p, prefix) for p in raw.split(",") if p.strip()]
+    if not parts:
+        print(f"Error: --{prefix}s must contain at least one slug.", file=sys.stderr)
+        sys.exit(1)
+
+    validated: list[str] = []
+    for slug in parts:
+        if not _SLUG_RE.match(slug):
+            print(
+                f"Error: Invalid {prefix} slug '{slug}'. "
+                "Only lowercase letters and digits are allowed (no underscores, dots, or hyphens).",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        validated.append(slug)
+
+    # Deduplicate preserving order
+    return list(dict.fromkeys(validated))
+
+
+def build_filter_parts(
+    filters: list[str],
+    themes: list[str] | None = None,
+    subthemes: list[str] | None = None,
+) -> list[str]:
+    """Assemble filter parts in canonical order: theme → subtheme → plain filters."""
+    parts: list[str] = []
+    if themes:
+        parts.append("theme_" + "|".join(themes))
+    if subthemes:
+        parts.append("subtheme_" + "|".join(subthemes))
+    parts.extend(filters)
+    return parts
 
 
 def validate_filters(raw_filters: str) -> list[str]:
@@ -78,6 +141,15 @@ def validate_filters(raw_filters: str) -> list[str]:
 
     validated: list[str] = []
     for token in tokens:
+        # Check for theme/subtheme BEFORE regex validation
+        if token.startswith("theme_") or token.startswith("subtheme_"):
+            suggested = "--themes" if token.startswith("theme_") else "--subthemes"
+            print(
+                f"Error: '{token}' detected in --filters. "
+                f"Use {suggested} instead for theme/sub-theme filtering.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         if not _TOKEN_RE.match(token):
             print(
                 f"Error: Invalid filter token '{token}'. "
@@ -140,6 +212,8 @@ def build_url(
     elite: bool = False,
     view: str = "overview",
     order: str | None = None,
+    themes: list[str] | None = None,
+    subthemes: list[str] | None = None,
 ) -> str:
     """Build the full FinViz screener URL.
 
@@ -148,15 +222,20 @@ def build_url(
         elite: Use elite.finviz.com if True.
         view: View type name (overview, valuation, etc.).
         order: Optional sort order code (e.g., ``-marketcap``).
+        themes: Optional list of theme slugs.
+        subthemes: Optional list of sub-theme slugs.
 
     Returns:
         Complete URL string.
     """
     host = "elite.finviz.com" if elite else "finviz.com"
     view_code = VIEW_CODES.get(view, VIEW_CODES["overview"])
-    filter_str = ",".join(filters)
 
-    url = f"https://{host}/screener.ashx?v={view_code}&f={filter_str}"
+    parts = build_filter_parts(filters, themes, subthemes)
+    filter_str = ",".join(parts)
+    encoded_filter_str = quote(filter_str, safe=",_.-")
+
+    url = f"https://{host}/screener.ashx?v={view_code}&f={encoded_filter_str}"
     if order:
         url += f"&o={order}"
     return url
@@ -205,8 +284,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--filters",
-        required=True,
-        help="Comma-separated FinViz filter codes (e.g., cap_small,fa_div_o3,fa_pe_u20).",
+        required=False,
+        default=None,
+        help="(optional) Comma-separated FinViz filter codes (e.g., cap_small,fa_div_o3,fa_pe_u20).",
+    )
+    parser.add_argument(
+        "--themes",
+        default=None,
+        help="Comma-separated theme slugs (e.g., artificialintelligence,cybersecurity).",
+    )
+    parser.add_argument(
+        "--subthemes",
+        default=None,
+        help="Comma-separated sub-theme slugs (e.g., aicloud,aicompute).",
     )
     parser.add_argument(
         "--elite",
@@ -237,10 +327,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
 
-    filters = validate_filters(args.filters)
+    # Validate inputs
+    filters: list[str] = []
+    themes: list[str] | None = None
+    subthemes: list[str] | None = None
+
+    if args.filters is not None:
+        filters = validate_filters(args.filters)
+    if args.themes is not None:
+        themes = validate_grouped_slugs(args.themes, "theme")
+    if args.subthemes is not None:
+        subthemes = validate_grouped_slugs(args.subthemes, "subtheme")
+
+    if not filters and not themes and not subthemes:
+        print(
+            "Error: At least one of --filters, --themes, or --subthemes is required.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     order = validate_order(args.order) if args.order else None
     elite = detect_elite(args)
-    url = build_url(filters, elite=elite, view=args.view, order=order)
+    url = build_url(
+        filters, elite=elite, view=args.view, order=order, themes=themes, subthemes=subthemes
+    )
 
     mode = "Elite" if elite else "Public"
     print(f"[{mode}] {url}")

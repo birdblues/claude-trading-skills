@@ -10,12 +10,99 @@ import pytest
 from open_finviz_screener import (
     KNOWN_PREFIXES,
     VIEW_CODES,
+    build_filter_parts,
     build_url,
     detect_elite,
     open_browser,
     validate_filters,
+    validate_grouped_slugs,
     validate_order,
 )
+
+
+# ---------------------------------------------------------------------------
+# TestValidateGroupedSlugs
+# ---------------------------------------------------------------------------
+class TestValidateGroupedSlugs:
+    """Grouped slug validation for themes and sub-themes."""
+
+    def test_single_theme_slug(self):
+        result = validate_grouped_slugs("artificialintelligence", "theme")
+        assert result == ["artificialintelligence"]
+
+    def test_multi_theme_slugs(self):
+        result = validate_grouped_slugs("artificialintelligence,cybersecurity", "theme")
+        assert result == ["artificialintelligence", "cybersecurity"]
+
+    def test_prefix_stripping_theme(self):
+        result = validate_grouped_slugs("theme_artificialintelligence", "theme")
+        assert result == ["artificialintelligence"]
+
+    def test_prefix_stripping_subtheme(self):
+        result = validate_grouped_slugs("subtheme_aicloud", "subtheme")
+        assert result == ["aicloud"]
+
+    def test_mixed_prefix_no_prefix(self):
+        result = validate_grouped_slugs("theme_artificialintelligence,cybersecurity", "theme")
+        assert result == ["artificialintelligence", "cybersecurity"]
+
+    def test_duplicate_removal(self):
+        result = validate_grouped_slugs(
+            "artificialintelligence,cybersecurity,artificialintelligence", "theme"
+        )
+        assert result == ["artificialintelligence", "cybersecurity"]
+
+    def test_reject_empty(self):
+        with pytest.raises(SystemExit):
+            validate_grouped_slugs("", "theme")
+
+    def test_reject_invalid_chars(self):
+        with pytest.raises(SystemExit):
+            validate_grouped_slugs("ai_cloud", "subtheme")
+
+    def test_reject_uppercase(self):
+        with pytest.raises(SystemExit):
+            validate_grouped_slugs("ArtificialIntelligence", "theme")
+
+    def test_whitespace_trimming(self):
+        result = validate_grouped_slugs("  artificialintelligence , cybersecurity  ", "theme")
+        assert result == ["artificialintelligence", "cybersecurity"]
+
+
+# ---------------------------------------------------------------------------
+# TestBuildFilterParts
+# ---------------------------------------------------------------------------
+class TestBuildFilterParts:
+    """Filter parts assembly from themes, sub-themes, and plain filters."""
+
+    def test_theme_only(self):
+        result = build_filter_parts([], ["artificialintelligence"], None)
+        assert result == ["theme_artificialintelligence"]
+
+    def test_multi_theme_pipe(self):
+        result = build_filter_parts([], ["artificialintelligence", "cybersecurity"], None)
+        assert result == ["theme_artificialintelligence|cybersecurity"]
+
+    def test_subtheme_only(self):
+        result = build_filter_parts([], None, ["aicloud"])
+        assert result == ["subtheme_aicloud"]
+
+    def test_multi_subtheme_pipe(self):
+        result = build_filter_parts([], None, ["aicloud", "aicompute"])
+        assert result == ["subtheme_aicloud|aicompute"]
+
+    def test_all_combined(self):
+        result = build_filter_parts(
+            ["cap_midover", "ta_perf_13wup"],
+            ["artificialintelligence"],
+            ["aicloud"],
+        )
+        assert result == [
+            "theme_artificialintelligence",
+            "subtheme_aicloud",
+            "cap_midover",
+            "ta_perf_13wup",
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +160,25 @@ class TestBuildUrl:
         expected = {"111", "121", "131", "141", "152", "161", "171"}
         assert set(VIEW_CODES.values()) == expected
 
+    def test_single_theme_url(self):
+        url = build_url([], themes=["artificialintelligence"])
+        assert "theme_artificialintelligence" in url
+
+    def test_multi_theme_url_encoded(self):
+        url = build_url([], themes=["artificialintelligence", "cybersecurity"])
+        assert "%7C" in url
+        assert "theme_artificialintelligence%7Ccybersecurity" in url
+
+    def test_theme_subtheme_filters_url(self):
+        url = build_url(
+            ["cap_midover"],
+            themes=["artificialintelligence"],
+            subthemes=["aicloud"],
+        )
+        assert "theme_artificialintelligence" in url
+        assert "subtheme_aicloud" in url
+        assert "cap_midover" in url
+
 
 # ---------------------------------------------------------------------------
 # TestValidateFilters
@@ -111,7 +217,7 @@ class TestValidateFilters:
         assert result == ["fa_roa_u-50", "sh_insidertrans_u-90"]
 
     def test_known_prefixes_accepted(self):
-        # One filter from each known prefix category
+        # One filter from each known prefix category (theme_ and subtheme_ excluded — use --themes/--subthemes)
         tokens = [
             "an_recom_strongbuy",
             "cap_large",
@@ -126,10 +232,8 @@ class TestValidateFilters:
             "news_date_today",
             "sec_technology",
             "sh_avgvol_o200",
-            "subtheme_aiadssearch",
             "ta_rsi_os30",
             "targetprice_a20",
-            "theme_artificialintelligence",
         ]
         result = validate_filters(",".join(tokens))
         assert len(result) == len(tokens)
@@ -212,6 +316,31 @@ class TestValidateFilters:
     def test_known_prefixes_count(self):
         """All 17 FinViz filter prefixes are registered."""
         assert len(KNOWN_PREFIXES) == 17
+
+    def test_known_prefixes_include_theme(self):
+        assert "theme_" in KNOWN_PREFIXES
+
+    def test_known_prefixes_include_subtheme(self):
+        assert "subtheme_" in KNOWN_PREFIXES
+
+    def test_conflict_theme_in_filters(self, capsys):
+        with pytest.raises(SystemExit):
+            validate_filters("theme_artificialintelligence,cap_small")
+        captured = capsys.readouterr()
+        assert "--themes" in captured.err
+
+    def test_conflict_subtheme_in_filters(self, capsys):
+        with pytest.raises(SystemExit):
+            validate_filters("subtheme_aicloud,cap_small")
+        captured = capsys.readouterr()
+        assert "--subthemes" in captured.err
+
+    def test_conflict_theme_pipe_in_filters(self, capsys):
+        """Pipe-containing theme token must be caught before _TOKEN_RE rejects it."""
+        with pytest.raises(SystemExit):
+            validate_filters("theme_artificialintelligence|cybersecurity")
+        captured = capsys.readouterr()
+        assert "--themes" in captured.err
 
 
 # ---------------------------------------------------------------------------
@@ -399,3 +528,44 @@ class TestMainIntegration:
             main(["--filters", "cap_small", "--order=-marketcap", "--url-only"])
         captured = capsys.readouterr()
         assert "o=-marketcap" in captured.out
+
+    def test_themes_only_no_filters(self, capsys):
+        from open_finviz_screener import main
+
+        with mock.patch.dict("os.environ", {}, clear=True):
+            main(["--themes", "artificialintelligence", "--url-only"])
+        captured = capsys.readouterr()
+        assert "theme_artificialintelligence" in captured.out
+
+    def test_themes_and_filters(self, capsys):
+        from open_finviz_screener import main
+
+        with mock.patch.dict("os.environ", {}, clear=True):
+            main(["--themes", "artificialintelligence", "--filters", "cap_midover", "--url-only"])
+        captured = capsys.readouterr()
+        assert "theme_artificialintelligence" in captured.out
+        assert "cap_midover" in captured.out
+
+    def test_subthemes_cli(self, capsys):
+        from open_finviz_screener import main
+
+        with mock.patch.dict("os.environ", {}, clear=True):
+            main(["--subthemes", "aicloud,aicompute", "--url-only"])
+        captured = capsys.readouterr()
+        assert "%7C" in captured.out or "|" in captured.out
+        assert "subtheme_" in captured.out
+
+    def test_empty_themes_string(self, capsys):
+        """--themes '' should produce a specific error, not the generic 'at least one' error."""
+        from open_finviz_screener import main
+
+        with pytest.raises(SystemExit):
+            main(["--themes", "", "--url-only"])
+        captured = capsys.readouterr()
+        assert "--themes must contain at least one slug" in captured.err
+
+    def test_no_input_at_all(self):
+        from open_finviz_screener import main
+
+        with pytest.raises(SystemExit):
+            main(["--url-only"])

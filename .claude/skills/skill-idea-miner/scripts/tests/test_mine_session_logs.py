@@ -725,3 +725,190 @@ def test_run_converts_name_to_title_and_adds_id(mine_module, tmp_path: Path):
     assert candidates[0]["id"].startswith("raw_")
     assert candidates[1]["id"].startswith("raw_")
     assert candidates[0]["id"] != candidates[1]["id"]
+
+
+# ── PROJECT_ALLOWLIST ──
+
+
+def test_project_allowlist_contains_trading_projects(mine_module):
+    """Allowlist includes all expected trading-related projects."""
+    al = mine_module.PROJECT_ALLOWLIST
+    assert "claude-trading-skills" in al
+    assert "weekly-trade-strategy" in al
+    assert "claude-market-agents" in al
+    assert "trade-edge-finder" in al
+    assert "trade-strategy-pipeline" in al
+
+
+# ── filter_non_trading_candidates ──
+
+
+def test_filter_rejects_developer_tooling_category(mine_module):
+    """Candidates with rejected categories are filtered out."""
+    candidates = [
+        {"title": "code-nav", "category": "developer-tooling", "description": ""},
+        {"title": "trade-tool", "category": "trade-execution", "description": ""},
+        {"title": "skill-opt", "category": "skill-development", "description": ""},
+    ]
+    result = mine_module.filter_non_trading_candidates(candidates)
+    assert len(result) == 1
+    assert result[0]["title"] == "trade-tool"
+
+
+def test_filter_rejects_broad_off_domain_categories(mine_module):
+    """Non-trading categories beyond developer-tooling are also rejected."""
+    candidates = [
+        {"title": "scheduler", "category": "meeting", "description": "Schedule meetings"},
+        {"title": "support-bot", "category": "customer-support", "description": "Handle tickets"},
+        {"title": "earnings-tool", "category": "trade-review", "description": "Review trades"},
+    ]
+    result = mine_module.filter_non_trading_candidates(candidates)
+    assert len(result) == 1
+    assert result[0]["title"] == "earnings-tool"
+
+
+def test_filter_rejects_keyword_in_title(mine_module):
+    """Candidates with rejected keywords in title are filtered out."""
+    candidates = [
+        {"title": "codebase-navigator", "category": "other", "description": ""},
+        {"title": "earnings-tracker", "category": "trade-review", "description": ""},
+    ]
+    result = mine_module.filter_non_trading_candidates(candidates)
+    assert len(result) == 1
+    assert result[0]["title"] == "earnings-tracker"
+
+
+def test_filter_rejects_keyword_in_description(mine_module):
+    """Candidates with rejected keywords in description are filtered out."""
+    candidates = [
+        {
+            "title": "some-tool",
+            "category": "other",
+            "description": "A git-bulk commit helper",
+        },
+        {
+            "title": "watchlist",
+            "category": "trading",
+            "description": "Monitor stock prices",
+        },
+    ]
+    result = mine_module.filter_non_trading_candidates(candidates)
+    assert len(result) == 1
+    assert result[0]["title"] == "watchlist"
+
+
+def test_filter_passes_all_trading_candidates(mine_module):
+    """All trading-related candidates pass through the filter."""
+    candidates = [
+        {"title": "earnings-reviewer", "category": "trade-review", "description": "Review trades"},
+        {"title": "alert-monitor", "category": "trade-execution", "description": "Price alerts"},
+    ]
+    result = mine_module.filter_non_trading_candidates(candidates)
+    assert len(result) == 2
+
+
+# ── _build_llm_prompt trading_focus ──
+
+
+def test_build_llm_prompt_trading_focus_true(mine_module):
+    """With trading_focus=True, prompt includes trading constraints."""
+    prompt = mine_module._build_llm_prompt({}, [], "test-project", trading_focus=True)
+    assert "trading and investing skill library" in prompt
+    assert "DO NOT propose developer-tooling" in prompt
+
+
+def test_build_llm_prompt_trading_focus_false(mine_module):
+    """With trading_focus=False, prompt is generic (no trading constraints)."""
+    prompt = mine_module._build_llm_prompt({}, [], "test-project", trading_focus=False)
+    assert "trading and investing skill library" not in prompt
+    assert "DO NOT propose developer-tooling" not in prompt
+    assert "automate or improve" in prompt
+
+
+def test_filter_handles_null_fields(mine_module):
+    """Filter handles None/null values in category, title, description."""
+    candidates = [
+        {"title": None, "category": None, "description": None},
+        {"title": "valid", "category": "trading", "description": "ok"},
+    ]
+    result = mine_module.filter_non_trading_candidates(candidates)
+    assert len(result) == 2  # None fields don't match any reject rule
+
+
+def test_filter_handles_non_string_fields(mine_module):
+    """Filter handles non-string values (e.g., list, int) without crashing."""
+    candidates = [
+        {"title": 123, "category": ["a"], "description": True},
+        {"title": "valid", "category": "trading", "description": "ok"},
+    ]
+    result = mine_module.filter_non_trading_candidates(candidates)
+    assert len(result) == 2
+
+
+def test_filter_rejects_keyword_already_in_title(mine_module):
+    """Filter rejects candidates whose title matches a rejected keyword."""
+    candidates = [
+        {"title": "codebase-navigator", "category": "other", "description": ""},
+    ]
+    result = mine_module.filter_non_trading_candidates(candidates)
+    assert len(result) == 0
+
+
+def test_run_normalizes_null_title_from_name_then_filters(mine_module, tmp_path: Path):
+    """run() normalizes title=None + name=X before filter, so keyword rejection works."""
+    import types
+    from unittest.mock import patch
+
+    import yaml
+
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+
+    # LLM returns title=None with name containing a rejected keyword
+    fake_candidates = [
+        {
+            "title": None,
+            "name": "codebase-navigator",
+            "category": "other",
+            "description": "Navigate code",
+        },
+        {"title": "earnings-tool", "category": "trade-review", "description": "Review trades"},
+    ]
+
+    args = types.SimpleNamespace(
+        output_dir=str(output_dir),
+        project=None,
+        lookback_days=7,
+        dry_run=False,
+    )
+
+    with (
+        patch.object(mine_module, "find_project_dirs", return_value=[("proj", tmp_path)]),
+        patch.object(
+            mine_module,
+            "list_session_logs",
+            return_value=[("proj", tmp_path / "fake.jsonl")],
+        ),
+        patch.object(
+            mine_module,
+            "parse_session",
+            return_value={
+                "user_messages": ["hello"],
+                "tool_uses": [],
+                "timestamps": [],
+                "timed_entries": [],
+            },
+        ),
+        patch.object(mine_module, "abstract_with_llm", return_value=fake_candidates),
+    ):
+        rc = mine_module.run(args)
+
+    assert rc == 0
+
+    output_path = output_dir / "raw_candidates.yaml"
+    data = yaml.safe_load(output_path.read_text(encoding="utf-8"))
+    candidates = data["candidates"]
+
+    # codebase-navigator should be filtered out after name->title normalization
+    assert len(candidates) == 1
+    assert candidates[0]["title"] == "earnings-tool"
