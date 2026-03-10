@@ -134,7 +134,7 @@ If no test exists for the changed behavior, add one whenever practical.
 | Technical Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
 | Breadth Chart Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Image-based chart analysis |
 | **Market Breadth Analyzer** | 🟡 Optional | ❌ Not used | ❌ Not used | CSV mode (default) needs no API; FMP mode (`--source fmp`) requires FMP key |
-| Market News Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Uses WebSearch/WebFetch |
+| Market News Analyst | ❌ Not required | ❌ Not used | ❌ Not used | Uses WebSearch/WebFetch; Supabase MCP optional for breaking news |
 | US Stock Analysis | ❌ Not required | ❌ Not used | ❌ Not used | User provides data |
 | Backtest Expert | ❌ Not required | ❌ Not used | ❌ Not used | User provides strategy parameters |
 | US Market Bubble Detector | ❌ Not required | ❌ Not used | ❌ Not used | User provides indicators |
@@ -570,7 +570,8 @@ These skills expect image inputs:
 ### News Analysis Skills (Market News Analyst)
 
 This skill uses automated data collection:
-- Executes WebSearch/WebFetch queries to gather news
+- When Supabase MCP is available, queries `public.news` breaking news table first (Valley.town crawler, `is_important` flag) to identify dominant themes, then uses WebSearch/WebFetch for gap-filling and verification
+- Without Supabase MCP, falls back to WebSearch/WebFetch-only collection
 - Focuses on past 10 days of market-moving events
 - Applies impact scoring framework: (Price Impact × Breadth) × Forward Significance
 - Ranks events by quantitative score

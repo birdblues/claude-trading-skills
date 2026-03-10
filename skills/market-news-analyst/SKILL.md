@@ -1,13 +1,13 @@
 ---
 name: market-news-analyst
-description: This skill should be used when analyzing recent market-moving news events and their impact on equity markets and commodities. Use this skill when the user requests analysis of major financial news from the past 10 days, wants to understand market reactions to monetary policy decisions (FOMC, ECB, BOJ), needs assessment of geopolitical events' impact on commodities, or requires comprehensive review of earnings announcements from mega-cap stocks. The skill automatically collects news using WebSearch/WebFetch tools and produces impact-ranked analysis reports.
+description: This skill should be used when analyzing recent market-moving news events and their impact on equity markets and commodities. Use this skill when the user requests analysis of major financial news from the past 10 days, wants to understand market reactions to monetary policy decisions (FOMC, ECB, BOJ), needs assessment of geopolitical events' impact on commodities, or requires comprehensive review of earnings announcements from mega-cap stocks. The skill automatically collects news using Supabase breaking news (when available) and WebSearch/WebFetch tools and produces impact-ranked analysis reports.
 ---
 
 # Market News Analyst
 
 ## Overview
 
-This skill enables comprehensive analysis of market-moving news events from the past 10 days, focusing on their impact on US equity markets and commodities. The skill automatically collects news from trusted sources using WebSearch and WebFetch tools, evaluates market impact magnitude, analyzes actual market reactions, and produces structured English reports ranked by market impact significance.
+This skill enables comprehensive analysis of market-moving news events from the past 10 days, focusing on their impact on US equity markets and commodities. When Supabase MCP is available, the skill first queries the breaking news database (Valley.town crawler) to identify dominant themes and high-signal events, then uses WebSearch/WebFetch to fill gaps and verify details. Without Supabase, the skill falls back to WebSearch/WebFetch-only collection. The skill evaluates market impact magnitude, analyzes actual market reactions, and produces structured reports ranked by market impact significance.
 
 ## When to Use This Skill
 
@@ -29,9 +29,70 @@ Example user requests:
 
 Follow this structured 6-step workflow when analyzing market news:
 
+### Step 0.5: Supabase Breaking News Collection (Optional)
+
+**Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available. If not available, skip directly to Step 1.
+
+#### 0.5.1 Query Important Breaking News
+
+Execute the following SQL to retrieve high-signal breaking news from the past 10 days:
+
+```sql
+SELECT published_at, category, source, content, detail
+FROM public.news
+WHERE published_at >= NOW() - INTERVAL '10 days'
+  AND is_important = true
+ORDER BY published_at DESC
+LIMIT 200;
+```
+
+**Token Management:** `LIMIT 200` caps context usage. Typically ~800 important items exist in 10 days; this retrieves the most recent 200.
+
+#### 0.5.2 Category Mapping
+
+Map Supabase `category` values to skill analysis categories:
+
+| Skill Category        | Supabase category values                                          |
+|-----------------------|-------------------------------------------------------------------|
+| Monetary Policy       | 연방준비제도, 유럽 중앙은행, 일본 은행, 기타 중앙은행             |
+| Economic Data         | 미국 경제지표, 유럽연합 경제지표, 기타국가 경제지표               |
+| Corporate/Earnings    | 미국 주식, 글로벌 주식, 아시아 주식                               |
+| Geopolitical          | 지정학, 무역                                                     |
+| Commodity             | 에너지 및 전력, 금속, 농산물                                     |
+| Market/Macro          | 시장 분석, 시장 논평, 글로벌 뉴스, 채권, 외환 흐름               |
+
+#### 0.5.3 Theme Identification & Summary
+
+- Tally item counts per mapped category; identify dominant themes
+- Prioritize items with non-null `detail` field (contains deeper context)
+- Build a chronological event timeline from the results
+- Compile a **WebSearch gap list** — categories or events that need supplementary web searches
+
+#### 0.5.4 Selective Deep-Dive Query (Optional)
+
+If a single theme accounts for >30% of results, query all items for that category (including non-important) to capture the full picture:
+
+```sql
+SELECT published_at, source, content, detail
+FROM public.news
+WHERE published_at >= NOW() - INTERVAL '10 days'
+  AND category = '<dominant_category>'
+ORDER BY published_at DESC
+LIMIT 100;
+```
+
+#### 0.5.5 Output for Step 1
+
+Prepare:
+- **Theme summary:** Per-category event counts and key takeaways
+- **WebSearch gap list:** Categories/events that Supabase data does not cover or needs verification
+- Pass both to Step 1 as input context
+
+---
+
 ### Step 1: News Collection via WebSearch/WebFetch
 
-**Objective:** Gather comprehensive news from the past 10 days covering major market-moving events.
+**Objective:** Gather comprehensive news from the past 10 days covering major market-moving events. If Step 0.5 was executed, focus on filling gaps identified in the WebSearch gap list and verifying key Supabase findings. If Step 0.5 was skipped (no Supabase MCP), execute all searches below as primary collection.
 
 **Search Strategy:**
 
@@ -859,6 +920,7 @@ Trace how news impacts flowed through markets:
 
 ### News Sources Consulted
 [List primary sources used, organized by tier]
+- **Supabase Breaking News Feed:** [Valley.town crawler — if used, note item count and date range]
 - **Official Sources:** [e.g., FederalReserve.gov, SEC.gov]
 - **Tier 1 Financial News:** [e.g., Bloomberg, Reuters, WSJ]
 - **Specialized:** [e.g., S&P Global Platts for commodities]
@@ -1018,7 +1080,8 @@ When conducting market news analysis:
 ## Important Notes
 
 - 리포트를 한국어로 작성한다. 종목 티커, 기술 지표명, 숫자 데이터는 영어/원본 유지.
-- Use WebSearch and WebFetch tools to collect news automatically
+- When Supabase MCP is available, query breaking news DB first (Step 0.5) before WebSearch
+- Use WebSearch and WebFetch tools to collect news automatically (as primary source or gap-filler)
 - Focus on trusted news sources as defined in references
 - Rank events by impact score (price impact × breadth × forward significance)
 - Target analysis period: Past 10 days from current date

@@ -48,7 +48,7 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - References cover Elliott Wave, Dow Theory, Japanese candlesticks, and technical indicator interpretation.
 
 - **Market News Analyst** (`market-news-analyst`)
-  - Analyzes recent market-moving news events from the past 10 days using automated WebSearch/WebFetch collection.
+  - Analyzes recent market-moving news events from the past 10 days using automated WebSearch/WebFetch collection. Optionally queries Supabase breaking news DB when MCP is connected.
   - Focuses on FOMC decisions, central bank policy, mega-cap earnings, geopolitical events, and commodity market drivers.
   - Produces impact-ranked reports using quantitative scoring framework (Price Impact × Breadth × Forward Significance).
   - References include trusted news sources guide, event pattern analysis, and geopolitical-commodity correlations.
