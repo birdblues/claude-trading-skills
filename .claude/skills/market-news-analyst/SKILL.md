@@ -83,6 +83,45 @@ Think in English throughout collection process. Document each significant news i
 - Source reliability tier
 - Initial market reaction (if observable)
 
+### Step 1.5: Price & Data Fact-Check
+
+**Objective:** Verify extreme price claims before they propagate into the report.
+
+**When to Trigger:**
+
+Scan all collected news items from Step 1 for any of the following superlative keywords:
+- "all-time high", "record high", "highest ever", "사상 최고"
+- "all-time low", "record low", "lowest ever", "사상 최저"
+- "biggest gain/loss since [year]", "worst/best since [year]"
+- "first time since [year]", "broke through [round number]"
+
+**Verification Procedure:**
+
+For each superlative claim found:
+
+1. **Dedicated verification search:** Execute a separate WebSearch query specifically to verify the claim
+   - Example: If a news article says "gold hits record high at $5,097" → search "gold all-time high 2026 record price"
+   - Example: If a news article says "oil biggest weekly gain ever" → search "crude oil largest weekly gain history"
+
+2. **Cross-reference with at least 2 sources:** Do not rely on a single search result. Confirm with official data sources (FRED, BLS, exchange data) or Tier 1 financial news
+
+3. **Record verified facts:** For each verified price point, document:
+   - Actual ATH/ATL value and date
+   - Current price and % distance from ATH/ATL
+   - Whether the superlative claim is accurate, exaggerated, or false
+
+4. **Correct or contextualize:**
+   - If claim is **accurate**: Use with verified ATH value and date
+   - If claim is **exaggerated**: Replace with accurate context (e.g., "$5,097/oz (ATH $5,589 on 1/28, -8.8%)")
+   - If claim is **false**: Discard and use factual description only
+
+**Output:** A verified price fact table to be referenced in Steps 3-6:
+
+| Asset | Claimed | Verified ATH/ATL | Date | Current | Distance |
+|-------|---------|-------------------|------|---------|----------|
+
+**Rule:** No superlative price language may appear in the final report (Step 6) without passing through this verification step.
+
 ### Step 2: Load Knowledge Base References
 
 **Objective:** Access domain expertise to inform impact assessment.
@@ -327,6 +366,189 @@ Flag reactions that deviate significantly from patterns:
 - Positioning: Evidence of crowded trades unwinding
 - Momentum: Follow-through in subsequent sessions or reversal
 
+### Step 4.5: Structural Implication Analysis (Deep Layer)
+
+**Objective:** Go beyond surface-level market reactions to analyze the underlying structural meaning, data quality, political economy, and second/third-order effects of each event. This is the layer that separates useful analysis from headline regurgitation.
+
+**For each significant news item (Impact Score >10), perform all five sub-analyses below. For items scoring 5-10, perform at minimum sub-analyses A and D.**
+
+#### A. Data Noise Decomposition
+
+**Objective:** Separate signal from noise. Determine what portion of a data point reflects genuine economic reality vs temporary distortions.
+
+**Procedure:**
+
+1. **Identify potential distortion factors** for each economic data release:
+   - **Weather:** Extreme cold/heat, hurricanes, snowstorms that suppress economic activity temporarily (e.g., construction, retail foot traffic, outdoor work)
+   - **Strikes/Labor Actions:** Large strikes (>10,000 workers) that temporarily depress payrolls in specific industries. BLS counts striking workers as "employed but not at work" only if they receive pay; unpaid strikers show as job losses
+   - **Calendar Effects:** Seasonal adjustment anomalies, holiday timing shifts, survey week placement
+   - **Government Shutdowns/Policy:** Federal hiring freezes, DOGE-driven layoffs, census hiring/unwinding
+   - **One-Time Events:** Natural disasters, pandemic aftereffects, large company bankruptcy affecting a single metro area
+   - **Revisions Context:** How much were prior months revised? Persistent downward revisions signal systematic overcount, not noise
+
+2. **Quantify the distortion** where possible:
+   - Search for analyst estimates of temporary factors (e.g., "Kaiser strike impact on NFP estimated at -28K to -32K")
+   - Calculate "adjusted" headline number removing identified noise (e.g., NFP -92K + Kaiser strike +28K = adjusted -64K, still weak but less alarming)
+   - Note confidence level in the adjustment (High/Medium/Low)
+
+3. **Assess underlying trend:**
+   - Compare against 3-month and 6-month moving averages
+   - Look at diffusion index (breadth of job gains/losses across industries)
+   - Check if "noise" explanation is consistent across multiple data points or cherry-picked
+
+**Output format for report:**
+
+```
+**Noise Decomposition:**
+- Headline: [raw number]
+- Identified distortions: [factor 1: ±X], [factor 2: ±X]
+- Adjusted estimate: [number] (confidence: High/Medium/Low)
+- Underlying trend: [assessment]
+- Verdict: [Genuine deterioration / Temporary distortion / Mixed signal]
+```
+
+**Example:**
+```
+**Noise Decomposition:**
+- Headline: NFP -92,000
+- Identified distortions: Kaiser Permanente strike +28K, unusually cold February weather +15K (est.)
+- Adjusted estimate: -49,000 (confidence: Medium)
+- Underlying trend: 3-month avg declining from +180K to +20K; diffusion index narrowing
+- Verdict: Mixed signal — headline exaggerated by temp factors, but underlying trend genuinely weakening
+```
+
+#### B. Political Economy Analysis
+
+**Objective:** Analyze who benefits, who loses, and what policy responses are likely. Markets move not just on what happened but on what policymakers will do next.
+
+**Framework — "Cui Bono" (Who Benefits):**
+
+1. **Identify key stakeholders** affected by each event:
+   - White House / Administration (election cycle, approval ratings)
+   - Federal Reserve (dual mandate constraints)
+   - Congress (legislative agenda, fiscal policy)
+   - Foreign governments (trade partners, adversaries)
+   - Corporate sector (specific industries, lobbying power)
+   - Consumers / Voters (inflation pain, employment)
+
+2. **Assess policy response incentives:**
+   - **What does the administration want?** (e.g., lower oil prices before midterms → SPR release likely; strong jobs → no urgency on stimulus)
+   - **What can the Fed do?** (e.g., stagflation = no good options → likely to wait; clear recession = cut aggressively)
+   - **What is Congress likely to approve?** (e.g., bipartisan support for energy independence spending; partisan gridlock on fiscal stimulus)
+   - **What will foreign actors do?** (e.g., OPEC response to war premium; China's tariff retaliation calibrated to maximize pain vs minimize self-harm)
+
+3. **Evaluate credibility of official statements:**
+   - Does the statement match incentive structure? (e.g., Trump saying "war ending soon" when oil at $119 and approval dropping → high incentive to say this regardless of military reality)
+   - Track record of follow-through on similar statements
+   - Gap between rhetoric and policy action
+   - Reference TACO framework for Trump-specific policy reversal patterns when applicable
+
+4. **Historical policy analogs:**
+   - Similar situations in the past → what did policymakers actually do?
+   - Time lag between event and policy response
+   - Effectiveness of past interventions
+
+**Output format for report:**
+
+```
+**Political Economy:**
+- Key stakeholders: [list with interests]
+- Most likely policy response: [action, timeline, probability]
+- Statement credibility: [High/Medium/Low] — [reasoning]
+- Historical analog: [past event → policy response → outcome]
+- Market implication: [what the policy response means for positioning]
+```
+
+#### C. Second and Third-Order Effects
+
+**Objective:** Trace causal chains beyond the immediate market reaction. The real money is made anticipating effects that are 2-3 steps downstream.
+
+**Causal Chain Mapping:**
+
+For each event, map at least 2 levels of downstream effects:
+
+```
+1st Order (immediate): [Event] → [Direct market reaction]
+2nd Order (weeks): [Direct reaction] → [Economic/policy consequence]
+3rd Order (months): [Consequence] → [Structural shift or reversal]
+```
+
+**Example — Oil at $100:**
+```
+1st Order: Hormuz closure → Oil +50%, energy stocks rally
+2nd Order: $100 oil → Gasoline $5+/gal → Consumer spending compression → Retail/restaurant earnings miss → Discretionary sector selloff
+3rd Order: Sustained high oil → SPR depletion / US shale ramp-up / Iran peace pressure → Oil supply normalizes → Energy sector gives back gains, but inflation stickiness remains
+```
+
+**Example — NFP -92K:**
+```
+1st Order: Weak NFP → Recession fears → Equities sell, bonds bid
+2nd Order: If noise-adjusted NFP is -49K → Less alarming → March rebound likely → "False alarm" narrative → Relief rally
+3rd Order: But if trend is genuinely weakening → Q2 earnings downgrades → Revenue misses cascade → Correction deepens regardless of March bounce
+```
+
+**Key questions to ask:**
+- What breaks if this situation persists for 3 more months?
+- Who is forced to act (margin calls, policy intervention, corporate restructuring)?
+- What secondary markets are affected that headlines ignore? (e.g., shipping insurance, agricultural inputs, EM debt)
+- Is there a reflexivity loop? (e.g., oil high → recession fear → oil demand drops → oil price self-corrects)
+
+#### D. Narrative Stress Test
+
+**Objective:** Test whether the dominant market narrative is supported by evidence or is an oversimplification that markets will eventually correct.
+
+**Procedure:**
+
+1. **State the prevailing narrative** clearly (e.g., "Stagflation is here — high inflation + weak jobs")
+
+2. **Gather supporting evidence:**
+   - Data points that support the narrative
+   - Market positioning consistent with narrative (flows, options, surveys)
+
+3. **Gather contradicting evidence:**
+   - Data points that undermine the narrative
+   - Structural factors the narrative ignores
+   - Historical episodes where similar narratives proved wrong
+
+4. **Assess narrative durability:**
+   - **Strong:** Multiple independent data points confirm; structural factors support; no contradicting evidence of comparable weight
+   - **Moderate:** Some supporting data but key caveats; narrative could survive 1-2 contrary data points
+   - **Fragile:** Depends on 1-2 data points that have known distortions; one contrary release could shatter it
+   - **Premature:** Insufficient data to confirm; market is extrapolating from too few observations
+
+**Example — "Stagflation" narrative stress test:**
+```
+Supporting: NFP -92K, wages +3.8%, oil $100+, CPI expected to rise
+Contradicting: Kaiser strike distorted NFP by -28K; oil spike is geopolitical (temporary if war ends); Jan CPI was 2.4% (within range); unemployment 4.4% (not crisis level)
+Assessment: **Fragile** — narrative depends on (a) war continuing and (b) March NFP also being weak. One positive surprise could collapse it. However, if 3/11 CPI confirms upward pressure, narrative strengthens to Moderate.
+```
+
+5. **Identify the "narrative break" catalyst:** What single data point or event would invalidate the current narrative? This is the highest-information event to watch for.
+
+#### E. Structural vs Transitory Assessment
+
+**Objective:** Determine whether each event represents a permanent structural shift or a temporary disruption that will mean-revert.
+
+**Classification Framework:**
+
+| Factor | Structural (Permanent) | Transitory (Temporary) |
+|--------|----------------------|----------------------|
+| **Cause** | Policy change, demographic shift, technology disruption | Weather, strike, one-time shock, supply disruption |
+| **Duration** | Persists after initial cause removed | Reverses when cause removed |
+| **Precedent** | No close historical analog, or analog led to permanent change | Multiple past episodes that mean-reverted |
+| **Policy response** | Requires structural reform | Can be addressed with temporary measures (SPR, emergency rates) |
+| **Market pricing** | Should be priced into long-term valuations (DCF changes) | Should be faded after initial shock (mean-reversion trade) |
+
+**For each event, assign:**
+- **Classification:** Structural / Transitory / Uncertain
+- **Confidence:** High / Medium / Low
+- **Mean-reversion timeline:** If transitory, estimated duration (days / weeks / months)
+- **Trading implication:** Fade the move vs position for continuation
+
+**Key principle:** Markets systematically overweight dramatic headlines and underweight base rates. Most "regime changes" are actually temporary disruptions. But occasionally the market is right — the skill is distinguishing which.
+
+---
+
 ### Step 5: Correlation and Causation Assessment
 
 **Objective:** Distinguish direct impacts from coincidental timing.
@@ -476,6 +698,39 @@ Trace how news impacts flowed through markets:
 - [Sector 2]: [Impact and reason]
 - [Example: Technology -3% (rate sensitivity), Energy +5% (oil price spillover)]
 
+#### Structural Implications (Deep Analysis)
+
+**Noise Decomposition:** [For economic data events]
+- Headline: [raw number]
+- Identified distortions: [factor 1: ±X], [factor 2: ±X]
+- Adjusted estimate: [number] (confidence: High/Medium/Low)
+- Underlying trend: [assessment]
+- Verdict: [Genuine deterioration / Temporary distortion / Mixed signal]
+
+**Political Economy:**
+- Key stakeholders: [list with interests]
+- Most likely policy response: [action, timeline, probability]
+- Statement credibility: [High/Medium/Low] — [reasoning]
+- Historical analog: [past event → policy response → outcome]
+
+**Causal Chain (2nd/3rd Order Effects):**
+```
+1st Order: [immediate reaction]
+2nd Order: [downstream consequence in weeks]
+3rd Order: [structural implication in months]
+```
+
+**Narrative Stress Test:**
+- Prevailing narrative: [state clearly]
+- Supporting evidence: [list]
+- Contradicting evidence: [list]
+- Durability: [Strong/Moderate/Fragile/Premature]
+- Narrative break catalyst: [what would invalidate this]
+
+**Structural vs Transitory:** [Classification] (Confidence: [H/M/L])
+- Mean-reversion timeline: [if transitory]
+- Trading implication: [fade vs continuation]
+
 #### Geopolitical-Commodity Correlation Analysis
 
 [Include this section only for geopolitical events]
@@ -514,6 +769,41 @@ Trace how news impacts flowed through markets:
 [Highlight unexpected market reactions]
 1. [Event]: Market reacted [unexpectedly] because [explanation]
 2. [Continue for significant anomalies]
+
+### Narrative vs Reality Assessment
+
+[For each dominant market narrative, provide structured stress test]
+
+#### Narrative 1: "[State the prevailing narrative]"
+
+**Supporting Evidence:**
+- [Data point 1]
+- [Data point 2]
+
+**Contradicting Evidence:**
+- [Counter-data 1 — why headline may be misleading]
+- [Counter-data 2 — structural factors ignored]
+
+**Noise-Adjusted Reality:**
+- [What the data actually says after removing temporary distortions]
+
+**Durability Assessment:** [Strong / Moderate / Fragile / Premature]
+
+**Narrative Break Catalyst:** [The single event/data point that would invalidate this narrative — this is the highest-information item to monitor]
+
+**Investment Implication:** [If narrative is correct → positioning A. If narrative breaks → positioning B. Probability-weight accordingly.]
+
+[Repeat for each major narrative, typically 1-3]
+
+### Political Economy Outlook
+
+[Synthesize political economy analysis across all events]
+- **Administration priorities:** [What does the White House need most right now?]
+- **Fed constraints:** [What can/can't the Fed do given current conditions?]
+- **Policy response probability matrix:**
+  - [Policy action 1]: [probability, timeline, market impact]
+  - [Policy action 2]: [probability, timeline, market impact]
+- **Key stakeholder to watch:** [Whose next move matters most?]
 
 ---
 
@@ -625,6 +915,11 @@ When conducting market news analysis:
 8. **Source Credibility:** Weight official sources and Tier 1 news over rumors and unverified reports
 9. **Breadth Analysis:** Individual stock moves only significant if mega-cap or systemic signal
 10. **English Consistency:** All thinking, analysis, and output in English for consistency
+11. **Signal vs Noise:** Always decompose economic data into structural signal and temporary noise (weather, strikes, calendar effects, revisions). The headline number is the starting point, not the conclusion
+12. **Political Economy Lens:** Every major event triggers a policy response. Analyze who benefits, who is incentivized to act, and what policymakers are most likely to do — the policy response often matters more than the event itself
+13. **Narrative Skepticism:** Market narratives simplify complex reality. Actively stress-test dominant narratives by gathering contradicting evidence. Identify the "narrative break" catalyst — the single data point that would invalidate the consensus story
+14. **Second-Order Thinking:** The obvious first-order effect is already priced in. Focus analytical effort on second and third-order consequences that markets haven't fully discounted
+15. **Structural vs Transitory Discipline:** Most dramatic headlines are transitory disruptions that mean-revert. Reserve "regime change" designation for events with genuine structural permanence. When in doubt, assume transitory
 
 ## Common Pitfalls to Avoid
 
@@ -648,12 +943,27 @@ When conducting market news analysis:
 - A "hot" CPI that's 0.1% above consensus is different from 0.5% above
 - Quantify surprise factor
 
-**Superlative Claims Without Verification:**
-- NEVER label a price as "all-time high (ATH)", "record", "historic low", or similar superlatives based on a single news article's vague wording (e.g., "prices have reached record levels")
-- Such phrases in articles often describe a general trend over months, NOT the specific day's price
-- Before using any superlative price claim, perform a dedicated verification search (e.g., "gold all time high 2026", "S&P 500 record high date") to confirm the actual ATH/ATL value and date
-- Always include the verified ATH/ATL as a reference point when discussing current prices (e.g., "$5,172/oz (ATH $5,589 on 1/28, -7.5%)")
-- This applies to all asset classes: equities, commodities, bonds, currencies, and indices
+**Headline Literalism:**
+- Taking economic data at face value without decomposing noise factors
+- Example: NFP -92K looks catastrophic but may include -28K from a strike that already ended + weather effects
+- Always search for "what distorted this number?" before concluding "the economy is collapsing"
+- Check prior month revisions — persistent downward revisions ARE signal, but a single miss can be noise
+
+**Narrative Capture:**
+- Adopting the dominant market narrative without stress-testing it
+- Markets are frequently wrong about narratives (e.g., "transitory inflation" in 2021, "hard landing certain" in 2023)
+- Always present both the bull and bear case for any narrative
+- Ask: "What would change my mind?" — if nothing, the analysis is biased
+
+**Ignoring Policy Response:**
+- Analyzing events in a vacuum without considering how policymakers will respond
+- Events are temporary; policy responses can be permanent
+- Example: Oil at $100 is bearish for consumers, but SPR release + shale production increase + diplomatic pressure are all likely responses that partially offset the impact
+
+**Confusing Correlation with Causation in Political Statements:**
+- A president saying "the war is ending" does not mean the war is ending
+- Evaluate statements against the speaker's incentive structure, track record, and concrete actions
+- Political statements move markets intraday; follow-through (or lack thereof) moves markets over weeks
 
 ## Resources
 
