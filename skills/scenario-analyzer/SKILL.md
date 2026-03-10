@@ -303,15 +303,33 @@ Task tool:
 
 ---
 
+## TACO 확률 보정 (선택적 후처리)
+
+시나리오 확률 산출 후, trump-mean-reversion 스킬로 TACO 보정을 적용할 수 있다.
+트럼프 행정부의 양방향 평균회귀 행태(고통 시 정책 철회, 여유 시 공격 확대)를 반영하여
+Base/Bull/Bear 확률을 조정한다.
+
+```bash
+uv run python3 skills/trump-mean-reversion/scripts/taco_adjuster.py \
+  --scenario-json reports/scenario_analysis_<topic>_YYYYMMDD.json \
+  --geopolitics <1-10> --trade <1-10> \
+  --output-dir reports/
+```
+
+보정 결과는 `reports/taco_adjustment_*.md`에 저장된다.
+
+---
+
 ## Quality Checklist
 
 レポート完成前に以下を確認：
 
-- [ ] ヘッドラインが正しく解析されているか
-- [ ] イベントタイプの分類が適切か
-- [ ] 3シナリオの確率合計が100%か
-- [ ] 1次/2次/3次影響の論理的繋がりがあるか
-- [ ] 銘柄選定に具体的な根拠があるか
-- [ ] strategy-reviewerのレビューが含まれているか
-- [ ] レビューを踏まえた最終判断が記載されているか
-- [ ] レポートが正しいパスに保存されたか
+- [ ] 헤드라인이 정확하게 해석되었는가
+- [ ] 이벤트 타입 분류가 적절한가
+- [ ] 3 시나리오의 확률 합계가 100%인가
+- [ ] 1차/2차/3차 영향의 논리적 연결이 있는가
+- [ ] 종목 선정에 구체적인 근거가 있는가
+- [ ] strategy-reviewer의 리뷰가 포함되어 있는가
+- [ ] 리뷰를 반영한 최종 판단이 기재되어 있는가
+- [ ] TACO 보정 적용 여부가 명시되었는가 (적용 시)
+- [ ] 리포트가 올바른 경로에 저장되었는가

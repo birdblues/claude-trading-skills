@@ -183,7 +183,21 @@ Load appropriate reference documents to provide philosophical context:
 
 ---
 
-## Phase 5: 한글 리포트 생성
+## Phase 5: TACO 확률 보정 (선택적)
+
+Conviction 점수가 산출된 후, trump-mean-reversion 스킬로 TACO 보정을 적용할 수 있다.
+트럼프 행정부의 양방향 평균회귀 행태를 반영하여 시나리오 확률을 조정한다.
+
+1. 생성된 JSON 리포트를 TACO adjuster에 전달:
+   ```bash
+   uv run python3 skills/trump-mean-reversion/scripts/taco_adjuster.py \
+     --scenario-json reports/druckenmiller_strategy_*.json \
+     --geopolitics <1-10> --trade <1-10> \
+     --output-dir reports/
+   ```
+2. 보정 결과(`reports/taco_adjustment_*.md`)를 리포트에 참고 사항으로 포함
+
+## Phase 6: 한글 리포트 생성
 
 생성된 영어 리포트를 한국어로 번역한다.
 

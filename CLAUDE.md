@@ -145,6 +145,7 @@ If no test exists for the changed behavior, add one whenever practical.
 | **Data Quality Checker** | ❌ Not required | ❌ Not used | ❌ Not used | Local markdown validation; works offline |
 | **Edge Strategy Reviewer** | ❌ Not required | ❌ Not used | ❌ Not used | Deterministic scoring on local YAML drafts |
 | **Edge Pipeline Orchestrator** | ❌ Not required | ❌ Not used | ❌ Not used | Orchestrates local edge skills via subprocess |
+| **Trump Mean-Reversion** | 🟡 Optional | ❌ Not used | ❌ Not used | FMP for real-time market data (`--use-fmp`); works offline with manual inputs |
 | Dual-Axis Skill Reviewer | ❌ Not required | ❌ Not used | ❌ Not used | Deterministic scoring + optional LLM review |
 
 #### API Key Setup
@@ -403,6 +404,24 @@ python3 skills/edge-strategy-reviewer/scripts/review_strategy_drafts.py \
   --output-dir reports/ --format json --markdown-summary
 ```
 
+**Trump Mean-Reversion (TACO Adjuster):** FMP API optional
+```bash
+# From scenario JSON (primary usage — called after scenario-analyzer)
+uv run python3 skills/trump-mean-reversion/scripts/taco_adjuster.py \
+  --scenario-json reports/scenario_analysis.json \
+  --geopolitics 7 --trade 5 --output-dir reports/
+
+# With FMP real-time data
+uv run python3 skills/trump-mean-reversion/scripts/taco_adjuster.py \
+  --scenario-json reports/scenario_analysis.json \
+  --use-fmp --geopolitics 7 --trade 5 --output-dir reports/
+
+# Manual probability input
+uv run python3 skills/trump-mean-reversion/scripts/taco_adjuster.py \
+  --base 40 --bull 15 --bear 45 \
+  --geopolitics 7 --trade 5 --output-dir reports/
+```
+
 **Edge Pipeline Orchestrator:** No API key required
 ```bash
 # Full pipeline from tickets
@@ -603,6 +622,12 @@ Skills are designed to be combined for comprehensive analysis:
 2. Technical Analyst → Confirm trends
 3. Market Environment Analysis → Macro briefing
 4. US Market Bubble Detector → Risk assessment
+5. trump-mean-reversion → TACO 보정으로 시나리오 확률 조정 (선택적)
+
+**Scenario Analysis with TACO Adjustment:**
+1. scenario-analyzer → 헤드라인 기반 18개월 시나리오 + Base/Bull/Bear 확률 산출
+2. trump-mean-reversion → Pain Index 기반 확률 보정 (TACO 프레임워크)
+3. report-translator → 영어 리포트를 한글로 번역 + data-quality-checker 검증
 
 **Individual Stock Research:**
 1. US Stock Analysis → Fundamental/technical review

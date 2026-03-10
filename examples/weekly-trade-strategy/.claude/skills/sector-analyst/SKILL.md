@@ -203,6 +203,21 @@ Apply these probability ranges based on evidence strength:
 
 Total probabilities across all scenarios should sum to approximately 100%.
 
+## TACO 확률 보정 (선택적 후처리)
+
+시나리오 확률 산출 후, trump-mean-reversion 스킬로 TACO 보정을 적용할 수 있다.
+트럼프 행정부의 양방향 평균회귀 행태(고통 시 정책 철회, 여유 시 공격 확대)를 반영하여
+Base/Bull/Bear 확률을 조정한다.
+
+```bash
+uv run python3 skills/trump-mean-reversion/scripts/taco_adjuster.py \
+  --base <base%> --bull <bull%> --bear <bear%> \
+  --geopolitics <1-10> --trade <1-10> \
+  --output-dir reports/
+```
+
+보정 결과는 `reports/taco_adjustment_*.md`에 저장된다.
+
 ## Resources
 
 ### scripts/

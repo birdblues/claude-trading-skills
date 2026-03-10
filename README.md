@@ -125,6 +125,14 @@ Curated Claude skills for equity investors and traders. Each skill bundles promp
   - Generates comprehensive reports including 1st/2nd/3rd order effects, recommended tickers, and critical review.
   - No API key required - uses WebSearch for news gathering.
 
+- **Trump Mean-Reversion** (`trump-mean-reversion`)
+  - Post-processing skill that adjusts Base/Bull/Bear scenario probabilities using the TACO (Trump Always Chickens Out) framework.
+  - Computes a Trump Pain Index (0-100) across 5 domains: Energy/Oil, Stock Market, Geopolitics, Trade/Tariffs, Interest Rates.
+  - Models bidirectional mean-reversion: high pain clips Bear scenarios (TACO reversal expected), low pain clips Bull scenarios (aggressive policy expansion).
+  - Includes diminishing returns for repeated interventions and words-vs-actions discount (verbal 30%, executive order 70%, policy action 100%).
+  - Constraints: max ±20pp shift, 5% floor, 75% ceiling per scenario. Integrates as a pipeline step after scenario-analyzer or stanley-druckenmiller-investment.
+  - FMP API optional (`--use-fmp`) for real-time Energy/Stock/Rates data; works fully offline with manual inputs.
+
 - **Backtest Expert** (`backtest-expert`)
   - Framework for professional-grade strategy validation with hypothesis definition, parameter robustness checks, and walk-forward testing.
   - Emphasizes realistic assumptions: slippage modeling, transaction costs, survivorship bias elimination, and out-of-sample validation.
@@ -569,6 +577,7 @@ Several skills require API keys for data access:
 | **Edge Strategy Reviewer** | ❌ Not used | ❌ Not used | ❌ Not used | Deterministic scoring on local YAML drafts |
 | **Edge Pipeline Orchestrator** | ❌ Not used | ❌ Not used | ❌ Not used | Orchestrates local edge skills via subprocess |
 | **Edge Signal Aggregator** | ❌ Not used | ❌ Not used | ❌ Not used | Aggregates local edge-skill JSON/YAML outputs into weighted ranked signals |
+| **Trump Mean-Reversion** | 🟡 Optional | ❌ Not used | ❌ Not used | FMP for real-time market data (`--use-fmp`); works offline with manual inputs |
 | Dual-Axis Skill Reviewer | ❌ Not used | ❌ Not used | ❌ Not used | Deterministic scoring + optional LLM review |
 
 ### API Setup

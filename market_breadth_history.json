@@ -1,0 +1,15 @@
+[
+  {
+    "data_date": "2026-03-05",
+    "composite_score": 60.3,
+    "component_scores": {
+      "breadth_level_trend": 70,
+      "ma_crossover": 40,
+      "cycle_position": 50,
+      "bearish_signal": 85,
+      "historical_percentile": 50,
+      "divergence": 50.0
+    },
+    "recorded_at": "2026-03-08 20:51:12"
+  }
+]
