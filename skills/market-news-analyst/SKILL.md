@@ -33,60 +33,31 @@ Follow this structured 6-step workflow when analyzing market news:
 
 **Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available. If not available, skip directly to Step 1.
 
-#### 0.5.1 Query Important Breaking News
+Invoke the `supabase-news-summarizer` agent to collect and summarize the full 10-day breaking news corpus:
 
-Execute the following SQL to retrieve high-signal breaking news from the past 10 days:
+```
+Agent tool:
+  subagent_type: "supabase-news-summarizer"
+  prompt: |
+    최근 10일간 Supabase public.news 테이블의 속보를 전량 수집하여
+    내러티브별 요약을 생성해주세요.
 
-```sql
-SELECT published_at, category, source, content, detail
-FROM public.news
-WHERE published_at >= NOW() - INTERVAL '10 days'
-  AND is_important = true
-ORDER BY published_at DESC
-LIMIT 200;
+    분석 기간: [현재 날짜 - 10일] ~ [현재 날짜]
+
+    다음을 반환해주세요:
+    1. 내러티브 그룹별 요약 (건수, 핵심 이벤트, 현재 상태)
+    2. 크로스테마 상호작용
+    3. WebSearch 갭 리스트
+    4. 블라인드 스팟 경보 (사모/크레딧/시스템 리스크)
 ```
 
-**Token Management:** `LIMIT 200` caps context usage. Typically ~800 important items exist in 10 days; this retrieves the most recent 200.
+**Why agent:** 10일간 중요 속보 800+건 × detail 평균 824자 = ~665K자로 메인 컨텍스트에 직접 로드 불가. 에이전트가 자체 컨텍스트 윈도우에서 전량 처리 후 3,000자 이내 압축 요약을 반환.
 
-#### 0.5.2 Category Mapping
-
-Map Supabase `category` values to skill analysis categories:
-
-| Skill Category        | Supabase category values                                          |
-|-----------------------|-------------------------------------------------------------------|
-| Monetary Policy       | 연방준비제도, 유럽 중앙은행, 일본 은행, 기타 중앙은행             |
-| Economic Data         | 미국 경제지표, 유럽연합 경제지표, 기타국가 경제지표               |
-| Corporate/Earnings    | 미국 주식, 글로벌 주식, 아시아 주식                               |
-| Geopolitical          | 지정학, 무역                                                     |
-| Commodity             | 에너지 및 전력, 금속, 농산물                                     |
-| Market/Macro          | 시장 분석, 시장 논평, 글로벌 뉴스, 채권, 외환 흐름               |
-
-#### 0.5.3 Theme Identification & Summary
-
-- Tally item counts per mapped category; identify dominant themes
-- Prioritize items with non-null `detail` field (contains deeper context)
-- Build a chronological event timeline from the results
-- Compile a **WebSearch gap list** — categories or events that need supplementary web searches
-
-#### 0.5.4 Selective Deep-Dive Query (Optional)
-
-If a single theme accounts for >30% of results, query all items for that category (including non-important) to capture the full picture:
-
-```sql
-SELECT published_at, source, content, detail
-FROM public.news
-WHERE published_at >= NOW() - INTERVAL '10 days'
-  AND category = '<dominant_category>'
-ORDER BY published_at DESC
-LIMIT 100;
-```
-
-#### 0.5.5 Output for Step 1
-
-Prepare:
-- **Theme summary:** Per-category event counts and key takeaways
-- **WebSearch gap list:** Categories/events that Supabase data does not cover or needs verification
-- Pass both to Step 1 as input context
+**Agent output → Step 1 input:**
+- 내러티브 그룹별 요약 (건수, 핵심 이벤트, 시장 영향)
+- 크로스테마 상호작용 (인과 체인)
+- WebSearch 갭 리스트 (Step 1에서 우선 검색할 항목)
+- 블라인드 스팟 경보 (is_important=false에서 발견된 크레딧/시스템 리스크 신호)
 
 ---
 
@@ -121,6 +92,12 @@ Execute parallel WebSearch queries covering different news categories:
 **Corporate News:**
 - Search: "major M&A announcement", "bank earnings", "tech sector news", "bankruptcy", "credit rating downgrade"
 - Target: Large corporate events beyond mega-caps
+
+**Credit & Alternative Investments:**
+- Search: "private credit fund redemption", "hedge fund liquidation",
+  "BlackRock BXPE gating", "alternative investment outflows"
+- Target: Private credit stress, fund gating/redemption events,
+  systemic credit risk signals
 
 **Recommended News Sources (Priority Order):**
 1. Official sources: FederalReserve.gov, SEC.gov (EDGAR), Treasury.gov, BLS.gov
