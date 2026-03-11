@@ -27,7 +27,7 @@ except ImportError:
 class FMPClient:
     """Client for Financial Modeling Prep API with rate limiting and caching"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
+    STABLE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_DELAY = 0.3  # 300ms between requests
 
     def __init__(self, api_key: Optional[str] = None):
@@ -91,8 +91,8 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/quote/{symbols}"
-        data = self._rate_limited_get(url)
+        url = f"{self.STABLE_URL}/quote"
+        data = self._rate_limited_get(url, {"symbol": symbols})
         if data:
             self.cache[cache_key] = data
         return data
@@ -103,12 +103,20 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/historical-price-full/{symbol}"
-        params = {"timeseries": days}
+        url = f"{self.STABLE_URL}/historical-price-eod/full"
+        params = {"symbol": symbol}
         data = self._rate_limited_get(url, params)
         if data:
-            self.cache[cache_key] = data
-        return data
+            if isinstance(data, list):
+                result = {"symbol": symbol, "historical": data[:days]}
+            elif isinstance(data, dict) and "historical" in data:
+                data["historical"] = data["historical"][:days]
+                result = data
+            else:
+                result = data
+            self.cache[cache_key] = result
+            return result
+        return None
 
     def get_batch_quotes(self, symbols: list[str]) -> dict[str, dict]:
         """Fetch quotes for a list of symbols, batching up to 5 per request"""

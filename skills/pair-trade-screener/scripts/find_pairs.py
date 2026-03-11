@@ -68,7 +68,7 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
     print(f"\n[1/5] Fetching {sector} sector stocks from FMP API...")
 
     # Use stock screener to get sector stocks
-    url = "https://financialmodelingprep.com/api/v3/stock-screener"
+    url = "https://financialmodelingprep.com/stable/stock-screener"
     params = {
         "sector": sector,
         "marketCapMoreThan": min_market_cap,
@@ -111,19 +111,20 @@ def fetch_sector_stocks(sector, api_key, min_market_cap=2_000_000_000):
 
 def fetch_historical_prices(symbol, api_key, lookback_days=730):
     """Fetch historical adjusted close prices for a symbol"""
-    url = f"https://financialmodelingprep.com/api/v3/historical-price-full/{symbol}"
-    params = {"apikey": api_key}
+    url = "https://financialmodelingprep.com/stable/historical-price-eod/full"
+    params = {"apikey": api_key, "symbol": symbol}
 
     try:
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
 
-        if "historical" not in data:
+        if isinstance(data, list):
+            historical = data[:lookback_days]
+        elif isinstance(data, dict) and "historical" in data:
+            historical = data["historical"][:lookback_days]
+        else:
             return None
-
-        # Extract historical prices
-        historical = data["historical"][:lookback_days]
         historical = historical[::-1]  # Reverse to chronological order
 
         # Convert to pandas Series

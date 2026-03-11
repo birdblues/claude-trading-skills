@@ -65,11 +65,9 @@ def _v3_hist_url(base: str, symbols_str: str, params: dict) -> tuple[str, dict]:
 _FMP_ENDPOINTS = {
     "quote": [
         ("https://financialmodelingprep.com/stable/quote", _stable_quote_url),
-        ("https://financialmodelingprep.com/api/v3/quote", _v3_quote_url),
     ],
     "historical": [
         ("https://financialmodelingprep.com/stable/historical-price-full", _stable_hist_url),
-        ("https://financialmodelingprep.com/api/v3/historical-price-full", _v3_hist_url),
     ],
 }
 

@@ -99,42 +99,82 @@ class FMPEarningsCalendar:
 
     def fetch_company_profiles(self, symbols: list[str]) -> dict[str, dict]:
         """
-        Fetch company profiles for multiple symbols
+        Fetch company profiles using /stable/quote (one per request) and
+        /stable/profile for sector/industry enrichment of qualifying stocks.
+
+        Two-pass approach to minimize API calls:
+        1. Quote pass: fetch marketCap + exchange for all symbols (fast, 1 call each)
+        2. Profile pass: fetch sector/industry only for symbols above MIN_MARKET_CAP
 
         Args:
             symbols: List of ticker symbols
 
         Returns:
-            Dictionary mapping symbol to profile data
+            Dictionary mapping symbol to profile-like data
         """
         profiles = {}
-        batch_size = 1  # Stable API: one symbol per request for broad plan compatibility
 
-        print(f"✓ Fetching profiles for {len(symbols)} companies...", file=sys.stderr)
+        print(f"✓ Fetching quotes for {len(symbols)} companies...", file=sys.stderr)
 
-        for i in range(0, len(symbols), batch_size):
-            batch = symbols[i : i + batch_size]
-            symbols_str = ",".join(batch)
-
-            url = f"{self.STABLE_URL}/profile"
-            params = {"apikey": self.api_key, "symbol": symbols_str}
+        # Pass 1: quote for marketCap + exchange filtering
+        qualifying = []
+        for idx, symbol in enumerate(symbols):
+            url = f"{self.STABLE_URL}/quote"
+            params = {"symbol": symbol, "apikey": self.api_key}
 
             try:
-                response = requests.get(url, params=params, timeout=30)
+                response = requests.get(url, params=params, timeout=15)
                 response.raise_for_status()
+                data = response.json()
 
-                for profile in response.json():
-                    if isinstance(profile, dict):
-                        profiles[profile.get("symbol")] = profile
+                if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+                    q = data[0]
+                    mkt_cap = q.get("marketCap", 0) or 0
+                    exchange = q.get("exchange", "")
+                    if mkt_cap >= self.MIN_MARKET_CAP:
+                        profiles[q.get("symbol", symbol)] = {
+                            "symbol": q.get("symbol", symbol),
+                            "companyName": q.get("name", symbol),
+                            "mktCap": mkt_cap,
+                            "exchangeShortName": exchange,
+                            "sector": "N/A",
+                            "industry": "N/A",
+                        }
+                        qualifying.append(q.get("symbol", symbol))
+            except Exception:
+                pass
 
-                print(f"  ✓ Batch {i // batch_size + 1}: {len(batch)} profiles", file=sys.stderr)
-
-            except Exception as e:
+            if (idx + 1) % 100 == 0 or idx + 1 == len(symbols):
                 print(
-                    f"  ⚠️  Warning: Failed to fetch batch {i // batch_size + 1}: {str(e)}",
+                    f"  ✓ {idx + 1}/{len(symbols)} quotes fetched ({len(qualifying)} qualifying)",
                     file=sys.stderr,
                 )
-                continue
+
+        # Pass 2: profile for sector/industry (only qualifying symbols)
+        if qualifying:
+            print(
+                f"✓ Enriching {len(qualifying)} qualifying companies with sector data...",
+                file=sys.stderr,
+            )
+            for idx, symbol in enumerate(qualifying):
+                url = f"{self.STABLE_URL}/profile"
+                params = {"symbol": symbol, "apikey": self.api_key}
+
+                try:
+                    response = requests.get(url, params=params, timeout=15)
+                    response.raise_for_status()
+                    data = response.json()
+
+                    if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+                        p = data[0]
+                        if symbol in profiles:
+                            profiles[symbol]["sector"] = p.get("sector", "N/A")
+                            profiles[symbol]["industry"] = p.get("industry", "N/A")
+                except Exception:
+                    pass
+
+                if (idx + 1) % 50 == 0 or idx + 1 == len(qualifying):
+                    print(f"  ✓ {idx + 1}/{len(qualifying)} profiles enriched", file=sys.stderr)
 
         print(f"✓ Retrieved {len(profiles)} company profiles", file=sys.stderr)
         return profiles

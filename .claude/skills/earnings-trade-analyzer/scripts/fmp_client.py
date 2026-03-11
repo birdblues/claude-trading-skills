@@ -35,7 +35,7 @@ class ApiCallBudgetExceeded(Exception):
 class FMPClient:
     """Client for Financial Modeling Prep API with rate limiting, caching, and budget control"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
+    STABLE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_DELAY = 0.3  # 300ms between requests
     US_EXCHANGES = ["NYSE", "NASDAQ", "AMEX", "NYSEArca", "BATS", "NMS", "NGM", "NCM"]
 
@@ -118,7 +118,7 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/earning_calendar"
+        url = f"{self.STABLE_URL}/earnings-calendar"
         params = {"from": from_date, "to": to_date}
         data = self._rate_limited_get(url, params)
         if data:
@@ -148,8 +148,8 @@ class FMPClient:
                         profiles[profile.get("symbol")] = profile
                 continue
 
-            url = f"{self.BASE_URL}/profile/{symbols_str}"
-            data = self._rate_limited_get(url)
+            url = f"{self.STABLE_URL}/profile"
+            data = self._rate_limited_get(url, {"symbol": symbols_str})
             if data:
                 self.cache[cache_key] = data
                 for profile in data:
@@ -172,11 +172,16 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/historical-price-full/{symbol}"
-        params = {"timeseries": days}
+        url = f"{self.STABLE_URL}/historical-price-eod/full"
+        params = {"symbol": symbol}
         data = self._rate_limited_get(url, params)
-        if data and "historical" in data:
-            result = data["historical"]
+        if data:
+            if isinstance(data, list):
+                result = data[:days]
+            elif isinstance(data, dict) and "historical" in data:
+                result = data["historical"][:days]
+            else:
+                return None
             self.cache[cache_key] = result
             return result
         return None

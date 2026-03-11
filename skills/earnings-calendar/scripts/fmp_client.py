@@ -40,7 +40,7 @@ except ImportError:
 class FMPClient:
     """Client for Financial Modeling Prep API with rate limiting, caching, and yfinance fallback"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
+    STABLE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_DELAY = 0.3  # 300ms between requests
 
     def __init__(self, api_key: Optional[str] = None):
@@ -172,7 +172,7 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/earning_calendar"
+        url = f"{self.STABLE_URL}/earnings-calendar"
         params = {"from": from_date, "to": to_date}
         data = self._rate_limited_get(url, params)
         if data:
@@ -185,8 +185,8 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/quote/{symbols}"
-        data = self._rate_limited_get(url)
+        url = f"{self.STABLE_URL}/quote"
+        data = self._rate_limited_get(url, {"symbol": symbols})
         if data and not self._is_error_payload(data) and isinstance(data, list) and len(data) > 0:
             self.cache[cache_key] = data
             return data
@@ -204,15 +204,18 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/historical-price-full/{symbol}"
-        params = {"timeseries": days}
+        url = f"{self.STABLE_URL}/historical-price-eod/full"
+        params = {"symbol": symbol}
         data = self._rate_limited_get(url, params)
 
         need_fallback = data is None or data == [] or self._is_error_payload(data)
 
         if not need_fallback:
             if isinstance(data, list):
-                result = {"symbol": symbol, "historical": data}
+                result = {"symbol": symbol, "historical": data[:days]}
+            elif isinstance(data, dict) and "historical" in data:
+                data["historical"] = data["historical"][:days]
+                result = data
             else:
                 result = data
             self.cache[cache_key] = result

@@ -16,7 +16,7 @@ from typing import Any
 
 import requests
 
-FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
 
 
 def parse_ticker_csv(raw: str) -> list[str]:
@@ -141,7 +141,7 @@ class FMPClient:
     def get_batch_quotes(self, tickers: list[str]) -> dict[str, dict[str, Any]]:
         result: dict[str, dict[str, Any]] = {}
         for group in chunked(tickers, 50):
-            data = self._get(f"quote/{','.join(group)}")
+            data = self._get("quote", {"symbol": ",".join(group)})
             if not isinstance(data, list):
                 continue
             for row in data:
@@ -155,7 +155,7 @@ class FMPClient:
     def get_batch_profiles(self, tickers: list[str]) -> dict[str, dict[str, Any]]:
         result: dict[str, dict[str, Any]] = {}
         for group in chunked(tickers, 25):
-            data = self._get(f"profile/{','.join(group)}")
+            data = self._get("profile", {"symbol": ",".join(group)})
             if isinstance(data, list):
                 for row in data:
                     if not isinstance(row, dict):
@@ -167,7 +167,7 @@ class FMPClient:
 
             # Batch profile may fail for mixed symbols; fallback to per-symbol.
             for ticker in group:
-                single = self._get(f"profile/{ticker}")
+                single = self._get("profile", {"symbol": ticker})
                 if not isinstance(single, list) or not single:
                     continue
                 row = single[0]
@@ -179,7 +179,7 @@ class FMPClient:
         return result
 
     def get_key_metrics(self, ticker: str, limit: int = 10) -> list[dict[str, Any]]:
-        data = self._get(f"key-metrics/{ticker}", {"limit": limit})
+        data = self._get("key-metrics", {"symbol": ticker, "limit": limit})
         if isinstance(data, list):
             return [row for row in data if isinstance(row, dict)]
         return []

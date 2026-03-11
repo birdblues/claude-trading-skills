@@ -28,7 +28,6 @@ except ImportError:
 class FMPClient:
     """Client for Financial Modeling Prep API with rate limiting and caching"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
     STABLE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_DELAY = 0.3  # 300ms between requests
 
@@ -93,12 +92,20 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/historical-price-full/{symbol}"
-        params = {"timeseries": days}
+        url = f"{self.STABLE_URL}/historical-price-eod/full"
+        params = {"symbol": symbol}
         data = self._rate_limited_get(url, params)
         if data:
-            self.cache[cache_key] = data
-        return data
+            if isinstance(data, list):
+                result = {"symbol": symbol, "historical": data[:days]}
+            elif isinstance(data, dict) and "historical" in data:
+                data["historical"] = data["historical"][:days]
+                result = data
+            else:
+                result = data
+            self.cache[cache_key] = result
+            return result
+        return None
 
     def get_batch_historical(self, symbols: list[str], days: int = 600) -> dict[str, list[dict]]:
         """Fetch historical prices for multiple symbols"""

@@ -35,7 +35,7 @@ class ApiCallBudgetExceeded(Exception):
 class FMPClient:
     """Client for Financial Modeling Prep API with rate limiting, caching, and budget control"""
 
-    BASE_URL = "https://financialmodelingprep.com/api/v3"
+    STABLE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_DELAY = 0.3  # 300ms between requests
 
     def __init__(self, api_key: Optional[str] = None, max_api_calls: int = 200):
@@ -123,7 +123,7 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/earning_calendar"
+        url = f"{self.STABLE_URL}/earnings-calendar"
         params = {"from": from_date, "to": to_date}
         data = self._rate_limited_get(url, params)
         if data:
@@ -151,8 +151,8 @@ class FMPClient:
                     results[profile["symbol"]] = profile
                 continue
 
-            url = f"{self.BASE_URL}/profile/{batch_str}"
-            data = self._rate_limited_get(url)
+            url = f"{self.STABLE_URL}/profile"
+            data = self._rate_limited_get(url, {"symbol": batch_str})
             if data:
                 self.cache[cache_key] = data
                 for profile in data:
@@ -175,12 +175,20 @@ class FMPClient:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        url = f"{self.BASE_URL}/historical-price-full/{symbol}"
-        params = {"timeseries": days}
+        url = f"{self.STABLE_URL}/historical-price-eod/full"
+        params = {"symbol": symbol}
         data = self._rate_limited_get(url, params)
         if data:
-            self.cache[cache_key] = data
-        return data
+            if isinstance(data, list):
+                result = {"symbol": symbol, "historical": data[:days]}
+            elif isinstance(data, dict) and "historical" in data:
+                data["historical"] = data["historical"][:days]
+                result = data
+            else:
+                result = data
+            self.cache[cache_key] = result
+            return result
+        return None
 
     def get_api_stats(self) -> dict:
         """Return API usage statistics."""

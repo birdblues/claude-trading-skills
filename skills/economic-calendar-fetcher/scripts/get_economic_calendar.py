@@ -44,7 +44,7 @@ def fetch_economic_calendar(from_date: str, to_date: str, api_key: str) -> list[
         urllib.error.HTTPError: If API request fails
         ValueError: If response is invalid
     """
-    base_url = "https://financialmodelingprep.com/api/v3/economic_calendar"
+    base_url = "https://financialmodelingprep.com/stable/economic-calendar"
 
     # Build query parameters
     params = {"from": from_date, "to": to_date, "apikey": api_key}
