@@ -47,6 +47,39 @@ Unlike the Bubble Detector (macro/multi-month evaluation), this skill focuses on
 
 ## Execution Workflow
 
+### Phase 0.5: Supabase Breaking News Context (Optional)
+
+**Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available.
+If not available, skip directly to Phase 1.
+
+Invoke the `supabase-news-summarizer` agent:
+
+```
+Agent tool:
+  subagent_type: "supabase-news-summarizer"
+  prompt: |
+    최근 10일간 Supabase public.news 테이블의 속보를 전량 수집하여
+    시장 천장 감지에 특화된 요약을 생성해주세요.
+
+    분석 기간: [현재 날짜 - 10일] ~ [현재 날짜]
+
+    다음을 반환해주세요:
+    1. 기관 매도 신호 (대형 펀드 익스포저 축소, 헤지 강화)
+    2. 방어 섹터 로테이션 신호 (유틸리티, 헬스케어, 생필품 유입)
+    3. 시장 심리 전환 징후 (공포→탐욕 역전, 콜/풋 비율 변화)
+    4. 선도주 약세 신호 (성장주 ETF 이탈, 리더십 붕괴)
+    5. VIX·변동성 급등 이벤트
+    6. 크로스테마 상호작용
+    7. WebSearch 갭 리스트
+    8. 블라인드 스팟 경보 (사모/크레딧/시스템 리스크)
+```
+
+**Why agent:** 10일간 중요 속보 800+건 × detail 평균 824자 = ~665K자로 메인 컨텍스트에 직접 로드 불가. 에이전트가 자체 컨텍스트 윈도우에서 전량 처리 후 3,000자 이내 압축 요약을 반환.
+
+**Agent output → Phase 2 input:**
+- `--context` 파라미터에 Supabase 내러티브 요약을 포함 (예: `--context "Supabase: 기관 매도 3건, 방어 로테이션 5건"`)
+- WebSearch 갭 리스트는 Phase 1 데이터 수집 시 우선 검색에 활용
+
 ### Phase 1: Data Collection via WebSearch
 
 Before running the Python script, collect the following data using WebSearch.

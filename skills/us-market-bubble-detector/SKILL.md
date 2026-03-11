@@ -146,6 +146,40 @@ Rationale: Rapid price acceleration is unsustainable
 
 ---
 
+### Phase 2.5: Supabase Breaking News Context (Optional)
+
+**Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available.
+If not available, skip directly to Phase 3.
+
+Invoke the `supabase-news-summarizer` agent:
+
+```
+Agent tool:
+  subagent_type: "supabase-news-summarizer"
+  prompt: |
+    최근 10일간 Supabase public.news 테이블의 속보를 전량 수집하여
+    시장 버블 평가에 특화된 요약을 생성해주세요.
+
+    분석 기간: [현재 날짜 - 10일] ~ [현재 날짜]
+
+    다음을 반환해주세요:
+    1. 투기적 열기 신호 (밈 주식, 암호화폐, IPO 광풍 등)
+    2. "이번에는 다르다" 내러티브 (AI, 혁신 기술 등)
+    3. 레버리지·마진 관련 뉴스 (마진콜, 과잉 차입)
+    4. 소매 투자자 참여 급증 신호
+    5. 크로스테마 상호작용
+    6. 블라인드 스팟 경보 (사모/크레딧/시스템 리스크)
+```
+
+**Why agent:** 10일간 중요 속보 800+건 × detail 평균 824자 = ~665K자로 메인 컨텍스트에 직접 로드 불가. 에이전트가 자체 컨텍스트 윈도우에서 전량 처리 후 3,000자 이내 압축 요약을 반환.
+
+**Agent output → Phase 3 보조 증거:**
+- 뉴스 건수 자체는 Google Trends 데이터를 대체하지 않음 (보조 증거만)
+- Phase 3 Qualitative Adjustment의 Social Penetration, Media/Search Trends 판단 시 참고 자료로 활용
+- 블라인드 스팟 경보는 시스템 리스크 조기 감지에 활용
+
+---
+
 ### Phase 3: Qualitative Adjustment (REVISED v2.1)
 
 **Limit: +3 points maximum (REDUCED from +5 in v2.0)**

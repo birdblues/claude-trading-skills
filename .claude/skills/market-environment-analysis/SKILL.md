@@ -9,8 +9,41 @@ Comprehensive analysis tool for understanding market conditions and creating pro
 
 ## Core Workflow
 
+### Step 0.5: Supabase Breaking News Context (Optional)
+
+**Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available.
+If not available, skip directly to Step 1.
+
+Invoke the `supabase-news-summarizer` agent:
+
+```
+Agent tool:
+  subagent_type: "supabase-news-summarizer"
+  prompt: |
+    최근 10일간 Supabase public.news 테이블의 속보를 전량 수집하여
+    시장 환경 분석에 특화된 요약을 생성해주세요.
+
+    분석 기간: [현재 날짜 - 10일] ~ [현재 날짜]
+
+    다음을 반환해주세요:
+    1. 글로벌 주식시장 주요 이벤트 (미국, 유럽, 아시아)
+    2. 외환·원자재 시장 변동 요인
+    3. 중앙은행 정책 변화 (FOMC, ECB, BOJ 등)
+    4. VIX·변동성 관련 이벤트
+    5. 지정학적 리스크 영향
+    6. 크로스테마 상호작용
+    7. WebSearch 갭 리스트
+    8. 블라인드 스팟 경보 (사모/크레딧/시스템 리스크)
+```
+
+**Why agent:** 10일간 중요 속보 800+건 × detail 평균 824자 = ~665K자로 메인 컨텍스트에 직접 로드 불가. 에이전트가 자체 컨텍스트 윈도우에서 전량 처리 후 3,000자 이내 압축 요약을 반환.
+
+**Agent output → Step 1 input:**
+- Supabase 요약이 있으면 갭 리스트 기반으로 WebSearch 집중
+- 내러티브 그룹별 요약을 시장 환경 평가의 기초 컨텍스트로 활용
+
 ### 1. Initial Data Collection
-Collect latest market data using web_search tool:
+Collect latest market data using web_search tool. If Step 0.5 was executed, focus on filling gaps identified in the WebSearch gap list and verifying key Supabase findings. If Step 0.5 was skipped (no Supabase MCP), execute all searches below as primary collection.
 1. Major stock indices (S&P 500, NASDAQ, Dow, Nikkei 225, Shanghai Composite, Hang Seng)
 2. Forex rates (USD/JPY, EUR/USD, major currency pairs)
 3. Commodity prices (WTI crude, Gold, Silver)

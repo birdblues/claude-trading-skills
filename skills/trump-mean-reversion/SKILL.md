@@ -59,7 +59,42 @@ Supported input formats:
 - Markdown: `### Base Case (50% ...)` header pattern
 - CLI: `--base/--bull/--bear` direct arguments
 
+### Step 1.5: Supabase Breaking News Context for Pain Scoring (Optional)
+
+**Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available.
+If not available, skip directly to Step 2.
+
+Invoke the `supabase-news-summarizer` agent:
+
+```
+Agent tool:
+  subagent_type: "supabase-news-summarizer"
+  prompt: |
+    최근 10일간 Supabase public.news 테이블의 속보를 전량 수집하여
+    Trump Pain Index 5개 도메인별 핵심 이벤트를 요약해주세요.
+
+    분석 기간: [현재 날짜 - 10일] ~ [현재 날짜]
+
+    다음 5개 도메인 각각에 대해 관련 뉴스를 정리해주세요:
+    1. Energy/Oil — 유가 변동, OPEC 결정, 에너지 정책
+    2. Stock Market — S&P 500 급등락, 시장 심리 전환, 금융 위기 신호
+    3. Geopolitics — 전쟁/분쟁, 제재, 동맹 관계 변화
+    4. Trade/Tariffs — 관세 부과/철회, 무역 협상, 공급망 변화
+    5. Interest Rates — 금리 결정, 국채 시장 동향, 연준 발언
+
+    각 도메인별 Pain 수준 평가에 도움이 되는 핵심 팩트를 포함해주세요.
+    크로스테마 상호작용과 블라인드 스팟 경보도 포함.
+```
+
+**Why agent:** 10일간 중요 속보 800+건 × detail 평균 824자 = ~665K자로 메인 컨텍스트에 직접 로드 불가. 에이전트가 자체 컨텍스트 윈도우에서 전량 처리 후 3,000자 이내 압축 요약을 반환.
+
+**Agent output → Step 2 input:**
+- Supabase 컨텍스트가 있으면 Geopolitics/Trade 점수 판단 시 뉴스 기반 근거로 참조
+- Energy/Interest Rates 도메인도 최근 정책 변화 반영에 활용
+
 ### Step 2: Assess Pain Index Domain Values
+
+**Note:** Step 1.5의 Supabase 컨텍스트가 있으면 Geopolitics(`--geopolitics`)와 Trade(`--trade`) 점수 판단 시 뉴스 기반 근거로 참조하세요. 에이전트 출력에서 각 도메인별 Pain 수준 평가를 참고하여 1-10 점수를 결정합니다.
 
 For each of the 5 domains, determine the current level:
 

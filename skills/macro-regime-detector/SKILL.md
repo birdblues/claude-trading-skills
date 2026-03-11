@@ -27,7 +27,39 @@ Detect structural macro regime transitions using monthly-frequency cross-asset r
    ```
    This fetches 600 days of data for 9 ETFs + Treasury rates (10 API calls total).
 
-3. Read the generated Markdown report and present findings to user.
+3. Read the generated Markdown report and present findings to user. 탐지 결과와 뉴스 내러티브의 수렴/발산을 비교하세요 (Step 3.5의 Supabase 컨텍스트가 있는 경우).
+
+#### Step 3.5: Supabase Breaking News Narrative Overlay (Optional)
+
+**Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available.
+If not available, skip directly to Step 4.
+
+Invoke the `supabase-news-summarizer` agent:
+
+```
+Agent tool:
+  subagent_type: "supabase-news-summarizer"
+  prompt: |
+    최근 10일간 Supabase public.news 테이블의 속보를 전량 수집하여
+    매크로 레짐 전환 감지에 특화된 요약을 생성해주세요.
+
+    분석 기간: [현재 날짜 - 10일] ~ [현재 날짜]
+
+    다음을 반환해주세요:
+    1. 중앙은행 정책 전환 신호 (금리, QE/QT, 포워드 가이던스)
+    2. 크레딧 사이클 변화 (하이일드 스프레드, 신용 긴축/완화)
+    3. 대형주/소형주 로테이션 신호 (집중도 변화, 브로드닝)
+    4. 인플레이션/디플레이션 내러티브 변화
+    5. 주식-채권 상관관계 변화 관련 이벤트
+    6. 크로스테마 상호작용
+    7. 블라인드 스팟 경보 (사모/크레딧/시스템 리스크)
+```
+
+**Why agent:** 10일간 중요 속보 800+건 × detail 평균 824자 = ~665K자로 메인 컨텍스트에 직접 로드 불가. 에이전트가 자체 컨텍스트 윈도우에서 전량 처리 후 3,000자 이내 압축 요약을 반환.
+
+**Agent output → Step 4 input:**
+- 정량 탐지 결과와 뉴스 내러티브의 수렴/발산을 비교하여 레짐 전환 확신도를 조정
+- 크레딧/정책 관련 블라인드 스팟은 레짐 전환 선행 지표로 활용
 
 4. Provide additional context using `references/historical_regimes.md` when user asks about historical parallels.
 

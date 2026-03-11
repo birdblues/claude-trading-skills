@@ -99,6 +99,39 @@ Read references/scenario_playbooks.md
 - `sector_sensitivity_matrix.md`: 이벤트 × 섹터 영향도 매트릭스
 - `scenario_playbooks.md`: 시나리오 구축 템플릿과 베스트 프랙티스
 
+#### Step 1.5: Supabase Breaking News Context (Optional)
+
+**Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available.
+If not available, skip directly to Phase 2.
+
+Invoke the `supabase-news-summarizer` agent:
+
+```
+Agent tool:
+  subagent_type: "supabase-news-summarizer"
+  prompt: |
+    최근 10일간 Supabase public.news 테이블의 속보를 전량 수집하여
+    다음 헤드라인 분석에 특화된 요약을 생성해주세요.
+
+    대상 헤드라인: [입력된 헤드라인]
+
+    분석 기간: [현재 날짜 - 10일] ~ [현재 날짜]
+
+    다음을 반환해주세요:
+    1. 대상 헤드라인과 관련된 이벤트 체인 (선행·후속 사건)
+    2. 정책·지정학적 변화 추이
+    3. 관련 섹터별 기업·실적 뉴스
+    4. 크로스테마 상호작용
+    5. WebSearch 갭 리스트
+    6. 블라인드 스팟 경보 (사모/크레딧/시스템 리스크)
+```
+
+**Why agent:** 10일간 중요 속보 800+건 × detail 평균 824자 = ~665K자로 메인 컨텍스트에 직접 로드 불가. 에이전트가 자체 컨텍스트 윈도우에서 전량 처리 후 3,000자 이내 압축 요약을 반환.
+
+**Agent output → Phase 2 input:**
+- Step 2.1 scenario-analyst 프롬프트의 "Supabase 속보 컨텍스트" 섹션에 에이전트 출력 전문 삽입
+- WebSearch 갭 리스트는 Step 2.1 분석 요건의 갭 리스트 우선 검색에 활용
+
 ---
 
 ### Phase 2: 에이전트 호출
@@ -122,8 +155,11 @@ Agent tool:
     ## 레퍼런스 정보
     [읽어 들인 레퍼런스 요약]
 
+    ## Supabase 속보 컨텍스트
+    [Step 1.5 에이전트 출력이 있으면 전문 삽입, 없으면 이 섹션 생략]
+
     ## 분석 요건
-    1. WebSearch로 과거 2주간 관련 뉴스를 수집
+    1. WebSearch로 과거 2주간 관련 뉴스를 수집 (Supabase 갭 리스트가 있으면 갭 리스트 우선 검색)
     2. Base/Bull/Bear 3개 시나리오 구축 (확률 합계 100%)
     3. 1차/2차/3차 영향을 섹터별로 분석
     4. 포지티브/네거티브 영향 종목을 각 3-5종목 선정 (미국 시장만)

@@ -132,7 +132,44 @@ ls -lt reports/theme_detector_*.json | head -1
 cat reports/theme_detector_YYYY-MM-DD_HHMMSS.json
 ```
 
+### Step 3.5: Supabase Breaking News Narrative Pre-Check (Optional)
+
+**Prerequisite:** Check if `mcp__supabase__execute_sql` tool is available.
+If not available, skip directly to Step 4.
+
+Invoke the `supabase-news-summarizer` agent:
+
+```
+Agent tool:
+  subagent_type: "supabase-news-summarizer"
+  prompt: |
+    최근 10일간 Supabase public.news 테이블의 속보를 전량 수집하여
+    테마별 내러티브 강도를 사전 평가해주세요.
+
+    분석 기간: [현재 날짜 - 10일] ~ [현재 날짜]
+
+    다음 테마 카테고리별로 뉴스 건수와 강도를 정리해주세요:
+    1. AI/반도체 — 칩 수출 규제, AI 투자, 데이터센터
+    2. 에너지 전환 — 재생에너지, EV, 탄소 정책
+    3. 방산 — 군비 확장, 지정학적 긴장, 방위 계약
+    4. 금융 — 금리, 은행 실적, 핀테크
+    5. 의료/바이오 — 신약 승인, 의료 정책
+    6. 인프라 — 건설, 운송, 공급망
+
+    각 테마별 뉴스 건수, 핵심 이벤트, 내러티브 방향(강세/약세)을 포함.
+    크로스테마 상호작용과 블라인드 스팟 경보도 포함.
+```
+
+**Why agent:** 10일간 중요 속보 800+건 × detail 평균 824자 = ~665K자로 메인 컨텍스트에 직접 로드 불가. 에이전트가 자체 컨텍스트 윈도우에서 전량 처리 후 3,000자 이내 압축 요약을 반환.
+
+**Agent output → Step 4 input:**
+- Supabase 뉴스 건수 >50이면 Strong narrative baseline으로 판정
+- 내러티브 방향이 Step 3의 Theme Heat 방향과 수렴/발산하는지 확인
+- WebSearch 갭 리스트는 Step 4에서 우선 검색에 활용
+
 ### Step 4: Perform Narrative Confirmation via WebSearch
+
+If Step 3.5 was executed, focus WebSearch on gaps and verification. If Step 3.5 was skipped, execute all searches below as primary narrative confirmation. For themes where Supabase news count >50, consider this a Strong narrative baseline.
 
 For the top 5 themes (by Theme Heat score), execute WebSearch queries to confirm narrative strength:
 
